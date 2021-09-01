@@ -1,6 +1,5 @@
 import sys
-sys.path.insert(0, sys.argv[2])
-
+print("PATH  ", sys.path)
 import pandas as pd
 
 from sscutils import dump_dfs_to_trepos
