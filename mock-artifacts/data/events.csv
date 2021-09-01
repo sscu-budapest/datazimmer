@@ -1,0 +1,10 @@
+person_id,object_id,success
+a,10,True
+a,11,False
+c,11,True
+c,10,True
+b,11,False
+a,10,True
+a,10,True
+b,10,False
+b,11,True
