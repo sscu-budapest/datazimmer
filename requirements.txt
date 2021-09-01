@@ -4,3 +4,4 @@ invoke
 dvc
 parquetranger
 colassigner
+pyyaml
