@@ -5,4 +5,9 @@
 [![codecov](https://img.shields.io/codecov/c/github/sscu-budapest/sscutils)](https://codecov.io/gh/sscu-budapest/sscutils)
 [![pypi](https://img.shields.io/pypi/v/sscutils.svg)](https://pypi.org/project/sscutils/)
 
-add keywords to pyproject.toml
+Some utility function to help with
+
+- setting up data subsets with invoke
+- simplified dvc pipeline registry
+
+these are used in [dataset-template](https://github.com/sscu-budapest/dataset-template) and [research-project-template](https://github.com/sscu-budapest/project-template)
