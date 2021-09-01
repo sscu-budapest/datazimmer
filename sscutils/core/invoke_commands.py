@@ -44,7 +44,7 @@ def push_subsets(ctx, git_push=True):
 
 
 @task
-def import_data(ctx, env_only=True):
+def import_data(ctx, env_only=True, git_commit=True):
     dvc_repo = Repo()
     for dset in load_imported_datasets(env_only):
         src_loc = get_subset_path(dset.subset).as_posix()
@@ -58,7 +58,15 @@ def import_data(ctx, env_only=True):
             rev=dset.tag or None,
             fname=None,
         )
-        copy_all_metadata(dset.repo, dset.tag, dset.prefix)
+        meta_files = copy_all_metadata(dset.repo, dset.tag, dset.prefix)
+        if git_commit:
+            ctx.run(
+                f"git add *.gitignore {out_loc}.dvc {' '.join(meta_files)}"
+            )
+            ctx.run(
+                'git commit -m "add imported dataset'
+                f' {dset.prefix}: {dset.subset}"'
+            )
 
 
 dataset_ns = Collection(init_dataset, write_subsets, push_subsets)
