@@ -1,3 +1,6 @@
+v0.0.0
+------
+
 - first release of sscutils, yay!!
 - set constants
 - add io functions
