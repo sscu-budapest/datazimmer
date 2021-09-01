@@ -65,7 +65,7 @@ class TemporaryProject:
         self._external_dvc = external_dvc_repos
 
         self._git_remote = self._get_dirname_or_tmp(git_remote)
-        if not self._git_remote.startswith("http://"):
+        if not self._git_remote.startswith("https://"):
             self._setup_repo(self._git_remote, to_tmp_branch=True)
 
     def __enter__(self):
