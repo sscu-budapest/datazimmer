@@ -16,3 +16,5 @@ requires = [
     "wheel >= 0.31.0",
     "setuptools_scm >= 2.0.0, <3"
 ]
+[tool.pytest.ini_options]
+addopts = "-s"
