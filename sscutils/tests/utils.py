@@ -92,6 +92,8 @@ class TemporaryProject:
     def _setup_repo(self, cwd, to_tmp_branch=False, remote=""):
         commands = [
             ["git", "init"],
+            ["git", "config", "--local", "user.name", "John Doe"],
+            ["git", "config", "--local", "user.email", "johndoe@example.com"],
         ]
         if remote:
             commands.append(["git", "remote", "add", "origin", remote])
