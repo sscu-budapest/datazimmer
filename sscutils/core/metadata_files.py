@@ -41,9 +41,12 @@ class _MetadataFile(ABC):
 
     def dump_to_local(self):
         meta_str = self.get_blob().decode("utf-8")
+        self.local_file_path.write_text(self.adjust_content(meta_str))
+
+    @property
+    def local_file_path(self):
         loc_filename = "_".join(filter(None, [self.prefix, self.filename]))
-        loc_file_path = Path(DATA_MANAGEMENT_SRC_PATH, loc_filename)
-        loc_file_path.write_text(self.adjust_content(meta_str))
+        return Path(DATA_MANAGEMENT_SRC_PATH, loc_filename)
 
 
 class RawColsMetadata(_MetadataFile):
@@ -67,5 +70,9 @@ class TreposMetadata(_MetadataFile):
 
 
 def copy_all_metadata(repo, tag, prefix):
+    out_file_paths = []
     for mdata_file_kls in [RawColsMetadata, TreposMetadata]:
-        mdata_file_kls(repo, tag, prefix).dump_to_local()
+        mfile = mdata_file_kls(repo, tag, prefix)
+        mfile.dump_to_local()
+        out_file_paths.append(mfile.local_file_path.as_posix())
+    return out_file_paths
