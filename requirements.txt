@@ -1,7 +1,7 @@
 branthebuilder
 requests
 invoke
-dvc
+dvc[s3]
 parquetranger
 colassigner
 pyyaml
