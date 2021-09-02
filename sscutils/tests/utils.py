@@ -239,7 +239,7 @@ class TemporaryDataset(TemporaryProject):
             except CalledProcessError:
                 pass
         else:
-            raise CalledProcessError("couldn't load data")
+            raise Exception("couldn't load data")
 
 
 class TemporaryDataset2(TemporaryDataset):
