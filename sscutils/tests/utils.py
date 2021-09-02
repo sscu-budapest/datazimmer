@@ -47,6 +47,7 @@ class TemporaryProject:
         git_email="johndoe@example.com",
         csv_path=Path(ma_dir, "data").absolute().as_posix(),
         template_repo="",
+        template_repo_tag="",
     ):
         """creates the test datasets and projects"""
         root_path.mkdir(exist_ok=True)
@@ -55,6 +56,7 @@ class TemporaryProject:
         self._git_email = git_email
         self._abs_csv_path = csv_path
         self._template_repo = template_repo
+        self._template_repo_tag = template_repo_tag
         self._prev_cwd = Path.cwd()
 
         self._tmp_dirs = []
@@ -83,6 +85,7 @@ class TemporaryProject:
         os.chdir(self._root_dir)
         sys.path.insert(0, str(self._root_dir))
 
+        self._add_readme()
         self._spec_enter()
         self._commit_changes()
         self._setup_dvc_remotes_for_branches(self._root_dir)
@@ -112,6 +115,13 @@ class TemporaryProject:
 
         if template_repo:
             commands = [["git", "clone", template_repo, "."]]
+            if self._template_repo_tag:
+                commands += [
+                    ["git", "checkout", self._template_repo_tag],
+                    ["git", "checkout", "-b", "tmp"],
+                    ["git", "checkout", "-B", "main", "tmp"],
+                    ["git", "branch", "-d", "tmp"],
+                ]
         else:
             commands = [["git", "init"]]
 
@@ -184,12 +194,20 @@ class TemporaryProject:
             ["git", "commit", "-m", "add configuration"],
             ["git", "add", "*.py"],
             ["git", "commit", "-m", "add script"],
+            ["git", "add", "*.md"],
+            ["git", "commit", "-m", "add documentation"],
         ]
         for comm in commands:
             try:
                 check_call(comm)
             except CalledProcessError:
                 pass
+
+    def _add_readme(self):
+        Path("README.md").write_text(
+            f"test artifact for {self._template_repo_tag} of "
+            f"[this]({self._template_repo}) template"
+        )
 
     def _spec_enter(self):
         ds_repo1, ds_repo2 = self._external_dvc
