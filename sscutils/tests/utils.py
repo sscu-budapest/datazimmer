@@ -225,21 +225,14 @@ class TemporaryDataset(TemporaryProject):
     _config = ds1_config
 
     def _spec_enter(self):
-        for pyv in ["", "3"]:
-            try:
-                check_call(
-                    [
-                        f"python{pyv}",
-                        "load_init_data.py",
-                        self._abs_csv_path,
-                    ],
-                    env={"PYTHONPATH": sscutil_root.as_posix()},
-                )
-                break
-            except CalledProcessError:
-                pass
-        else:
-            raise Exception("couldn't load data")
+        check_call(
+            [
+                "python",
+                "load_init_data.py",
+                self._abs_csv_path,
+            ],
+            env={**os.environ, "PYTHONPATH": sscutil_root.as_posix()},
+        )
 
 
 class TemporaryDataset2(TemporaryDataset):
