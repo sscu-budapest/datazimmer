@@ -60,11 +60,11 @@ def test_project_commands(tmp_path):
 
     with c.cd(ds1_path), TemporaryDataset(ds1_path, dvc_remotes=dvcrlist):
         write_subsets(c)
-        push_subsets(c)
+        push_subsets(c, True)
 
     with c.cd(ds2_path), TemporaryDataset2(ds2_path, dvc_remotes=dvcrlist[:1]):
         write_subsets(c)
-        push_subsets(c)
+        push_subsets(c, True)
 
     with c.cd(dp1_path), TemporaryProject(dp1_path, external_dvc_repos=dslist):
         import_data(c)

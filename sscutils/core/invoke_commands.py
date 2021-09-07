@@ -27,7 +27,7 @@ def write_subsets(ctx):
 
 
 @task
-def push_subsets(ctx, git_push=True):
+def push_subsets(ctx, git_push=False):
     for ss in load_created_subsets():
         ss_posix = get_subset_path(ss.name).as_posix()
         try:
@@ -37,7 +37,10 @@ def push_subsets(ctx, git_push=True):
         dvc_repo = Repo()
         dvc_repo.add(ss_posix)
         ctx.run(f"git add {ss_posix}.dvc **/.gitignore")
-        ctx.run(f'git commit -m "add data subset {ss.name}"')
+        try:
+            ctx.run(f'git commit -m "add data subset {ss.name}"')
+        except UnexpectedExit:
+            continue
         if git_push:
             ctx.run("git push")
         dvc_repo.push()
