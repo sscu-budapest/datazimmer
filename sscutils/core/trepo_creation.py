@@ -28,7 +28,9 @@ def create_trepo_with_subsets(
         ss_names = [ss.name for ss in load_created_subsets()]
         default_ss_name = load_default_subset().name
     elif no_subsets:
-        pass
+        ss_names = [prefix]
+        default_ss_name = prefix
+        prefix = None
     else:
         ss_names = load_subset_names_of_prefix(prefix)
         default_ss_name = load_subset_from_env(prefix)
