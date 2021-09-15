@@ -1,3 +1,6 @@
+v0.0.1
+------
+
 - fix readme link
 - cleanup test artifacts
 - add commiting to data import
