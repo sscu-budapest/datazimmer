@@ -1,6 +1,22 @@
-- first release of sscutils, yay!!
-- set constants
-- add io functions
-- init sscub core
-- init tests
-- add git config to mock projects
+- fix readme link
+- cleanup test artifacts
+- add commiting to data import
+- return local paths in metadata
+- generalize test artifact creation
+- adjust remote git setup in test artifact
+- test artifact creation
+- rm print
+- fix possible python versions in test
+- add s3 requirement for public things
+- proper repos
+- remove trash
+- fix raise
+- change test env
+- remove dev req
+- add tag to template repo
+- change push subsets default
+- tmp change of order due to req clash
+- change metadata file content modification
+- add dvc remote command setup
+- fix git in inv command
+- move dvc remote config to config file
