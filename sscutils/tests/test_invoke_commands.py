@@ -8,6 +8,7 @@ from sscutils.core.invoke_commands import (
     import_data,
     init_dataset,
     push_subsets,
+    set_dvc_remotes,
     write_subsets,
 )
 from sscutils.tests.utils import (
@@ -32,6 +33,7 @@ def test_write_subsets(tmp_path):
         write_subsets(c)
     for prefix in ["complete", "dave_annie", "pete_dave_success"]:
         assert (dspath / DATA_PATH / prefix).exists()
+        # TODO: test this better
 
 
 def test_push_subsets(tmp_path):
@@ -39,6 +41,7 @@ def test_push_subsets(tmp_path):
     dspath = tmp_path / "dst"
     with c.cd(dspath.as_posix()), TemporaryDataset(dspath):
         write_subsets(c)
+        set_dvc_remotes(c)
         push_subsets(c)
 
 
@@ -60,10 +63,12 @@ def test_project_commands(tmp_path):
 
     with c.cd(ds1_path), TemporaryDataset(ds1_path, dvc_remotes=dvcrlist):
         write_subsets(c)
+        set_dvc_remotes(c)
         push_subsets(c, True)
 
     with c.cd(ds2_path), TemporaryDataset2(ds2_path, dvc_remotes=dvcrlist[:1]):
         write_subsets(c)
+        set_dvc_remotes(c)
         push_subsets(c, True)
 
     with c.cd(dp1_path), TemporaryProject(dp1_path, external_dvc_repos=dslist):

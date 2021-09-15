@@ -85,7 +85,6 @@ class TemporaryProject:
         self._add_readme()
         self._spec_enter()
         self._commit_changes()
-        self._setup_dvc_remotes_for_branches(self._root_dir)
 
         try:
             sys.modules.pop("src")
@@ -160,28 +159,6 @@ class TemporaryProject:
 
         for comm in commands:
             check_call(comm, cwd=cwd)
-
-    def _setup_dvc_remotes_for_branches(self, cwd):
-        commands = []
-        for branch_name, remote_name in self._config.branch_remote_pairs:
-            commands += [
-                switch_branch_mf(branch_name, cwd),
-                ["dvc", "remote", "default", remote_name],
-                ["git", "add", ".dvc"],
-                [
-                    "git",
-                    "commit",
-                    "-m",
-                    f"update default dvc remote to {remote_name}",
-                ],
-                ["git", "push", "-u", "origin", branch_name],
-            ]
-        commands.append(["git", "checkout", "main"])
-        for comm in commands:
-            if callable(comm):
-                comm()
-            else:
-                check_call(comm, cwd=cwd)
 
     def _commit_changes(self):
         commands = [

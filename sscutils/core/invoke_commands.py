@@ -49,7 +49,10 @@ def push_subsets(ctx, git_push=False):
         except UnexpectedExit:
             continue
         if git_push:
-            ctx.run("git push")
+            try:
+                ctx.run("git push")
+            except UnexpectedExit:
+                ctx.run(f"git push -u origin {ss.branch}")
         dvc_repo.push()
 
 
