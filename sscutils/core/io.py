@@ -15,7 +15,7 @@ from .subset_management import Subset, SubsetToImport
 # DATASET IO FUNCTIONS
 
 
-def import_subset_creator_funtion():
+def import_subset_creator_function():
     cs_module = importlib.import_module(f"{SRC_PATH}.create_subsets")
     return cs_module.create_subsets
 

@@ -6,7 +6,7 @@ from invoke.exceptions import UnexpectedExit
 
 from ..constants import DATA_PATH
 from .io import (
-    import_subset_creator_funtion,
+    import_subset_creator_function,
     load_branch_remote_pairs,
     load_created_subsets,
     load_imported_datasets,
@@ -31,7 +31,7 @@ def set_dvc_remotes(ctx):
 
 @task
 def write_subsets(ctx):
-    subset_creator_fun = import_subset_creator_funtion()
+    subset_creator_fun = import_subset_creator_function()
     for ss in load_created_subsets():
         subset_creator_fun(ss.name, **ss.sampling_kwargs)
 

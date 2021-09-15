@@ -2,7 +2,7 @@ from collections import Counter
 
 from ..exceptions import DatasetSetupException, ProjectSetupException
 from .io import (
-    import_subset_creator_funtion,
+    import_subset_creator_function,
     load_project_env_config,
     load_raw_dataset_config,
 )
@@ -44,6 +44,6 @@ def validate_project_env():
 def validate_dataset_setup():
     # should assert that metadata is same across all branches
     try:
-        import_subset_creator_funtion()
+        import_subset_creator_function()
     except ImportError:
         raise DatasetSetupException("Subset creator function not found")
