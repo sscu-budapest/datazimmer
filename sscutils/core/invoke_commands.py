@@ -7,6 +7,7 @@ from invoke.exceptions import UnexpectedExit
 from ..constants import DATA_PATH
 from .io import (
     import_subset_creator_funtion,
+    load_branch_remote_pairs,
     load_created_subsets,
     load_imported_datasets,
 )
@@ -20,6 +21,14 @@ def init_dataset(ctx):
 
 
 @task
+def set_dvc_remotes(ctx):
+    for branch, remote in load_branch_remote_pairs():
+        _try_checkout(ctx, branch)
+        ctx.run(f"dvc remote default {remote}")
+        ctx.run('git commit -m "update dvc default remote"')
+
+
+@task
 def write_subsets(ctx):
     subset_creator_fun = import_subset_creator_funtion()
     for ss in load_created_subsets():
@@ -30,10 +39,7 @@ def write_subsets(ctx):
 def push_subsets(ctx, git_push=False):
     for ss in load_created_subsets():
         ss_posix = get_subset_path(ss.name).as_posix()
-        try:
-            ctx.run(f"git checkout {ss.branch}")
-        except UnexpectedExit:
-            ctx.run(f"git checkout -b {ss.branch}")
+        _try_checkout(ctx, ss.branch)
         dvc_repo = Repo()
         dvc_repo.add(ss_posix)
         ctx.run(f"git add {ss_posix}.dvc **/.gitignore")
@@ -72,5 +78,14 @@ def import_data(ctx, env_only=True, git_commit=True):
             )
 
 
-dataset_ns = Collection(init_dataset, write_subsets, push_subsets)
-project_ns = Collection(import_data)
+dataset_ns = Collection(
+    init_dataset, write_subsets, push_subsets, set_dvc_remotes
+)
+project_ns = Collection(import_data, set_dvc_remotes)
+
+
+def _try_checkout(ctx, branch):
+    try:
+        ctx.run(f"git checkout {branch}")
+    except UnexpectedExit:
+        ctx.run(f"git checkout -b {branch}")

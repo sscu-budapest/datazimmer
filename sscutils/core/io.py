@@ -4,6 +4,7 @@ from typing import List
 import yaml
 
 from ..constants import (
+    DVC_DEFAULT_REMOTES_CONFIG_PATH,
     ENVIRONMENT_CONFIG_PATH,
     IMPORTED_DATASETS_CONFIG_PATH,
     SRC_PATH,
@@ -83,3 +84,15 @@ def load_project_env_config():
 
 def load_subset_from_env(prefix: str):
     return load_project_env_config()[prefix]
+
+
+# COMMON IO FUNCTIONS
+
+
+def load_branch_remote_pairs():
+    try:
+        return yaml.safe_load(
+            DVC_DEFAULT_REMOTES_CONFIG_PATH.read_text()
+        ).items()
+    except FileNotFoundError:
+        return []

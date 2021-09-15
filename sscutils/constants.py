@@ -2,6 +2,7 @@ from pathlib import Path
 
 SUBSET_CONFIG_PATH = Path("subsets.yaml")
 IMPORTED_DATASETS_CONFIG_PATH = Path("datasets.yaml")
+DVC_DEFAULT_REMOTES_CONFIG_PATH = Path("default-remotes.yaml")
 ENVIRONMENT_CONFIG_PATH = Path("project-env.yaml")
 PARAMS_PATH = Path("params.yaml")
 
