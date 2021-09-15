@@ -25,7 +25,8 @@ def set_dvc_remotes(ctx):
     for branch, remote in load_branch_remote_pairs():
         _try_checkout(ctx, branch)
         ctx.run(f"dvc remote default {remote}")
-        ctx.run('git commit -m "update dvc default remote"')
+        ctx.run("git add .dvc")
+        ctx.run(f'git commit -m "update dvc default remote to {remote}"')
 
 
 @task

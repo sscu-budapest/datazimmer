@@ -18,19 +18,16 @@ ma_dir = sscutil_root / "mock-artifacts"
 class TmpProjectConfig:
     src_name: str
     dvc_remote_count: int
-    branch_remote_pairs: list
 
     @property
     def src_path(self):
         return ma_dir / self.src_name
 
 
-ds1_config = TmpProjectConfig(
-    "dataset1", 2, [("main", "remote1"), ("public", "remote2")]
-)
-ds2_config = TmpProjectConfig("dataset2", 1, [("main", "remote1")])
-dp1_config = TmpProjectConfig("research-project", 1, [("main", "remote1")])
-dp2_config = TmpProjectConfig("research-project2", 1, [("main", "remote1")])
+ds1_config = TmpProjectConfig("dataset1", 2)
+ds2_config = TmpProjectConfig("dataset2", 1)
+dp1_config = TmpProjectConfig("research-project", 1)
+dp2_config = TmpProjectConfig("research-project2", 1)
 
 
 class TemporaryProject:
