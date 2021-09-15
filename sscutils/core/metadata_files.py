@@ -55,9 +55,7 @@ class RawColsMetadata(_MetadataFile):
         return RAW_COLS_PYFILENAME
 
     def adjust_content(self, content: str) -> str:
-        return re.compile("(\nclass )").sub(
-            r"\1" + self.prefix.title(), content
-        )
+        return content
 
 
 class TreposMetadata(_MetadataFile):
@@ -66,7 +64,13 @@ class TreposMetadata(_MetadataFile):
         return TREPOS_PYFILENAME
 
     def adjust_content(self, content: str) -> str:
-        return re.compile(r"\)\n").sub(f', prefix="{self.prefix}")\n', content)
+        param_added = re.compile(r"\)\n").sub(
+            f', prefix="{self.prefix}")\n', content
+        )
+        module_prefix_added = param_added.replace(
+            " .raw_cols ", f" .{self.prefix}_raw_cols "
+        )
+        return module_prefix_added
 
 
 def copy_all_metadata(repo, tag, prefix):

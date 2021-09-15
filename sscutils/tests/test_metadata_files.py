@@ -2,16 +2,26 @@ from sscutils.core.metadata_files import RawColsMetadata, TreposMetadata
 
 test_prefix = "fing"
 
-trepo_from = """from sscutils import create_trepo_with_subsets
+trepo_from = (
+    """from sscutils import create_trepo_with_subsets
 
-objects_table = create_trepo_with_subsets("objects")
+from .raw_cols import CommonCols
+
+objects_table = create_trepo_with_subsets("objects","""
+    """ group_cols=[CommonCols.some_id])
 """
+)
 
 
-trepo_to = """from sscutils import create_trepo_with_subsets
+trepo_to = (
+    """from sscutils import create_trepo_with_subsets
 
-objects_table = create_trepo_with_subsets("objects", prefix="fing")
+from .fing_raw_cols import CommonCols
+
+objects_table = create_trepo_with_subsets("objects","""
+    """ group_cols=[CommonCols.some_id], prefix="fing")
 """
+)
 
 rawcols_from = """from colassigner import ColAccessor
 
@@ -22,7 +32,7 @@ class CommonCols(ColAccessor):
 
 rawcols_to = """from colassigner import ColAccessor
 
-class FingCommonCols(ColAccessor):
+class CommonCols(ColAccessor):
     obj_id = "object_id"
 """
 
