@@ -4,7 +4,7 @@ from dvc.repo import Repo
 from invoke import Collection, task
 from invoke.exceptions import UnexpectedExit
 
-from ..constants import DATA_PATH
+from ..constants import DATA_PATH, SRC_PATH
 from .io import (
     import_subset_creator_function,
     load_branch_remote_pairs,
@@ -13,6 +13,13 @@ from .io import (
 )
 from .metadata_files import copy_all_metadata
 from .path_functions import get_subset_path
+
+
+@task
+def lint(c):
+    c.run(f"black {SRC_PATH} -l 119")
+    c.run(f"isort {SRC_PATH} -m 3 --tc")
+    c.run(f"flake8 {SRC_PATH} --max-line-length=119")
 
 
 @task
@@ -82,10 +89,12 @@ def import_data(ctx, env_only=True, git_commit=True):
             )
 
 
+common_tasks = [set_dvc_remotes, lint]
+
 dataset_ns = Collection(
-    init_dataset, write_subsets, push_subsets, set_dvc_remotes
+    init_dataset, write_subsets, push_subsets, *common_tasks
 )
-project_ns = Collection(import_data, set_dvc_remotes)
+project_ns = Collection(import_data, *common_tasks)
 
 
 def _try_checkout(ctx, branch):

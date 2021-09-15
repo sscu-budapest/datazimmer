@@ -10,17 +10,25 @@ from .path_functions import get_subset_path
 
 
 def create_trepo_with_subsets(
-    filename: str, group_cols=None, max_records=0, prefix=None
+    filename: str,
+    group_cols=None,
+    max_records=0,
+    prefix=None,
+    no_subsets: bool = False,
 ) -> TableRepo:
     """create a TableRepo
 
     should work for dataset and project equally
 
-    set prefix if and only if within a project - not a dataset"""
+    `prefix`: set if and only if within a project - not a dataset
+    `no_subsets`: set to True for intermediate output of a project
+    """
 
     if prefix is None:
         ss_names = [ss.name for ss in load_created_subsets()]
         default_ss_name = load_default_subset().name
+    elif no_subsets:
+        pass
     else:
         ss_names = load_subset_names_of_prefix(prefix)
         default_ss_name = load_subset_from_env(prefix)
