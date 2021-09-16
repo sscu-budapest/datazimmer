@@ -1,5 +1,4 @@
 import inspect
-import os
 import random
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,9 +15,8 @@ class PipelineRegistry:
     def __init__(self):
         self._steps = {}
         try:
-            with open("params.yaml") as fp:
-                self.all_params = yaml.safe_load(fp)
-        except OSError:
+            self.all_params = yaml.safe_load(PARAMS_PATH.read_text())
+        except FileNotFoundError:
             self.all_params = {}
 
     def register(
@@ -70,11 +68,13 @@ class PipelineRegistry:
         if isinstance(elem, str):
             return [elem]
         if isinstance(elem, Path):
-            return [str(elem)]
+            return [elem.as_posix()]
         if isinstance(elem, TableRepo):
             return [elem.full_path]
         if isinstance(elem, type):
-            return [os.path.relpath(inspect.getfile(elem), os.getcwd())]
+            return [
+                Path(inspect.getfile(elem)).relative_to(Path.cwd()).as_posix()
+            ]
         if callable(elem):
             pe = self._steps[elem.__name__]
             return pe.outputs + pe.out_nocache
