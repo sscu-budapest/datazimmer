@@ -64,7 +64,7 @@ def push_subsets(ctx, git_push=False):
 
 
 @task
-def import_data(ctx, env_only=True, git_commit=True):
+def import_data(ctx, env_only=True, git_commit=False):
     dvc_repo = Repo()
     for dset in load_imported_datasets(env_only):
         src_loc = get_subset_path(dset.subset).as_posix()
