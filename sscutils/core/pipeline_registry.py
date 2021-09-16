@@ -1,5 +1,4 @@
 import inspect
-import random
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Optional, Union
@@ -7,8 +6,11 @@ from typing import Iterable, Optional, Union
 import yaml
 from invoke import Collection, task
 from parquetranger import TableRepo
+from structlog import get_logger
 
 from ..constants import PARAMS_PATH
+
+logger = get_logger()
 
 
 class PipelineRegistry:
@@ -103,17 +105,15 @@ class PipelineElement:
         parsed_params = {}
         _level_params = loaded_params.get(self.name, {})
         for k in self.param_list:
-            if k == "seed":
-                v = loaded_params[k]
-                try:
-                    import numpy as np
-
-                    np.random.seed(v)
-                except ImportError:
-                    pass
-                random.seed(v)
-            else:
+            try:
                 parsed_params[k] = _level_params[k]
+            except KeyError:
+                logger.warn(
+                    "couldn't find key in step level params, looking globally",
+                    key=k,
+                    step_keys=_level_params.keys(),
+                )
+                parsed_params[k] = loaded_params[k]
 
         return self.runner(**parsed_params)
 
