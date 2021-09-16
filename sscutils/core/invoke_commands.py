@@ -1,4 +1,5 @@
 from pathlib import Path
+from shutil import rmtree
 
 from dvc.repo import Repo
 from invoke import Collection, task
@@ -69,10 +70,11 @@ def import_data(ctx, env_only=True, git_commit=False):
     for dset in load_imported_datasets(env_only):
         src_loc = get_subset_path(dset.subset).as_posix()
         out_path = get_subset_path(dset.subset, dset.prefix)
+        rmtree(out_path, ignore_errors=True)
         out_path.parent.mkdir(exist_ok=True, parents=True)
         out_loc = out_path.as_posix()
         dvc_repo.imp(
-            url=dset.repo,  # git@github.com:/user/repo
+            url=dset.repo,
             path=src_loc,
             out=out_loc,
             rev=dset.tag or None,
