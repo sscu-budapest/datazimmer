@@ -72,11 +72,11 @@ class PipelineRegistry:
         if isinstance(elem, TableRepo):
             return [elem.full_path]
         if isinstance(elem, type):
-            return [
-                Path(inspect.getfile(elem)).relative_to(Path.cwd()).as_posix()
-            ]
+            return _type_or_fun_elem(elem)
         if callable(elem):
-            pe = self._steps[elem.__name__]
+            pe = self._steps.get(elem.__name__)
+            if pe is None:
+                return _type_or_fun_elem(elem)
             return pe.outputs + pe.out_nocache
         raise TypeError(
             f"{type(elem)} was given as parameter for pipeline element"
@@ -115,7 +115,7 @@ class PipelineElement:
             else:
                 parsed_params[k] = _level_params[k]
 
-        self.runner(**parsed_params)
+        return self.runner(**parsed_params)
 
     def get_invoke_task(self):
         param_str = ",".join(
@@ -155,3 +155,7 @@ class PipelineElement:
 
 def _get_comm(entries, prefix):
     return " ".join([f"-{prefix} {e}" for e in entries])
+
+
+def _type_or_fun_elem(elem):
+    return [Path(inspect.getfile(elem)).relative_to(Path.cwd()).as_posix()]
