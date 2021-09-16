@@ -144,10 +144,6 @@ class PipelineElement:
 
         return _task
 
-    def get_dag_replace(self, link_base):
-        link = link_base.format(self.dependencies[0], self.lineno)
-        return self.name, f"[{self.name}]({link})"
-
     @property
     def name(self):
         return self.runner.__name__
