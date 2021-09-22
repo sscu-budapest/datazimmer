@@ -1,3 +1,4 @@
+import re
 from collections import Counter
 
 from ..exceptions import DatasetSetupException, ProjectSetupException
@@ -47,3 +48,20 @@ def validate_dataset_setup():
         import_subset_creator_function()
     except ImportError:
         raise DatasetSetupException("Subset creator function not found")
+
+
+def _check_match(bc, s):
+    rex = r"[a-z]+((?!{bc}{bc})[a-z|\{bc}])*[a-z]+".format(bc=bc)
+    if re.compile(rex).fullmatch(s) is None:
+        raise NameError(
+            f"{s} does not fit the expected format of "
+            f"lower case letters and non-duplicated {bc}"
+        )
+
+
+def validate_step_name(s):
+    _check_match("_", s)
+
+
+def validate_repo_name(s):
+    _check_match("-", s)
