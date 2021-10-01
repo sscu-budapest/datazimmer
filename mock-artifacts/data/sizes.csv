@@ -1,0 +1,6 @@
+dogsize_name,waist__min,waist__max,weight__min,weight__max
+XS,8,22,10,20
+SM,16,27,20,45
+MED,18,34,40,80
+LG,24,39,75,100
+XL,27,44,90,140
