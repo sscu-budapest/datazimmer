@@ -1,5 +1,7 @@
-from ._version import __version__  # noqa: F401
-from .core.invoke_commands import dataset_ns, project_ns  # noqa: F401
-from .core.io import dump_dfs_to_trepos  # noqa: F401
-from .core.pipeline_registry import PipelineRegistry  # noqa: F401
-from .core.trepo_creation import create_trepo_with_subsets  # noqa: F401
+# flake8: noqa
+from ._version import __version__
+from .helpers import dump_dfs_to_tables
+from .invoke_commands import dataset_ns, project_ns
+from .metadata import Col, CompositeTypeBase, IndexBase, TableFeaturesBase
+from .pipeline_registry import PipelineRegistry
+from .scrutable_class import ScruTable, TableFactory
