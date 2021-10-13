@@ -1,101 +1,101 @@
 dog1__dog_id,dog2__dog_id,spot__city,spot__zip,spot__street_address,spot__building__floor,spot__building__door
-d-28,d-14,North Kevinshire,14538,15505 Swanson Brook,7,43
-d-10,d-27,West Margarettown,33230,441 Michelle Walk,12,81
-d-9,d-35,New Josephton,19460,220 Catherine Throughway,8,82
-d-2,d-6,Sarahchester,22539,4185 Ryan Way,4,46
-d-2,d-10,Benitezbury,71988,018 Smith Avenue,9,11
-d-12,d-2,Fernandezshire,52846,96360 Cannon Drive,6,30
-d-33,d-24,Walshfort,64711,870 Michael Shores,9,75
-d-9,d-8,West Miranda,04207,1483 Torres Extensions,3,94
-d-28,d-28,South Nicholasbury,66692,099 Daniel Plain,4,86
-d-28,d-36,Port Joshuaton,11428,6646 Schneider Centers,7,55
-d-1,d-3,New Susan,80183,33182 George Inlet,5,71
-d-10,d-3,New Marie,90573,70012 Audrey Spurs,4,69
-d-10,d-2,South Roy,08109,83103 Cody Squares,10,8
-d-2,d-7,Angelafort,25639,168 Howard Expressway,3,89
-d-11,d-11,North Matthewburgh,91842,0417 Brown Hollow,5,55
-d-4,d-25,North Timothy,21978,1009 Peterson Path,1,86
-d-15,d-5,West Alfred,22653,538 Miller Extension,17,13
-d-16,d-17,New Williamberg,20557,74318 Christopher Ville,2,48
-d-36,d-32,South Brittany,67088,98907 David Hill,10,65
-d-1,d-12,Lake Jamesland,21366,365 Hubbard Rest,8,4
-d-22,d-25,East Samanthafort,72529,1201 Smith Parkways,16,79
-d-12,d-17,Port Steven,12694,271 Boyd Common,35,83
-d-6,d-31,New Tiffany,50881,4457 Durham Forks,10,39
-d-13,d-3,South Alex,71995,743 Charles Spring,8,75
-d-9,d-30,North Alexisland,52437,91984 Perez Inlet,1,67
-d-15,d-21,Harmonberg,12281,2319 John Rapids,2,56
-d-6,d-1,Cynthiahaven,43166,132 Day Route,8,20
-d-27,d-12,Amandaville,19459,61397 Mark Lane,8,12
-d-35,d-1,Shawnmouth,62930,38440 Tina Divide,5,76
-d-24,d-33,Stewartberg,75361,190 Adams Rapids,2,38
-d-2,d-13,Smithport,95374,9438 Smith Manors,4,33
-d-13,d-4,Flynnburgh,47964,28331 Katherine Circle,4,71
-d-20,d-18,North Chelsey,46226,7374 Brent Isle,26,88
-d-3,d-5,Smithside,48425,094 Blackwell Valleys,7,11
-d-24,d-31,Port Barbara,12803,818 Parker Circle,7,45
-d-33,d-10,Bartonland,72829,642 Robinson Harbor,8,13
-d-5,d-16,Bennettville,47826,40287 Elizabeth Summit,6,97
-d-19,d-23,Tylershire,61797,454 Garcia Mission,47,87
-d-19,d-15,New Wanda,41731,53755 Shaffer Keys,9,84
-d-30,d-19,Annaside,64849,32729 Reed Manor,17,88
-d-36,d-6,Joshuaborough,09022,392 Jesus Gateway,38,76
-d-33,d-17,Leefort,84415,97296 Cline Junction,10,40
-d-31,d-32,Lopezshire,29323,55134 Adam Viaduct,9,26
-d-7,d-11,Lake William,05937,40672 Michelle Shoal,3,65
-d-19,d-12,North Lindsayfurt,04832,44772 Campbell Locks,8,88
-d-5,d-13,South Ruthtown,39699,00510 Justin Lake,15,64
-d-31,d-16,Ryanstad,75086,4800 Rosales Light,15,87
-d-7,d-10,Lake Michael,58586,74600 Diana Curve,6,27
-d-26,d-6,New Lisa,72540,33601 Espinoza Mountains,2,97
-d-30,d-4,North Jacquelineburgh,96353,51915 Julie Knoll,5,20
-d-12,d-3,North Jefferymouth,03951,7348 Daniel Trail,34,60
-d-31,d-13,New Richard,08310,799 Morris Hill,5,40
-d-19,d-4,Chrischester,18654,18960 Elizabeth River,4,83
-d-9,d-18,North Travis,72291,299 Gabriel Crescent,10,8
-d-19,d-18,Reynoldsland,56836,68118 Teresa Street,23,98
-d-29,d-10,North Jessicaland,89783,749 Cohen Viaduct,7,83
-d-19,d-29,New Jamesville,97426,528 Miller Dam,7,35
-d-14,d-36,Gabrielview,70766,2327 King Garden,7,39
-d-15,d-30,Ralphshire,84164,32681 Stephanie Crescent,14,12
-d-15,d-10,Lake Karen,32877,0388 Julie Crest,23,29
-d-5,d-13,Vasquezmouth,02354,991 Scott Drive,12,101
-d-16,d-6,Lyonschester,73631,6593 Robert Highway,10,6
-d-28,d-29,Lake Bradley,75969,0082 Holmes Summit,8,7
-d-22,d-29,Bryanstad,41081,6978 Justin Crossing,11,55
-d-1,d-9,Rodriguezmouth,64340,0458 Paul Rapids,11,67
-d-6,d-36,Adamsmouth,23172,232 Rice Hill,11,8
-d-20,d-3,Williamsstad,95154,98316 Smith Fort,10,59
-d-28,d-9,East Dustin,46575,361 King Plains,4,36
-d-26,d-25,North Melanie,55961,197 William Plains,6,35
-d-3,d-12,New Loretta,38194,6354 Richard Road,42,24
-d-3,d-19,Emilymouth,40427,823 Rodriguez Island,8,32
-d-19,d-22,Shawmouth,88667,1299 Tracey Estates,2,39
-d-7,d-2,Conleyburgh,71132,03704 Jacobs Loop,7,41
-d-25,d-2,Kimberlymouth,18271,56493 Miller Roads,5,43
-d-23,d-29,Riveraville,16795,2376 Washington Cliffs,17,94
-d-18,d-35,West Ashley,91682,213 Day Bypass,6,10
-d-36,d-32,Johnsonshire,67197,52560 Johnson Corner,58,30
-d-10,d-32,Brownton,63810,4201 Ryan Tunnel,18,99
-d-27,d-32,West Ronald,98225,7691 Short Rapid,7,36
-d-2,d-14,Angelaland,77689,598 Diana Gardens,2,80
-d-10,d-7,North Stephaniechester,13784,0331 Anthony Freeway,5,64
-d-29,d-9,West Michael,16805,399 Amy Motorway,16,81
-d-32,d-28,Garciaside,24551,271 Patricia Island,3,80
-d-26,d-26,Lisaport,38409,811 Cisneros Summit,20,61
-d-16,d-17,Mitchellmouth,84999,76292 Nunez Village,7,29
-d-17,d-1,Lake Patriciaberg,52686,9350 John Walks,46,12
-d-14,d-17,Port Austinborough,33390,6594 Phillips Villages,9,101
-d-1,d-1,East Alyssatown,54324,237 Ryan Squares,7,22
-d-34,d-18,Lake Thomas,24836,1168 Annette Hills,3,6
-d-7,d-11,Mercedesmouth,58262,7026 Jacob Walks,5,32
-d-1,d-7,Weaverland,19607,97565 Long Vista,6,25
-d-19,d-19,Perkinsfurt,09992,54152 Kimberly Stream,7,61
-d-18,d-26,North Thomasstad,69785,597 Herrera Walks,2,88
-d-8,d-26,New Paulland,78928,104 Frederick Pines,7,73
-d-19,d-30,West Angela,56659,69567 Moran Brooks,2,49
-d-1,d-35,West Jamesfurt,48008,0172 Jackson Landing,3,17
-d-24,d-29,Patriciachester,26158,1397 Crystal Springs,1,54
-d-1,d-4,North Gregory,82032,0912 Brandon Trafficway,46,17
-d-8,d-27,West Matthewfurt,36854,272 Wilson Expressway,22,25
-d-14,d-25,West Robert,84789,91833 Tammy Circles,15,28
+d-28,d-14,Oliviaton,14246,0540 Chavez Lake,7,43
+d-10,d-27,North Jennifer,39964,40840 Duane Pass,12,81
+d-9,d-35,East Vicki,07038,596 Gary Haven,8,82
+d-2,d-6,New Michaelfurt,71154,3858 David Pass,4,46
+d-2,d-10,Hillmouth,59715,09636 Brenda Trafficway,9,11
+d-12,d-2,Yushire,18083,015 Contreras Knoll,6,30
+d-33,d-24,Amandachester,40430,07683 Castro Canyon,9,75
+d-9,d-8,North Jennifer,70662,1914 Christopher Locks,3,94
+d-28,d-28,Boydchester,84886,06628 Franklin Bypass,4,86
+d-28,d-36,East Charles,72543,24892 Stephanie Spur,7,55
+d-1,d-3,Martinezton,03484,29223 Eric Meadow,5,71
+d-10,d-3,South Johnbury,08865,31344 Kristen Land,4,69
+d-10,d-2,Davilaside,17398,8028 Daniel Burgs,10,8
+d-2,d-7,Paulburgh,91842,0417 Brown Hollow,3,89
+d-11,d-11,North Timothy,21978,1009 Peterson Path,5,55
+d-4,d-25,West Alfred,22653,538 Miller Extension,1,86
+d-15,d-5,New Williamberg,20557,74318 Christopher Ville,17,13
+d-16,d-17,South Brittany,67088,98907 David Hill,2,48
+d-36,d-32,Lake Jamesland,21366,365 Hubbard Rest,10,65
+d-1,d-12,East Samanthafort,72529,1201 Smith Parkways,8,4
+d-22,d-25,Port Steven,12694,271 Boyd Common,16,79
+d-12,d-17,New Tiffany,50881,4457 Durham Forks,35,83
+d-6,d-31,South Alex,71995,743 Charles Spring,10,39
+d-13,d-3,North Alexisland,52437,91984 Perez Inlet,8,75
+d-9,d-30,Harmonberg,12281,2319 John Rapids,1,67
+d-15,d-21,Cynthiahaven,43166,132 Day Route,2,56
+d-6,d-1,Amandaville,19459,61397 Mark Lane,8,20
+d-27,d-12,Shawnmouth,62930,38440 Tina Divide,8,12
+d-35,d-1,Stewartberg,75361,190 Adams Rapids,5,76
+d-24,d-33,Smithport,95374,9438 Smith Manors,2,38
+d-2,d-13,Flynnburgh,47964,28331 Katherine Circle,4,33
+d-13,d-4,North Chelsey,46226,7374 Brent Isle,4,71
+d-20,d-18,Smithside,48425,094 Blackwell Valleys,26,88
+d-3,d-5,Port Barbara,12803,818 Parker Circle,7,11
+d-24,d-31,Bartonland,72829,642 Robinson Harbor,7,45
+d-33,d-10,Bennettville,47826,40287 Elizabeth Summit,8,13
+d-5,d-16,Tylershire,61797,454 Garcia Mission,6,97
+d-19,d-23,New Wanda,41731,53755 Shaffer Keys,47,87
+d-19,d-15,Annaside,64849,32729 Reed Manor,9,84
+d-30,d-19,Joshuaborough,09022,392 Jesus Gateway,17,88
+d-36,d-6,Leefort,84415,97296 Cline Junction,38,76
+d-33,d-17,Lopezshire,29323,55134 Adam Viaduct,10,40
+d-31,d-32,Lake William,05937,40672 Michelle Shoal,9,26
+d-7,d-11,North Lindsayfurt,04832,44772 Campbell Locks,3,65
+d-19,d-12,South Ruthtown,39699,00510 Justin Lake,8,88
+d-5,d-13,Ryanstad,75086,4800 Rosales Light,15,64
+d-31,d-16,Lake Michael,58586,74600 Diana Curve,15,87
+d-7,d-10,New Lisa,72540,33601 Espinoza Mountains,6,27
+d-26,d-6,North Jacquelineburgh,96353,51915 Julie Knoll,2,97
+d-30,d-4,North Jefferymouth,03951,7348 Daniel Trail,5,20
+d-12,d-3,New Richard,08310,799 Morris Hill,34,60
+d-31,d-13,Chrischester,18654,18960 Elizabeth River,5,40
+d-19,d-4,North Travis,72291,299 Gabriel Crescent,4,83
+d-9,d-18,Reynoldsland,56836,68118 Teresa Street,10,8
+d-19,d-18,North Jessicaland,89783,749 Cohen Viaduct,23,98
+d-29,d-10,New Jamesville,97426,528 Miller Dam,7,83
+d-19,d-29,Gabrielview,70766,2327 King Garden,7,35
+d-14,d-36,Ralphshire,84164,32681 Stephanie Crescent,7,39
+d-15,d-30,Lake Karen,32877,0388 Julie Crest,14,12
+d-15,d-10,Vasquezmouth,02354,991 Scott Drive,23,29
+d-5,d-13,Lyonschester,73631,6593 Robert Highway,12,101
+d-16,d-6,Lake Bradley,75969,0082 Holmes Summit,10,6
+d-28,d-29,Bryanstad,41081,6978 Justin Crossing,8,7
+d-22,d-29,Rodriguezmouth,64340,0458 Paul Rapids,11,55
+d-1,d-9,Adamsmouth,23172,232 Rice Hill,11,67
+d-6,d-36,Williamsstad,95154,98316 Smith Fort,11,8
+d-20,d-3,East Dustin,46575,361 King Plains,10,59
+d-28,d-9,North Melanie,55961,197 William Plains,4,36
+d-26,d-25,New Loretta,38194,6354 Richard Road,6,35
+d-3,d-12,Emilymouth,40427,823 Rodriguez Island,42,24
+d-3,d-19,Shawmouth,88667,1299 Tracey Estates,8,32
+d-19,d-22,Conleyburgh,71132,03704 Jacobs Loop,2,39
+d-7,d-2,Kimberlymouth,18271,56493 Miller Roads,7,41
+d-25,d-2,Riveraville,16795,2376 Washington Cliffs,5,43
+d-23,d-29,West Ashley,91682,213 Day Bypass,17,94
+d-18,d-35,Johnsonshire,67197,52560 Johnson Corner,6,10
+d-36,d-32,Brownton,63810,4201 Ryan Tunnel,58,30
+d-10,d-32,West Ronald,98225,7691 Short Rapid,18,99
+d-27,d-32,Angelaland,77689,598 Diana Gardens,7,36
+d-2,d-14,North Stephaniechester,13784,0331 Anthony Freeway,2,80
+d-10,d-7,West Michael,16805,399 Amy Motorway,5,64
+d-29,d-9,Garciaside,24551,271 Patricia Island,16,81
+d-32,d-28,Lisaport,38409,811 Cisneros Summit,3,80
+d-26,d-26,Mitchellmouth,84999,76292 Nunez Village,20,61
+d-16,d-17,Lake Patriciaberg,52686,9350 John Walks,7,29
+d-17,d-1,Port Austinborough,33390,6594 Phillips Villages,46,12
+d-14,d-17,East Alyssatown,54324,237 Ryan Squares,9,101
+d-1,d-1,Lake Thomas,24836,1168 Annette Hills,7,22
+d-34,d-18,Mercedesmouth,58262,7026 Jacob Walks,3,6
+d-7,d-11,Weaverland,19607,97565 Long Vista,5,32
+d-1,d-7,Perkinsfurt,09992,54152 Kimberly Stream,6,25
+d-19,d-19,North Thomasstad,69785,597 Herrera Walks,7,61
+d-18,d-26,New Paulland,78928,104 Frederick Pines,2,88
+d-8,d-26,West Angela,56659,69567 Moran Brooks,7,73
+d-19,d-30,West Jamesfurt,48008,0172 Jackson Landing,2,49
+d-1,d-35,Patriciachester,26158,1397 Crystal Springs,3,17
+d-24,d-29,North Gregory,82032,0912 Brandon Trafficway,1,54
+d-1,d-4,West Matthewfurt,36854,272 Wilson Expressway,46,17
+d-8,d-27,West Robert,84789,91833 Tammy Circles,22,25
+d-14,d-25,Millershire,17611,13278 Jade Junctions,15,28
