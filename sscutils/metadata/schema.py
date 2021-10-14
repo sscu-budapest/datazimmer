@@ -1,10 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Union
 
 
-class DType(Enum):
+class PrimitiveType(Enum):
     # TODO: categorical
     float = float
     int = int
@@ -15,9 +15,15 @@ class DType(Enum):
 
 
 @dataclass
-class Column:
+class ImportedNamespace:
+    uri: str
+    prefix: str
+
+
+@dataclass
+class PrimitiveFeature:
     name: str
-    dtype: DType
+    dtype: PrimitiveType
     description: Optional[str] = None
 
 
@@ -29,20 +35,26 @@ class ForeignKey:
 
 
 @dataclass
-class ColumnGroupInstance:
-    group_name: str  # an ID, that needs to link to a group
+class CompositeFeature:
     prefix: str
+    dtype: str  # an ID, that needs to link to a composite type
     description: Optional[str] = None
 
 
-ANY_COL_ROOT_TYPE = Union[Column, ColumnGroupInstance, ForeignKey]
+FEATURE_TYPE = Union[PrimitiveFeature, CompositeFeature, ForeignKey]
 
 
 @dataclass
-class ColumnGroup:
-    name: str
-    columns: List[ANY_COL_ROOT_TYPE]
+class CompositeType:
+    name: str  # turns to id with namespace
+    features: List[FEATURE_TYPE]
     description: Optional[str] = None
+
+
+@dataclass
+class EntityClass:
+    name: str  # turns to id with namespace
+    description: str
 
 
 @dataclass
@@ -52,16 +64,34 @@ class Table:
     or find new location for them
 
     e. g.
-    - no column group instances with same prefix in same table
-    - column group needs to be found from instance
+    - no composite features with same prefix in same table
+    - composite type needs to be found
+    - foreign keys referencing tables need to be found
     - column name cant contain __ (and other)
-
+    - ...
     """
 
-    name: str
-    columns: List[ANY_COL_ROOT_TYPE]
-    subject_of_records: str
-    index_cols: Optional[List[ANY_COL_ROOT_TYPE]] = None
-    partitioning_cols: Optional[List[ANY_COL_ROOT_TYPE]] = None
+    name: str  # turns to id with namespace
+    features: List[FEATURE_TYPE]
+    subject_of_records: EntityClass
+    index: List[FEATURE_TYPE] = field(default_factory=list)
+    partitioning_features: Optional[List[FEATURE_TYPE]] = None
     partition_max_rows: Optional[int] = None
     description: Optional[str] = None
+
+
+@dataclass
+class NamespaceMetadata:
+    """full spec of metadata for a namespace
+
+    a dataset stores these in yaml files in the same place
+
+    a project stores the imported namespaces on the project level
+    imported namespaces for created namespaces are inferred
+    based on what is used in other namespace metadata
+    """
+
+    imported_namespaces: List[ImportedNamespace]
+    composite_types: List[CompositeType]
+    entity_classes: List[EntityClass]
+    tables: List[Table]
