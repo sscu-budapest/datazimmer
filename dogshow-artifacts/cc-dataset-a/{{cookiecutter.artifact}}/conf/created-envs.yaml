@@ -1,0 +1,10 @@
+complete:
+  branch: main
+top_comps:
+  branch: main
+  kwargs:
+    min_prize_pool: 8000
+highest_comps:
+  branch: public
+  kwargs:
+    min_prize_pool: 12000

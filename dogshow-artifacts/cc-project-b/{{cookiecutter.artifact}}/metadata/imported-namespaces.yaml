@@ -1,0 +1,2 @@
+dogs: {{ dataset_b_repo }}
+dogsuccess: "{{ project_a_repo }}|>success"
