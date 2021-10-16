@@ -3,7 +3,6 @@ import sys
 import pandas as pd
 import src.namespace_metadata as ns
 from colassigner import get_all_cols
-
 from sscutils import dump_dfs_to_tables
 
 if __name__ == "__main__":
