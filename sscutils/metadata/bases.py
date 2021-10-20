@@ -3,7 +3,7 @@ from typing import Union
 from colassigner import ColAccessor
 
 
-class EntityClassBase:
+class BaseEntity:
     pass
 
 
