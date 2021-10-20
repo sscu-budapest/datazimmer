@@ -51,7 +51,7 @@ class PipelineRegistry:
             )
             self._steps[pe.name] = pe
 
-            for out in outputs:
+            for out in outputs or []:
                 if isinstance(out, ScruTable):
                     out.register_as_step_output(pe)
 
@@ -81,7 +81,7 @@ class PipelineRegistry:
         if isinstance(elem, Path):
             return [elem.as_posix()]
         if isinstance(elem, ScruTable):
-            return [elem.full_path]
+            return [elem.trepo.full_path]
         if isinstance(elem, type):
             return _type_or_fun_elem(elem)
         if callable(elem):
