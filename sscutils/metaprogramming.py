@@ -6,7 +6,9 @@ from colassigner.util import camel_to_snake  # noqa: F401
 def class_def_from_cls(cls: Type):
 
     return get_class_def(
-        cls.__name__, get_simplified_mro(cls), remove_dunder(cls.__dict__)
+        cls.__name__,
+        [p.__name__ for p in get_simplified_mro(cls)],
+        remove_dunder(cls.__dict__),
     )
 
 
