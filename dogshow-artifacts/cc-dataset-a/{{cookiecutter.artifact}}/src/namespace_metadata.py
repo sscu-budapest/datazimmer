@@ -1,6 +1,31 @@
 import datetime as dt
 
-from sscutils import CompositeTypeBase, IndexBase, ScruTable, TableFeaturesBase
+from sscutils import (
+    CompositeTypeBase,
+    IndexBase,
+    ScruTable,
+    TableFeaturesBase,
+    BaseEntity,
+)
+
+
+class Creature(BaseEntity):
+    pass
+
+
+class Pet(BaseEntity):
+    """most likely owned by pet owners"""
+
+    # ^ this goes to description
+    pass
+
+
+class Dog(Creature, Pet):
+    pass
+
+
+class Person(Creature):
+    pass
 
 
 class DogIndex(IndexBase):
@@ -76,11 +101,16 @@ class PhotoFeatures(TableFeaturesBase):
     rel = RelationshipIndex
 
 
-persons_table = ScruTable(PersonFeatures, PersonIndex)
-dogs_table = ScruTable(
-    DogFeatures, DogIndex, partitioning_cols=[DogFeatures.sex]
+person_table = ScruTable(
+    PersonFeatures, PersonIndex, subject_of_records=Person
 )
-relationships_table = ScruTable(RelationshipFeatures, RelationshipIndex)
-competitions_table = ScruTable(CompetitionFeatures, CompetitionIndex)
-spots_table = ScruTable(SpotFeatures)
-photos_table = ScruTable(PhotoFeatures, name="pictures", index=PhotoIndex)
+dog_table = ScruTable(
+    DogFeatures,
+    DogIndex,
+    subject_of_records=Dog,
+    partitioning_cols=[DogFeatures.sex],
+)
+relationship_table = ScruTable(RelationshipFeatures, RelationshipIndex)
+competition_table = ScruTable(CompetitionFeatures, CompetitionIndex)
+spot_table = ScruTable(SpotFeatures)
+photo_table = ScruTable(PhotoFeatures, name="picture", index=PhotoIndex)
