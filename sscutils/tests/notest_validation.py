@@ -6,7 +6,10 @@ from sscutils.core.validation_functions import (
     validate_repo_name,
     validate_step_name,
 )
-from sscutils.tests.utils import TemporaryDataset, TemporaryProject
+from sscutils.tests.create_mock_artifacts import (
+    TemporaryDataset,
+    TemporaryProject,
+)
 
 
 def test_dataset_validation(tmp_path):

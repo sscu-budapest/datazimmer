@@ -2,13 +2,14 @@ import os
 from pathlib import Path
 
 from invoke import Collection, MockContext
-from parquetranger import TableRepo
 from pytest import raises
 
-import sscutils.core.pipeline_registry as pipereg_module
+import sscutils.pipeline_registry as pipereg_module
 from sscutils import PipelineRegistry
-from sscutils.constants import PARAMS_PATH
-from sscutils.core.pipeline_registry import _type_or_fun_elem
+from sscutils.naming import ProjectConfigPaths
+from sscutils.pipeline_registry import _type_or_fun_elem
+
+PARAMS_PATH = ProjectConfigPaths.PARAMS
 
 
 def test_pipereg_basics():
@@ -44,7 +45,6 @@ def test_pipereg_params(tmp_path):
 
 def test_pipereg_parse_elems(tmp_path):
 
-    trepo = TableRepo(tmp_path / "fing")
     pipereg = PipelineRegistry()
 
     @pipereg.register(outputs=["s1_out"])
@@ -57,7 +57,6 @@ def test_pipereg_parse_elems(tmp_path):
 
     assert pipereg._parse_elem("sss") == ["sss"]
     assert pipereg._parse_elem(PARAMS_PATH) == [PARAMS_PATH.as_posix()]
-    assert pipereg._parse_elem(trepo) == [trepo.full_path]
     assert pipereg._parse_elem(PipelineRegistry) == [_module_file_path]
     assert pipereg._parse_elem(_type_or_fun_elem) == [_module_file_path]
     assert pipereg._parse_elem(step1) == ["s1_out"]
