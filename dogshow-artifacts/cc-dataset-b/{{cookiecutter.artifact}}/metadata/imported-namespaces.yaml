@@ -1,1 +1,2 @@
-dogbase: {{ dataset_a_repo }}
+dogbase:
+  uri: {{ dataset_a_repo }}
