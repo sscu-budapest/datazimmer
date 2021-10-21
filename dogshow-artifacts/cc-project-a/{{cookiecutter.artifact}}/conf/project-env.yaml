@@ -1,2 +1,4 @@
-dogfirst: highest_comps
-doglast: complete
+dogfirst: 
+  env: highest_comps
+doglast: 
+  env: complete

@@ -1,2 +1,4 @@
-dogfirst: {{ dataset_a_repo }}
-doglast: {{ dataset_b_repo }}
+dogfirst: 
+  uri: {{ dataset_a_repo }}
+doglast: 
+  uri: {{ dataset_b_repo }}
