@@ -44,10 +44,9 @@ class PrimitiveType(Enum):
 
 @dataclass
 class ImportedNamespace:
-    uri: str
     prefix: str
+    uri: str
     tag: Optional[str] = None
-    metadata_only: Optional[bool] = None
 
     def __eq__(self, o: "ImportedNamespace") -> bool:
         return (self.uri == o.uri) and (self.tag == o.tag)
