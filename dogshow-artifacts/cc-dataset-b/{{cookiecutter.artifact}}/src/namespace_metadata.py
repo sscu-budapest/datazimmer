@@ -58,4 +58,6 @@ class DogOfTheMonthFeatures(TableFeaturesBase):
 dog_size_table = ScruTable(DogSizeFeatures, DogSizeIndex)
 dog_table = ScruTable(DogFeatures, DogIndex, subject_of_records=dogbase.Dog)
 competition_table = ScruTable(CompetitionFeatures, CompetitionIndex)
-dog_of_the_month_table = ScruTable(DogOfTheMonthFeatures, DogOfTheMonthIndex)
+dog_of_the_month_table = ScruTable(
+    DogOfTheMonthFeatures, DogOfTheMonthIndex, max_partition_size=3
+)
