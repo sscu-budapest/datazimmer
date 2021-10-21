@@ -12,22 +12,23 @@ from .schema import (
 
 def get_used_ns_prefixes(ns_meta: NamespaceMetadata) -> List[str]:
     full_feature_list = []
-    full_id_list = []
+    ns_ids = []
     for table in ns_meta.tables:
         full_feature_list += table.features + (table.index or [])
-        _append_if_ns(table.subject_of_records, full_id_list)
+        ns_ids.append(_pref_of_id(table.subject_of_records))
 
     for ct in ns_meta.composite_types:
         full_feature_list += ct.features
 
     for ec in ns_meta.entity_classes:
         for ecp in ec.parents or []:
-            _append_if_ns(ecp, full_id_list)
+            ns_ids.append(_pref_of_id(ecp))
 
     return list(
         set(
-            _ns_prefixes_of_feature_list(full_feature_list)
-            + _ns_prefixes_of_id_list(full_id_list)
+            filter(
+                None, _ns_prefixes_of_feature_list(full_feature_list) + ns_ids
+            )
         )
     )
 
@@ -42,6 +43,8 @@ def map_ns_prefixes(ns_meta: NamespaceMetadata, rename_dict: dict):
     rename_dict : dict
         old_prefix: new_prefix
     """
+    for ns in ns_meta.imported_namespaces:
+        ns.prefix = rename_dict.get(ns.prefix, ns.prefix)
 
     for table in ns_meta.tables:
         _change_feat_list_prefix(table.index, rename_dict)
@@ -71,13 +74,6 @@ def _ns_prefixes_of_feature_list(feature_list=List[FEATURE_TYPE]) -> List[str]:
     ]
 
 
-def _ns_prefixes_of_id_list(id_list: List[str]):
-    out = []
-    for id_str in id_list:
-        _append_if_ns(id_str, out)
-    return list(set(out))
-
-
 def _change_prefix(id_, pref_dict):
     full_id = NamespacedId.from_conf_obj_id(id_)
     old_prefix = full_id.ns_prefix
@@ -93,7 +89,5 @@ def _change_feat_list_prefix(feat_list, pref_dict):
             feat.dtype = _change_prefix(feat.dtype, pref_dict)
 
 
-def _append_if_ns(id_, ns_list):
-    ns_prefix = NamespacedId.from_conf_obj_id(id_).ns_prefix
-    if ns_prefix:
-        ns_list.append(ns_prefix)
+def _pref_of_id(id_):
+    return NamespacedId.from_conf_obj_id(id_).ns_prefix
