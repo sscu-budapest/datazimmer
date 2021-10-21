@@ -4,6 +4,7 @@ from invoke import Context
 
 from sscutils.invoke_commands import (
     import_namespaces,
+    load_external_data,
     push_envs,
     serialize_inscript_metadata,
     set_dvc_remotes,
@@ -24,14 +25,15 @@ def test_full_dogshow(tmp_path: Path):
 
     c = Context()
 
-    with ds_cc.dataset_a:
-        serialize_inscript_metadata(c, git_commit=True)
-        update_data(c, (csv_path,))
-        set_dvc_remotes(c)
-        write_envs(c)
-        push_envs(c, git_push=True)
+    for ds in [ds_cc.dataset_a, ds_cc.dataset_b]:
+        with ds:
+            import_namespaces(c)
+            serialize_inscript_metadata(c, git_commit=True)
+            update_data(c, (csv_path,))
+            set_dvc_remotes(c)
+            write_envs(c)
+            push_envs(c, git_push=True)
 
-    with ds_cc.dataset_b:
+    with ds_cc.project_a:
         import_namespaces(c)
-        serialize_inscript_metadata(c, git_commit=True)
-        update_data(c, (csv_path,))
+        load_external_data(c)

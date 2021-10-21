@@ -3,6 +3,8 @@ from importlib import import_module
 from queue import Queue
 from typing import Dict, Iterable, List, Tuple, Type
 
+from ..config_loading import ProjectConfig
+from ..exceptions import ProjectSetupException
 from ..metaprogramming import get_class_def, get_simplified_mro
 from ..naming import IMPORTED_NAMESPACES_MODULE_NAME, SRC_PATH
 from ..scrutable_class import ScruTable, TableFactory
@@ -30,11 +32,7 @@ from .io import (
     load_metadata_from_imported_ns,
 )
 from .namespace_handling import filter_for_local_ns, map_ns_prefixes
-from .namespaced_id import (
-    NamespacedId,
-    imported_namespaces_abs_module,
-    namespace_metadata_abs_module,
-)
+from .namespaced_id import NamespacedId, namespace_metadata_abs_module
 from .schema import (
     CompositeFeature,
     CompositeType,
@@ -55,7 +53,10 @@ class LocalInScriptObject:
 
 class ScriptWriter:
     def __init__(
-        self, metadata: NamespaceMetadata, prefix, import_tables: bool
+        self,
+        metadata: NamespaceMetadata,
+        prefix,
+        import_tables: bool,
     ) -> None:
 
         prefix_rename_map = _resolve_namespace_import_tree(
@@ -306,7 +307,10 @@ def import_metadata_to_script(ns: ImportedNamespace):
         needs to be a namespace where metadata is already serialized
     """
     metadata_to_import = load_metadata_from_imported_ns(ns)
-    include_tables = False  # TODO
+    try:
+        include_tables = ProjectConfig().has_data_env(ns.prefix)
+    except ProjectSetupException:
+        include_tables = False
     writer = ScriptWriter(metadata_to_import, ns.prefix, include_tables)
 
     return [writer.script_path.as_posix()]
@@ -365,10 +369,7 @@ def load_metadata_from_dataset_script() -> NamespaceMetadata:
 def imported_namespaces_to_import_statements(ns_list: List[ImportedNamespace]):
     out = []
     for ns_imp in ns_list:
-        out.append(
-            f"import {imported_namespaces_abs_module}.{ns_imp.prefix}"
-            f" as {ns_imp.prefix}"
-        )
+        out.append(f"from . import {ns_imp.prefix}")
     return out
 
 

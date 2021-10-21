@@ -109,6 +109,12 @@ class ProjectConfig:
                 )
             )
 
+    def has_data_env(self, prefix: str):
+        for env in self.data_envs:
+            if prefix == env.local_name:
+                return True
+        return False
+
 
 class DatasetConfig:
     def __init__(self) -> None:
