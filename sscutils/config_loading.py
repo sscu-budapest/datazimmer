@@ -63,7 +63,7 @@ class DataEnvironmentToLoad:
 
     @property
     def src_posix(self):
-        return (DATA_PATH / self.output_of_step or self.env).as_posix()
+        return (DATA_PATH / (self.output_of_step or self.env)).as_posix()
 
     @property
     def out_path(self):
