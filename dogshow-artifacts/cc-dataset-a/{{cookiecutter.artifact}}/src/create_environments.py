@@ -2,7 +2,7 @@ from sscutils import dump_dfs_to_tables
 
 from .namespace_metadata import (
     CompetitionFeatures,
-    RelationshipFeatures,
+    PhotoFeatures,
     RelationshipIndex,
     SpotFeatures,
     competition_table,
@@ -63,6 +63,11 @@ def create_environments(subset_name, min_prize_pool):
         ]
         .set_index(df.index.names)
     )
+    photo_df = photo_table.get_full_df().loc[
+        lambda df: df[PhotoFeatures.rel.dog.dog_id].isin(relevant_dogs)
+        & df[PhotoFeatures.rel.owner.person_id].isin(relevant_persons),
+        :,
+    ]
 
     dump_dfs_to_tables(
         subset_name,
@@ -72,5 +77,6 @@ def create_environments(subset_name, min_prize_pool):
             (comps_df, competition_table),
             (spots_df, spot_table),
             (rels_df, relationship_table),
+            (photo_df, photo_table),
         ],
     )
