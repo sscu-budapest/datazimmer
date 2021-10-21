@@ -14,19 +14,22 @@ def update_data(data_root):
     comps_df = pd.read_csv(f"{data_root}/comp.csv").set_index(
         ns.CompetitionIndex.competition_id
     )
+    rel_renamer = {
+        "owner_id": ns.RelationshipIndex.owner.person_id,
+        "dog_id": ns.RelationshipIndex.dog.dog_id,
+    }
     rels_df = (
         pd.read_csv(f"{data_root}/rel.csv")
-        .rename(
-            columns={
-                "owner_id": ns.RelationshipIndex.owner.person_id,
-                "dog_id": ns.RelationshipIndex.dog.dog_id,
-            }
-        )
+        .rename(columns=rel_renamer)
         .set_index(get_all_cols(ns.RelationshipIndex))
     )
     spots_df = pd.read_csv(f"{data_root}/spotted.csv")
-    photo_df = pd.read_csv(f"{data_root}/photo.csv").set_index(
-        ns.PhotoIndex.photo_id
+    photo_df = (
+        pd.read_csv(f"{data_root}/photo.csv")
+        .rename(
+            columns={f"rel__{k}": f"rel__{v}" for k, v in rel_renamer.items()}
+        )
+        .set_index(ns.PhotoIndex.photo_id)
     )
 
     dump_dfs_to_tables(
