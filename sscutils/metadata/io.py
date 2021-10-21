@@ -1,3 +1,4 @@
+from functools import partial
 from typing import List
 
 from yaml import safe_dump
@@ -18,28 +19,28 @@ from .schema import (
 )
 
 
-def load_from_yaml(subdir="", filter_namespaces=True) -> NamespaceMetadata:
+def load_from_yaml(
+    subdir="", filter_namespaces=True, allow_missing=False
+) -> NamespaceMetadata:
     ns_paths = NamespaceMetadataPaths(subdir)
+
+    _load = partial(load_named_dict_to_list, allow_missing=allow_missing)
 
     metadata = NamespaceMetadata(
         imported_namespaces=load_named_dict_to_list(
             IMPORTED_NAMESPACES_PATH, ImportedNamespace, "prefix"
         ),
-        composite_types=load_named_dict_to_list(
-            ns_paths.composite_types, CompositeType
-        ),
-        entity_classes=load_named_dict_to_list(
-            ns_paths.entity_classes, EntityClass
-        ),
-        tables=load_named_dict_to_list(ns_paths.table_schemas, Table),
+        composite_types=_load(ns_paths.composite_types, CompositeType),
+        entity_classes=_load(ns_paths.entity_classes, EntityClass),
+        tables=_load(ns_paths.table_schemas, Table),
     )
     if filter_namespaces:
         return _filter_to_used_imported_namespaces(metadata)
     return metadata
 
 
-def load_imported_namespaces(subdir="") -> List[ImportedNamespace]:
-    return load_from_yaml(subdir, False).imported_namespaces
+def load_imported_namespaces() -> List[ImportedNamespace]:
+    return load_from_yaml("", False, True).imported_namespaces
 
 
 def dump_to_yaml(

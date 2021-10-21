@@ -45,7 +45,7 @@ COMPLETE_ENV = EnvToCreate(COMPLETE_ENV_NAME, DEFAULT_BRANCH_NAME)
 class DataEnvSpecification:
     prefix: str
     env: str
-    tag: str  # might override the one from imported namespace
+    tag: str = None  # might override the one from imported namespace
 
 
 @dataclass
@@ -63,7 +63,7 @@ class DataEnvironmentToLoad:
 
     @property
     def src_posix(self):
-        return DATA_PATH / self.output_of_step or self.env
+        return (DATA_PATH / self.output_of_step or self.env).as_posix()
 
     @property
     def out_path(self):

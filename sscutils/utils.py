@@ -95,10 +95,21 @@ def format_code(code_str):
 
 
 def load_named_dict_to_list(
-    path: Path, cls: Type[T], key_name="name", val_name=None
+    path: Path,
+    cls: Type[T],
+    key_name="name",
+    val_name=None,
+    allow_missing=False,
 ) -> List[T]:
     out = []
-    for k, v in (safe_load(path.read_text()) or {}).items():
+    try:
+        file_contents = safe_load(path.read_text())
+    except FileNotFoundError as e:
+        if not allow_missing:
+            raise e
+        file_contents = None
+
+    for k, v in (file_contents or {}).items():
         kwargs = {val_name: v} if val_name else v
         out.append(cls(**{key_name: k, **kwargs}))
     return out

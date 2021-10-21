@@ -104,7 +104,7 @@ def load_external_data(ctx, git_commit=False):
     """
     project_config = ProjectConfig()
     dvc_repo = Repo()
-    for ns_env in project_config.imported_data_envs:
+    for ns_env in project_config.data_envs:
         src_loc = ns_env.src_posix
         out_path = ns_env.out_path
         rmtree(out_path, ignore_errors=True)  # brave thing...
