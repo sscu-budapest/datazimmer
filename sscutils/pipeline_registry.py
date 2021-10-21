@@ -41,6 +41,10 @@ class PipelineRegistry:
             lineno = inspect.findsource(fun)[1]
             parsed_deps = self._parse_list(dependencies)
 
+            for out in outputs or []:
+                if isinstance(out, ScruTable):
+                    out.register_as_step_output(_get_name(fun))
+
             pe = PipelineElement(
                 runner=fun,
                 outputs=self._parse_list(outputs),
@@ -50,10 +54,6 @@ class PipelineRegistry:
                 lineno=lineno,
             )
             self._steps[pe.name] = pe
-
-            for out in outputs or []:
-                if isinstance(out, ScruTable):
-                    out.register_as_step_output(pe)
 
             return fun
 
@@ -159,7 +159,7 @@ class PipelineElement:
 
     @property
     def name(self):
-        return self.runner.__name__
+        return _get_name(self.runner)
 
 
 def _get_comm(entries, prefix):
@@ -168,3 +168,7 @@ def _get_comm(entries, prefix):
 
 def _type_or_fun_elem(elem):
     return [Path(inspect.getfile(elem)).relative_to(Path.cwd()).as_posix()]
+
+
+def _get_name(caller):
+    return caller.__name__

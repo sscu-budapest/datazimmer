@@ -1,5 +1,5 @@
 from functools import partial
-from typing import TYPE_CHECKING, List, Optional, Type
+from typing import List, Optional, Type
 
 from parquetranger import TableRepo
 
@@ -12,9 +12,6 @@ from .exceptions import ProjectSetupException
 from .metadata.bases import BaseEntity, IndexBase, TableFeaturesBase
 from .metaprogramming import camel_to_snake, snake_to_camel
 from .naming import DATA_PATH, FEATURES_CLS_SUFFIX
-
-if TYPE_CHECKING:
-    from .pipeline_registry import PipelineElement
 
 
 class ScruTable:
@@ -92,8 +89,8 @@ class ScruTable:
         # + deep validate where foreign keys are checked
         pass
 
-    def register_as_step_output(self, pe: "PipelineElement"):
-        self.namespace = pe.name
+    def register_as_step_output(self, namespace: str):
+        self.namespace = namespace
         self.trepo = TableRepo(
             DATA_PATH / self.namespace / self.name,
             group_cols=self.partitioning_cols,
