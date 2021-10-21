@@ -121,8 +121,8 @@ class DatasetConfig:
 
         _raw_envs = _yaml_or_err(
             DatasetConfigPaths.CREATED_ENVS,
-            "environments to create",
             DatasetSetupException,
+            "environments to create",
         )
 
         self.created_environments: List[EnvToCreate] = [
