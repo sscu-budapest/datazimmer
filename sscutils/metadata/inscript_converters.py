@@ -124,9 +124,9 @@ class ScriptWriter:
             if index_cls_name:
                 scrutable_kwargs["index"] = index_cls_name
             if table.partitioning_features:
-                pass
-                # TODO
-                # scrutable_kwargs["partitioning_cols"] = ...
+                scrutable_kwargs[
+                    "partitioning_cols"
+                ] = table.partitioning_features
             if table.partition_max_rows:
                 scrutable_kwargs[
                     "max_partition_size"
@@ -255,6 +255,8 @@ class PyObjectToConfObjectConverter:
             features=self._feature_cls_to_conf_obj_list(scrutable.features),
             subject_of_records=parsed_ec.name,
             index=self._feature_cls_to_conf_obj_list(scrutable.index),
+            partitioning_features=scrutable.partitioning_cols,
+            partition_max_rows=scrutable.max_partition_size,
         )
         return table, parsed_ec
 

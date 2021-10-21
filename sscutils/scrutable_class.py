@@ -23,7 +23,7 @@ class ScruTable:
         subject_of_records: Optional[Type[BaseEntity]] = None,
         namespace: Optional[str] = None,
         partitioning_cols: Optional[List[str]] = None,
-        max_partition_size: int = 0,
+        max_partition_size: Optional[int] = None,
     ) -> None:
         """
         name if not given, is parsed from features (and index)
@@ -73,14 +73,14 @@ class ScruTable:
             )
         elif namespace is not None:
             parents_dict = {}
-            trepo_path = self._get_imported_namespace().out_path
+            trepo_path = self._get_imported_namespace().out_path / self.name
         else:
             return
 
         self.trepo = TableRepo(
             trepo_path,
             group_cols=self.partitioning_cols,
-            max_records=self.max_partition_size,
+            max_records=self.max_partition_size or 0,
             env_parents=parents_dict,
         )
 
@@ -94,7 +94,7 @@ class ScruTable:
         self.trepo = TableRepo(
             DATA_PATH / self.namespace / self.name,
             group_cols=self.partitioning_cols,
-            max_records=self.max_partition_size,
+            max_records=self.max_partition_size or 0,
         )
 
     def get_full_df(self):

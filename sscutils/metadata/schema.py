@@ -125,7 +125,7 @@ class Table(_ParseFeats):
     features: List[FEATURE_TYPE]
     subject_of_records: str  # id of entity class
     index: Optional[List[FEATURE_TYPE]] = None
-    partitioning_features: Optional[List[FEATURE_TYPE]] = None
+    partitioning_features: Optional[List[str]] = None  # TODO: not sure
     partition_max_rows: Optional[int] = None
     description: Optional[str] = None
 
