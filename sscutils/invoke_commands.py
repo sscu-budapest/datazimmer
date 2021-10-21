@@ -13,7 +13,7 @@ from .config_loading import (
     load_branch_remote_pairs,
 )
 from .helpers import import_env_creator_function, import_update_data_function
-from .metadata import (
+from .metadata.inscript_converters import (
     import_metadata_to_script,
     load_metadata_from_dataset_script,
 )
@@ -39,7 +39,7 @@ def set_dvc_remotes(ctx):
 
 @task
 def import_namespaces(ctx, git_commit=False):
-    ctx.run("pwd")
+
     for ns in load_imported_namespaces():
         meta_files = import_metadata_to_script(ns)
         if git_commit:

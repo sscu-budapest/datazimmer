@@ -9,7 +9,7 @@ from .config_loading import (
     load_artifact_config,
 )
 from .exceptions import ProjectSetupException
-from .metadata import BaseEntity, IndexBase, TableFeaturesBase
+from .metadata.bases import BaseEntity, IndexBase, TableFeaturesBase
 from .metaprogramming import camel_to_snake, snake_to_camel
 from .naming import DATA_PATH, FEATURES_CLS_SUFFIX
 
