@@ -76,7 +76,7 @@ class ScruTable:
             )
         elif namespace is not None:
             parents_dict = {}
-            trepo_path = self._get_imported_namespace().get_out_path()
+            trepo_path = self._get_imported_namespace().out_path
         else:
             return
 
@@ -119,7 +119,7 @@ class ScruTable:
         return type(subj_name, (BaseEntity,), {})
 
     def _get_imported_namespace(self) -> DataEnvironmentToLoad:
-        ns_list = self.artifact_config.imported_data_envs
+        ns_list = self.artifact_config.data_envs
         for ns in ns_list:
             if ns.local_name == self.namespace:
                 return ns
