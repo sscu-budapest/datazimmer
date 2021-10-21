@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, List, Optional, Type
 from parquetranger import TableRepo
 
 from .config_loading import (
+    DataEnvironmentToLoad,
     DatasetConfig,
-    NamespaceEnvironmentToImport,
     load_artifact_config,
 )
 from .exceptions import ProjectSetupException
@@ -68,7 +68,7 @@ class ScruTable:
 
         if self.is_in_dataset:
             parents_dict = {
-                env.name: env.get_path()
+                env.name: env.path
                 for env in self.artifact_config.created_environments
             }
             trepo_path = (
@@ -118,8 +118,8 @@ class ScruTable:
         subj_name = snake_to_camel(self.name)
         return type(subj_name, (BaseEntity,), {})
 
-    def _get_imported_namespace(self) -> NamespaceEnvironmentToImport:
-        ns_list = self.artifact_config.imported_namespace_envs
+    def _get_imported_namespace(self) -> DataEnvironmentToLoad:
+        ns_list = self.artifact_config.imported_data_envs
         for ns in ns_list:
             if ns.local_name == self.namespace:
                 return ns

@@ -1,20 +1,23 @@
 import os
 import sys
 from contextlib import contextmanager
+from dataclasses import asdict
 from pathlib import Path
 from subprocess import check_call
 from tempfile import TemporaryDirectory
-from typing import Union
+from typing import List, Type, TypeVar, Union
 
 import isort
 from black import Mode, format_file_contents
 from black.report import NothingChanged
+from yaml import safe_load
 
 from .naming import SRC_PATH
 
 LINE_LEN = 119
 PRIMITIVE_MODULES = ["builtins", "datetime"]
 OWN_NAME = "sscutils"
+T = TypeVar("T")
 
 
 def get_cls_defined_in_module(module, parent):
@@ -89,3 +92,28 @@ def format_code(code_str):
         blacked,
         profile="black",
     )
+
+
+def load_named_dict_to_list(
+    path: Path, cls: Type[T], key_name="name", val_name=None
+) -> List[T]:
+    out = []
+    for k, v in (safe_load(path.read_text()) or {}).items():
+        kwargs = {val_name: v} if val_name else v
+        out.append(cls(**{key_name: k, **kwargs}))
+    return out
+
+
+def list_to_named_dict(
+    in_list: List[T], key_name="name", val_name=None
+) -> dict:
+    out = {}
+    for elem in in_list:
+        d = asdict(elem, dict_factory=_none_drop_dict_factory)
+        name = d.pop(key_name)
+        out[name] = d[val_name] if val_name else d
+    return out
+
+
+def _none_drop_dict_factory(items):
+    return {k: v for k, v in items if v is not None}

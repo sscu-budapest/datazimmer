@@ -60,7 +60,7 @@ def write_envs(_):
     for env in dataset_config.created_environments:
         if env.name == COMPLETE_ENV_NAME:
             assert (
-                env.get_path().exists()
+                env.path.exists()
             ), f"{COMPLETE_ENV} env needs to exist before creating others"
             continue
         env_creator_fun(env.name, **env.kwargs)
@@ -70,11 +70,10 @@ def write_envs(_):
 def push_envs(ctx, git_push=False):
     dataset_config = DatasetConfig()
     for env in dataset_config.created_environments:
-        env_posix = env.get_posix()
         _try_checkout(ctx, env.branch)
         dvc_repo = Repo()
-        dvc_repo.add(env_posix)
-        ctx.run(f"git add {env_posix}.dvc **/.gitignore")
+        dvc_repo.add(env.posix)
+        ctx.run(f"git add {env.posix}.dvc **/.gitignore")
         try:
             ctx.run(f'git commit -m "add data subset {env.name}"')
         except UnexpectedExit:
@@ -105,9 +104,9 @@ def load_external_data(ctx, git_commit=False):
     """
     project_config = ProjectConfig()
     dvc_repo = Repo()
-    for ns_env in project_config.imported_namespace_envs:
-        src_loc = ns_env.get_src_posix()
-        out_path = ns_env.get_out_path()
+    for ns_env in project_config.imported_data_envs:
+        src_loc = ns_env.src_posix
+        out_path = ns_env.out_path
         rmtree(out_path, ignore_errors=True)  # brave thing...
         out_path.parent.mkdir(exist_ok=True, parents=True)
         out_loc = out_path.as_posix()

@@ -306,7 +306,8 @@ def import_metadata_to_script(ns: ImportedNamespace):
         needs to be a namespace where metadata is already serialized
     """
     metadata_to_import = load_metadata_from_imported_ns(ns)
-    writer = ScriptWriter(metadata_to_import, ns.prefix, not ns.metadata_only)
+    include_tables = False  # TODO
+    writer = ScriptWriter(metadata_to_import, ns.prefix, include_tables)
 
     return [writer.script_path.as_posix()]
 
@@ -401,7 +402,6 @@ def _resolve_namespace_import_tree(
                 break
         else:
             ns_external.prefix = new_prefix
-            ns_external.metadata_only = True
             local_namespaces.append(ns_external)
             dump_imported_namespaces(local_namespaces)
             import_metadata_to_script(ns_external)

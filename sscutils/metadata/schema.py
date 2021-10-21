@@ -3,6 +3,8 @@ from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Union
 
+from ..naming import PIPELINE_STEP_SEPARATOR
+
 
 class _ParseFeats:
     def __post_init__(self):
@@ -50,6 +52,21 @@ class ImportedNamespace:
 
     def __eq__(self, o: "ImportedNamespace") -> bool:
         return (self.uri == o.uri) and (self.tag == o.tag)
+
+    @property
+    def uri_slug(self):
+        return self._splitret(1)
+
+    @property
+    def uri_root(self):
+        return self._splitret(0)
+
+    def _splitret(self, i):
+        splitted_id = self.uri.split(PIPELINE_STEP_SEPARATOR)
+        try:
+            return splitted_id[i]
+        except IndexError:
+            return ""
 
 
 @dataclass
