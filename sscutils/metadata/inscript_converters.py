@@ -70,12 +70,14 @@ class ScriptWriter:
         )
         self._import_tables = import_tables
         self._prefix = prefix
+        self._table_factory = "table_factory"
 
         self.ssc_imports = set()
         self.local_objects: Dict[str, LocalInScriptObject] = {}
+        self._table_assigns = []
         self._add_entity_classes(metadata.entity_classes)
         self._add_comp_types(metadata.composite_types)
-        self._table_assigns = self._add_tables(metadata.tables)
+        self._add_tables(metadata.tables)
         self._write_to_file(metadata.imported_namespaces)
 
     def _add_entity_classes(self, ec_list: List[EntityClass]):
@@ -100,47 +102,20 @@ class ScriptWriter:
             )
 
     def _add_tables(self, table_list: List[Table]):
-        table_assigns = []
-        factory_pyobj = "table_factory"
+
         if self._import_tables:
             self.ssc_imports.add(TableFactory)
-            table_assigns.append(
-                f'{factory_pyobj} = {TableFactory.__name__}("{self._prefix}")'
+            self._table_assigns.append(
+                f"{self._table_factory} = {TableFactory.__name__}"
+                f'("{self._prefix}")'
             )
         for table in table_list:
 
             feats_cls_name = self._add_table_features(table)
             index_cls_name = self._add_table_index_cls(table)
 
-            if not self._import_tables:
-                continue
-
-            scrutable_kwargs = {
-                "features": feats_cls_name,
-                "subject_of_records": NamespacedId.from_conf_obj_id(
-                    table.subject_of_records
-                ).py_obj_accessor,
-            }
-            if index_cls_name:
-                scrutable_kwargs["index"] = index_cls_name
-            if table.partitioning_features:
-                scrutable_kwargs[
-                    "partitioning_cols"
-                ] = table.partitioning_features
-            if table.partition_max_rows:
-                scrutable_kwargs[
-                    "max_partition_size"
-                ] = table.partition_max_rows
-
-            scrutable_kwargs_str = ", ".join(
-                [f"{k}={v}" for k, v in scrutable_kwargs.items()]
-            )
-            table_name = f"{table.name}_table"
-            table_assigns.append(
-                f"{table_name} = {factory_pyobj}"
-                f".create({scrutable_kwargs_str})"
-            )
-        return table_assigns
+            if self._import_tables:
+                self._add_table(table, feats_cls_name, index_cls_name)
 
     def _write_to_file(self, imported_namespaces):
         import_names = ", ".join([c.__name__ for c in self.ssc_imports])
@@ -172,6 +147,31 @@ class ScriptWriter:
         ).py_obj_accessor
         self._add_feat_list_as_cls(table.index, cls_name, IndexBase)
         return cls_name
+
+    def _add_table(
+        self, table: Table, feats_cls_name: str, index_cls_name: str
+    ):
+        scrutable_kwargs = {
+            "features": feats_cls_name,
+            "subject_of_records": NamespacedId.from_conf_obj_id(
+                table.subject_of_records
+            ).py_obj_accessor,
+        }
+        if index_cls_name:
+            scrutable_kwargs["index"] = index_cls_name
+        if table.partitioning_features:
+            scrutable_kwargs["partitioning_cols"] = table.partitioning_features
+        if table.partition_max_rows:
+            scrutable_kwargs["max_partition_size"] = table.partition_max_rows
+
+        scrutable_kwargs_str = ", ".join(
+            [f"{k}={v}" for k, v in scrutable_kwargs.items()]
+        )
+        table_name = f"{table.name}_table"
+        self._table_assigns.append(
+            f"{table_name} = {self._table_factory}"
+            f".create({scrutable_kwargs_str})"
+        )
 
     def _get_ordered_lo_defs(self):
         defined = set()
