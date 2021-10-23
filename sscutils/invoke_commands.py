@@ -44,7 +44,7 @@ def import_namespaces(ctx, git_commit=False):
         meta_files = import_metadata_to_script(ns)
         if git_commit:
             ctx.run(f"git add {' '.join(meta_files)}")
-            ctx.run(f'gic commit -m "import {ns.uri} ({ns.prefix}) code"')
+            ctx.run(f'git commit -m "import {ns.uri} ({ns.prefix}) code"')
 
 
 @task(iterable=["args"])
