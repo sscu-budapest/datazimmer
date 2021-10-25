@@ -14,7 +14,7 @@ from .namespace_metadata import (
 )
 
 
-def create_environments(subset_name, min_prize_pool):
+def create_environments(env_name, min_prize_pool):
     """create environments that are described in the config of the repo"""
     comps_df = competition_table.get_full_df().loc[
         lambda df: df[CompetitionFeatures.prize_pool] >= min_prize_pool, :
@@ -70,7 +70,7 @@ def create_environments(subset_name, min_prize_pool):
     ]
 
     dump_dfs_to_tables(
-        subset_name,
+        env_name,
         [
             (persons_df, person_table),
             (dogs_df, dog_table),
