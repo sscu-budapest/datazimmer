@@ -159,8 +159,8 @@ class ScriptWriter:
         }
         if index_cls_name:
             scrutable_kwargs["index"] = index_cls_name
-        if table.partitioning_features:
-            scrutable_kwargs["partitioning_cols"] = table.partitioning_features
+        if table.partitioning_cols:
+            scrutable_kwargs["partitioning_cols"] = table.partitioning_cols
         if table.partition_max_rows:
             scrutable_kwargs["max_partition_size"] = table.partition_max_rows
 
@@ -255,7 +255,7 @@ class PyObjectToConfObjectConverter:
             features=self._feature_cls_to_conf_obj_list(scrutable.features),
             subject_of_records=parsed_ec.name,
             index=self._feature_cls_to_conf_obj_list(scrutable.index),
-            partitioning_features=scrutable.partitioning_cols,
+            partitioning_cols=scrutable.partitioning_cols,
             partition_max_rows=scrutable.max_partition_size,
         )
         return table, parsed_ec
@@ -289,6 +289,31 @@ class PyObjectToConfObjectConverter:
                 )
             out.append(parsed_feat)
         return out
+
+
+class PyObjectCollector:
+    def __init__(self, ns="") -> None:
+        self._ns = ns
+        self.namespace_module = import_module(namespace_metadata_abs_module)
+
+    @property
+    def tables(self) -> Iterable[ScruTable]:
+        return get_instances_from_module(
+            self.namespace_module, ScruTable
+        ).values()
+
+    @property
+    def composite_types(self) -> Iterable[Type[CompositeTypeBase]]:
+        return self._obj_of_cls(CompositeTypeBase)
+
+    @property
+    def entity_classes(self) -> Iterable[Type[BaseEntity]]:
+        return self._obj_of_cls(BaseEntity)
+
+    def _obj_of_cls(self, py_cls):
+        return get_cls_defined_in_module(
+            self.namespace_module, py_cls
+        ).values()
 
 
 def import_metadata_to_script(ns: ImportedNamespace):
@@ -333,23 +358,21 @@ def load_metadata_from_dataset_script() -> NamespaceMetadata:
     """
 
     imported_namespaces = load_imported_namespaces()
-    namespace_module = import_module(namespace_metadata_abs_module)
+    py_obj_repo = PyObjectCollector()
 
-    script_tables: Iterable[ScruTable] = get_instances_from_module(
-        namespace_module, ScruTable
-    ).values()
+    script_tables = py_obj_repo.tables
     converter = PyObjectToConfObjectConverter(script_tables)
 
     comp_types, entity_classes = [
         [
             *map(
                 _fun,
-                get_cls_defined_in_module(namespace_module, _cls).values(),
+                _classes,
             )
         ]
-        for _cls, _fun in [
-            (CompositeTypeBase, converter.comp_type_to_conf_obj),
-            (BaseEntity, converter.entity_class_to_conf_obj),
+        for _classes, _fun in [
+            (py_obj_repo.composite_types, converter.comp_type_to_conf_obj),
+            (py_obj_repo.entity_classes, converter.entity_class_to_conf_obj),
         ]
     ]
 
