@@ -63,6 +63,18 @@ def dump_to_yaml(
         dump_imported_namespaces(ns.imported_namespaces)
 
 
+def extend_to_yaml(ns: NamespaceMetadata, subdir=""):
+    old_ns = load_from_yaml(subdir)
+    for table in old_ns.tables:
+        table.name
+
+    for comp_type in old_ns.composite_types:
+        comp_type.name
+
+    for entity_class in old_ns.entity_classes:
+        entity_class.name
+
+
 def dump_imported_namespaces(ns_list: List[ImportedNamespace], extend=False):
     ns_dict = list_to_named_dict(ns_list, key_name="prefix")
     if extend:

@@ -4,6 +4,7 @@ from ..imported_namespaces import doglast
 
 # TODO: this seems a bit too much hassle
 
+
 class SizeCountFeatures(TableFeaturesBase):
     count = int
 
