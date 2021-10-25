@@ -1,5 +1,5 @@
-# p1ns1.Success to both dog kinds (from ds1 and ds2)
-# based on dotm, race, and comp
+# p1ns1.Success to both dog kinds (from ds2)
+# based on dotm and race
 
 from .imported_namespaces import dogsuccess, dogbase
 
