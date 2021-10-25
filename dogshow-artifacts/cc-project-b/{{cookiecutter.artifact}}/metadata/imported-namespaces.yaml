@@ -1,2 +1,4 @@
-dogs: {{ dataset_b_repo }}
-dogsuccess: "{{ project_a_repo }}|>success"
+dogbase: 
+  uri: {{ dataset_b_repo }}
+dogsuccess: 
+  uri: "{{ project_a_repo }}|>success"

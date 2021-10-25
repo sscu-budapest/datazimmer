@@ -1,2 +1,2 @@
 calculate_success:
-  top_rate: 0.08
+  top_status_multiplier: 10
