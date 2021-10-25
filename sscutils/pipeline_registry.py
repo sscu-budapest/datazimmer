@@ -1,5 +1,6 @@
 import inspect
 from dataclasses import dataclass
+from importlib import import_module
 from pathlib import Path
 from typing import Iterable, Optional, Union
 
@@ -7,7 +8,12 @@ import yaml
 from invoke import Collection, task
 from structlog import get_logger
 
-from .naming import ProjectConfigPaths
+from sscutils.metadata.inscript_converters import (
+    load_metadata_dict_from_module,
+)
+from sscutils.metadata.io import extend_to_yaml
+
+from .naming import SRC_PATH, ProjectConfigPaths
 from .scrutable_class import ScruTable
 
 logger = get_logger()
@@ -33,7 +39,11 @@ class PipelineRegistry:
         outputs: Optional[list] = None,
         outputs_nocache: Optional[list] = None,
     ):
-        """the names of parameters will matter
+        f"""registers a function to the pipeline
+
+        only one function per module of {SRC_PATH}
+
+        the names of parameters will matter
         and will be looked up in params.yaml"""
 
         def f(fun):
@@ -107,7 +117,7 @@ class PipelineElement:
     out_nocache: list
     lineno: int
 
-    def run(self, params: dict = None):
+    def run(self, params: dict = None, log_metadata=True):
 
         loaded_params = (
             params
@@ -127,7 +137,8 @@ class PipelineElement:
                     step_keys=_level_params.keys(),
                 )
                 parsed_params[k] = loaded_params[k]
-
+        if log_metadata:
+            self._log_metadata()
         return self.runner(**parsed_params)
 
     def get_invoke_task(self):
@@ -139,6 +150,7 @@ class PipelineElement:
         )
         if param_str:
             param_str = "-p " + param_str
+        # TODO: to in-script dvc
         command = " ".join(
             [
                 f"dvc run -n {self.name}",
@@ -161,6 +173,12 @@ class PipelineElement:
     def name(self):
         return _get_name(self.runner)
 
+    def _log_metadata(self):
+        module = import_module(self.runner.__module__)
+        meta_dic = load_metadata_dict_from_module(module)
+        for subdir, ns_meta in meta_dic.items():
+            extend_to_yaml(ns_meta, subdir)
+
 
 def _get_comm(entries, prefix):
     return " ".join([f"-{prefix} {e}" for e in entries])
@@ -171,4 +189,4 @@ def _type_or_fun_elem(elem):
 
 
 def _get_name(caller):
-    return caller.__name__
+    return caller.__module__.replace(f"{SRC_PATH}.", "").split(".")[0]

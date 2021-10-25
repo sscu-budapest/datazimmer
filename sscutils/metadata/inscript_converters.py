@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 from importlib import import_module
 from queue import Queue
+from types import ModuleType
 from typing import Dict, Iterable, List, Tuple, Type
 
 from ..config_loading import ProjectConfig
 from ..exceptions import ProjectSetupException
 from ..metaprogramming import get_class_def, get_simplified_mro
-from ..naming import IMPORTED_NAMESPACES_MODULE_NAME, SRC_PATH
+from ..naming import IMPORTED_NAMESPACES_SCRIPTS_PATH
 from ..scrutable_class import ScruTable, TableFactory
 from ..utils import (
     PRIMITIVE_MODULES,
@@ -65,9 +66,7 @@ class ScriptWriter:
 
         map_ns_prefixes(metadata, prefix_rename_map)
 
-        self.script_path = (
-            SRC_PATH / IMPORTED_NAMESPACES_MODULE_NAME / f"{prefix}.py"
-        )
+        self.script_path = IMPORTED_NAMESPACES_SCRIPTS_PATH / f"{prefix}.py"
         self._import_tables = import_tables
         self._prefix = prefix
         self._table_factory = "table_factory"
@@ -120,7 +119,7 @@ class ScriptWriter:
     def _write_to_file(self, imported_namespaces):
         import_names = ", ".join([c.__name__ for c in self.ssc_imports])
         import_lines = [
-            "from datetime import datetime",  # not always but anyway
+            "from datetime import datetime  # noqa: F401",
             f"from sscutils import {import_names}",
             *imported_namespaces_to_import_statements(imported_namespaces),
         ]
@@ -389,6 +388,12 @@ def load_metadata_from_dataset_script() -> NamespaceMetadata:
         tables=filter_for_local_ns(tables),
         entity_classes=filter_for_local_ns(entity_classes),
     )
+
+
+def load_metadata_dict_from_module(
+    module: ModuleType,
+) -> Dict[str, ImportedNamespace]:
+    return {}
 
 
 def imported_namespaces_to_import_statements(ns_list: List[ImportedNamespace]):

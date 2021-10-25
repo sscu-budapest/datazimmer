@@ -5,9 +5,11 @@ from subprocess import CalledProcessError, check_call
 from typing import Optional
 
 from cookiecutter.main import generate_files
+from yaml import safe_load
 
 from sscutils.naming import (
     CONFIG_DIR,
+    IMPORTED_NAMESPACES_SCRIPTS_PATH,
     METADATA_DIR,
     SRC_PATH,
     ProjectConfigPaths,
@@ -15,8 +17,10 @@ from sscutils.naming import (
 from sscutils.utils import cd_into
 
 sscutil_root = Path(__file__).parent.parent.parent
-ma_dir = sscutil_root / "dogshow-artifacts"
-csv_path = Path(ma_dir, "data").absolute().as_posix()
+dogshow_root = sscutil_root / "dogshow"
+artifact_src_root = dogshow_root / "artifacts"
+expectation_root = dogshow_root / "expectations"
+csv_path = Path(artifact_src_root, "data").absolute().as_posix()
 
 
 class DogshowContextCreator:
@@ -93,7 +97,7 @@ def artifact_context(
     name = "-".join([prefix, suffix])
     root_dir = ctx.local_root / name
     root_dir.mkdir()
-    template_path = ma_dir / f"cc-{name}"
+    template_path = artifact_src_root / f"cc-{name}"
     git_remote = ctx.get_git_remote(name)
 
     init_git_repo(
@@ -111,7 +115,7 @@ def artifact_context(
     with cd_into(root_dir):
         _add_readme(template_repo)
         _commit_changes(root_dir)
-        yield
+        yield partial(check_expectations, name=name)
 
 
 def switch_branch(branch, cwd):
@@ -194,6 +198,23 @@ def add_dvc_remotes(dirpath, remotes, init=False):
 
     for comm in commands:
         check_call(comm, cwd=dirpath)
+
+
+def check_expectations(name: str):
+    script_dir, meta_dir = [
+        expectation_root / d / name for d in ["script", "metadata"]
+    ]
+    for meta_exp_file in meta_dir.glob("*.yaml"):
+        exp_obj = safe_load(meta_exp_file.read_text())
+        true_obj = safe_load((METADATA_DIR / meta_exp_file.name).read_text())
+        assert exp_obj == true_obj
+
+    for script_file in script_dir.glob(".py"):
+        exp_script = script_file.read_text()
+        true_script = (
+            IMPORTED_NAMESPACES_SCRIPTS_PATH / script_file
+        ).read_text()
+        assert exp_script == true_script
 
 
 def _commit_changes(dirpath):

@@ -15,23 +15,29 @@ PARAMS_PATH = ProjectConfigPaths.PARAMS
 def test_pipereg_basics():
     pipereg = PipelineRegistry()
 
-    @pipereg.register
     def step1(a=5):
         return a * 2
 
-    assert pipereg.get_step("step1").runner(8) == 16
+    step1.__module__ = "src.step_one"
+    pipereg.register(step1)  # usually works with decorator @pipereg.register
+    # but here module change is needed for the test
+    assert pipereg.get_step("step_one").runner(8) == 16
 
-    @pipereg.register(dependencies=["some_string"])
     def step2(b=3):
         return b - 1
 
+    step2.__module__ = "src.step_two.deeper"
+    pipereg.register(dependencies=["some_string"])(step2)
+
     coll = pipereg.get_collection()
     assert isinstance(coll, Collection)
-    assert [*coll.task_names] == ["step1", "step2"]
-    coll.tasks["step1"](MockContext(run="dvc run *"))
+    assert [*coll.task_names] == ["step-one", "step-two"]
+    coll.tasks["step-one"](MockContext(run="dvc run *"))
 
-    assert pipereg.get_step("step2").run({"step2": {"b": 10}}) == 9
-    assert pipereg.get_step("step2").run({"b": 5}) == 4
+    assert (
+        pipereg.get_step("step_two").run({"step_two": {"b": 10}}, False) == 9
+    )
+    assert pipereg.get_step("step_two").run({"b": 5}, False) == 4
 
 
 def test_pipereg_params(tmp_path):
@@ -51,6 +57,8 @@ def test_pipereg_parse_elems(tmp_path):
     def step1():
         pass  # pragma: no cover
 
+    print(type(step1))
+
     _module_file_path = (
         Path(pipereg_module.__file__).relative_to(Path.cwd()).as_posix()
     )
@@ -59,7 +67,9 @@ def test_pipereg_parse_elems(tmp_path):
     assert pipereg._parse_elem(PARAMS_PATH) == [PARAMS_PATH.as_posix()]
     assert pipereg._parse_elem(PipelineRegistry) == [_module_file_path]
     assert pipereg._parse_elem(_type_or_fun_elem) == [_module_file_path]
-    assert pipereg._parse_elem(step1) == ["s1_out"]
+    assert pipereg._parse_elem(step1) == [
+        Path(__file__).relative_to(Path.cwd()).as_posix()
+    ]
 
     with raises(TypeError):
         pipereg._parse_elem(20)
