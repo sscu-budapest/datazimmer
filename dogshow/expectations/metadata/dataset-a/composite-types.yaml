@@ -1,0 +1,24 @@
+AddressType:
+  features:
+  - name: city
+    dtype: str
+  - name: zip
+    dtype: str
+  - name: street_address
+    dtype: str
+  - prefix: building
+    dtype: BuildingInfoType
+BuildingInfoType:
+  features:
+  - name: floor
+    dtype: int
+  - name: door
+    dtype: int
+ResultType:
+  features:
+  - prefix: owner
+    table: person
+  - prefix: pet
+    table: dog
+  - name: prize
+    dtype: int

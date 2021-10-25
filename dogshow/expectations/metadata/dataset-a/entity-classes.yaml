@@ -1,0 +1,14 @@
+Creature: {}
+Dog:
+  parents:
+  - Creature
+  - Pet
+Person:
+  parents:
+  - Creature
+Pet:
+  description: most likely owned by pet owners
+Competition: {}
+Picture: {}
+Relationship: {}
+Spot: {}
