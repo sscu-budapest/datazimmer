@@ -17,6 +17,9 @@ these are used in [dataset-template](https://github.com/sscu-budapest/dataset-te
 - abstract composite type + subclass of entity class
   - import ACT, inherit from it and specify 
   - importing composite type is impossible now if it contains foreign key :(
+- automatic filter for env creation based on foreign key metadata
+- add option to infer data type of assigned feature
+  - can be problematic b/c pandas int/float/nan issue
 - metadata created dry, dynamically, but imported static, wet
 - sharing functions among projects
   - functions specific to processing certain composite / named types

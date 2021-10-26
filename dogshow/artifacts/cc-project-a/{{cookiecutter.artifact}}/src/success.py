@@ -37,7 +37,7 @@ class DogSizeCalculation(ColAssigner):
     def __init__(self) -> None:
         self.limit_df = doglast.dog_size_table.get_full_df()
 
-    def size(self, dog_df):
+    def size(self, dog_df) -> Col[doglast.DogSizeIndex]:
         return fit_to_limit(
             dog_df[dogfirst.DogFeatures.waist],
             self.limit_df,
@@ -69,7 +69,7 @@ class SuccessType(ChildColAssigner):
     def total_wins(self) -> Col[int]:
         return self.df
 
-    # can be inferred if not given
+    # can not be inferred if not given, yet
     def total_earnings(self):
         pass
 
