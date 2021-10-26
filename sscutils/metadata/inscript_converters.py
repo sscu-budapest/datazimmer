@@ -1,13 +1,17 @@
 from dataclasses import dataclass
 from importlib import import_module
 from queue import Queue
-from types import ModuleType
 from typing import Dict, Iterable, List, Tuple, Type
 
 from ..config_loading import ProjectConfig
 from ..exceptions import ProjectSetupException
 from ..metaprogramming import get_class_def, get_simplified_mro
-from ..naming import IMPORTED_NAMESPACES_SCRIPTS_PATH
+from ..naming import (
+    IMPORTED_NAMESPACES_SCRIPTS_PATH,
+    NAMESPACE_METADATA_MODULE_NAME,
+    SRC_PATH,
+    get_top_module_name,
+)
 from ..scrutable_class import ScruTable, TableFactory
 from ..utils import (
     PRIMITIVE_MODULES,
@@ -33,7 +37,7 @@ from .io import (
     load_metadata_from_imported_ns,
 )
 from .namespace_handling import filter_for_local_ns, map_ns_prefixes
-from .namespaced_id import NamespacedId, namespace_metadata_abs_module
+from .namespaced_id import NamespacedId
 from .schema import (
     CompositeFeature,
     CompositeType,
@@ -44,6 +48,8 @@ from .schema import (
     PrimitiveFeature,
     Table,
 )
+
+dataset_ns_metadata_abs_module = f"{SRC_PATH}.{NAMESPACE_METADATA_MODULE_NAME}"
 
 
 @dataclass
@@ -213,23 +219,24 @@ class ScriptWriter:
 
 
 class PyObjectToConfObjectConverter:
-    def __init__(self, script_tables: Iterable[ScruTable]) -> None:
-
-        self._ind_table_dict = {
-            sct.index: sct.name for sct in script_tables if sct.index
-        }
+    def __init__(
+        self,
+        top_module: str,
+        child_module: str,
+    ) -> None:
+        self._top_module = top_module
+        self._ind_table_dict = {}
+        self._add_tables(child_module)
 
     def entity_class_to_conf_obj(
         self, ec_cls: Type[BaseEntity]
     ) -> EntityClass:
-        ec_full_id = NamespacedId.from_py_cls(ec_cls)
+        ec_full_id = self._get_ns_id(ec_cls)
         simp_mro = get_simplified_mro(ec_cls)
         if simp_mro == [BaseEntity]:
             parents = None
         else:
-            parents = [
-                NamespacedId.from_py_cls(p).conf_obj_id for p in simp_mro
-            ]
+            parents = [self._get_ns_id(p).conf_obj_id for p in simp_mro]
         return EntityClass(
             ec_full_id.conf_obj_id, parents=parents, description=ec_cls.__doc__
         )
@@ -237,7 +244,7 @@ class PyObjectToConfObjectConverter:
     def comp_type_to_conf_obj(
         self, ct_cls: Type[CompositeTypeBase]
     ) -> CompositeType:
-        full_id = NamespacedId.from_py_cls(ct_cls)
+        full_id = self._get_ns_id(ct_cls)
         return CompositeType(
             name=full_id.conf_obj_id,
             features=self._feature_cls_to_conf_obj_list(ct_cls),
@@ -259,6 +266,14 @@ class PyObjectToConfObjectConverter:
         )
         return table, parsed_ec
 
+    def _add_tables(self, child_module_name):
+
+        for new_table in PyObjectCollector(child_module_name).tables:
+            if new_table.index:
+                self._ind_table_dict[
+                    self._ind_key(new_table.index)
+                ] = new_table.name
+
     def _feature_cls_to_conf_obj_list(self, cls):
         if cls is None:
             return None
@@ -267,20 +282,13 @@ class PyObjectToConfObjectConverter:
     def _parse_feature_dict(self, feature_dict: Dict[str, Type]):
         out = []
         for k, cls in feature_dict.items():
-            full_id = NamespacedId.from_py_cls(cls)
+            full_id = self._get_ns_id(cls)
             if cls.__module__ in PRIMITIVE_MODULES:
                 parsed_feat = PrimitiveFeature(
                     name=k, dtype=full_id.conf_obj_id
                 )
             elif IndexBase in cls.mro():
-                try:
-                    full_id.obj_id = self._ind_table_dict[cls]
-                except KeyError:
-                    raise KeyError(
-                        f"Can't find table for index class {cls}"
-                        f" in dict {self._ind_table_dict}"
-                    )
-
+                full_id.obj_id = self._table_from_index(cls)
                 parsed_feat = ForeignKey(prefix=k, table=full_id.conf_obj_id)
             else:
                 parsed_feat = CompositeFeature(
@@ -289,11 +297,28 @@ class PyObjectToConfObjectConverter:
             out.append(parsed_feat)
         return out
 
+    def _table_from_index(self, index_cls, recurse=True):
+        try:
+            return self._ind_table_dict[self._ind_key(index_cls)]
+        except KeyError:
+            if recurse:
+                self._add_tables(index_cls.__module__)
+                return self._table_from_index(index_cls, False)
+            raise KeyError(
+                f"Can't find table for index class {index_cls}"
+                f" in dict {self._ind_table_dict}"
+            )
+
+    def _get_ns_id(self, id_) -> NamespacedId:
+        return NamespacedId.from_py_cls(id_, self._top_module)
+
+    def _ind_key(self, ind_cls):
+        return self._get_ns_id(ind_cls).conf_obj_id
+
 
 class PyObjectCollector:
-    def __init__(self, ns="") -> None:
-        self._ns = ns
-        self.namespace_module = import_module(namespace_metadata_abs_module)
+    def __init__(self, module_name) -> None:
+        self.namespace_module = import_module(module_name)
 
     @property
     def tables(self) -> Iterable[ScruTable]:
@@ -356,11 +381,18 @@ def load_metadata_from_dataset_script() -> NamespaceMetadata:
         can refer to ones defined elsewhere
     """
 
-    imported_namespaces = load_imported_namespaces()
-    py_obj_repo = PyObjectCollector()
+    return load_metadata_from_child_module(dataset_ns_metadata_abs_module)
 
-    script_tables = py_obj_repo.tables
-    converter = PyObjectToConfObjectConverter(script_tables)
+
+def load_metadata_from_child_module(
+    child_module_name: str,
+) -> Dict[str, NamespaceMetadata]:
+
+    imported_namespaces = load_imported_namespaces()
+    py_obj_repo = PyObjectCollector(child_module_name)
+    converter = PyObjectToConfObjectConverter(
+        get_top_module_name(child_module_name), child_module_name
+    )
 
     comp_types, entity_classes = [
         [
@@ -377,7 +409,7 @@ def load_metadata_from_dataset_script() -> NamespaceMetadata:
 
     tables = []
 
-    for in_script_table in script_tables:
+    for in_script_table in py_obj_repo.tables:
         table, e_class = converter.scrutable_to_conf_obj(in_script_table)
         tables.append(table)
         entity_classes.append(e_class)
@@ -388,12 +420,6 @@ def load_metadata_from_dataset_script() -> NamespaceMetadata:
         tables=filter_for_local_ns(tables),
         entity_classes=filter_for_local_ns(entity_classes),
     )
-
-
-def load_metadata_dict_from_module(
-    module: ModuleType,
-) -> Dict[str, ImportedNamespace]:
-    return {}
 
 
 def imported_namespaces_to_import_statements(ns_list: List[ImportedNamespace]):

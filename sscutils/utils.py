@@ -28,7 +28,7 @@ def get_cls_defined_in_module(module, parent):
         try:
             if parent in cls.mro()[1:]:
                 out[poss_cls_name] = cls
-        except AttributeError:
+        except (AttributeError, TypeError):
             pass
     return out
 

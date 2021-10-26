@@ -65,6 +65,7 @@ def dump_to_yaml(
 
 def extend_to_yaml(ns: NamespaceMetadata, subdir=""):
     old_ns = load_from_yaml(subdir)
+
     for table in old_ns.tables:
         table.name
 
@@ -73,6 +74,8 @@ def extend_to_yaml(ns: NamespaceMetadata, subdir=""):
 
     for entity_class in old_ns.entity_classes:
         entity_class.name
+
+    dump_to_yaml(old_ns, subdir)
 
 
 def dump_imported_namespaces(ns_list: List[ImportedNamespace], extend=False):

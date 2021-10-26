@@ -145,3 +145,7 @@ class NamespaceMetadata:
     composite_types: List[CompositeType]
     entity_classes: List[EntityClass]
     tables: List[Table]
+
+    @property
+    def composite_type_dict(self):
+        return

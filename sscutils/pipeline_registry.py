@@ -1,6 +1,5 @@
 import inspect
 from dataclasses import dataclass
-from importlib import import_module
 from pathlib import Path
 from typing import Iterable, Optional, Union
 
@@ -9,11 +8,11 @@ from invoke import Collection, task
 from structlog import get_logger
 
 from sscutils.metadata.inscript_converters import (
-    load_metadata_dict_from_module,
+    load_metadata_from_child_module,
 )
-from sscutils.metadata.io import extend_to_yaml
+from sscutils.metadata.io import dump_to_yaml
 
-from .naming import SRC_PATH, ProjectConfigPaths
+from .naming import SRC_PATH, ProjectConfigPaths, get_top_module_name
 from .scrutable_class import ScruTable
 
 logger = get_logger()
@@ -174,10 +173,9 @@ class PipelineElement:
         return _get_name(self.runner)
 
     def _log_metadata(self):
-        module = import_module(self.runner.__module__)
-        meta_dic = load_metadata_dict_from_module(module)
-        for subdir, ns_meta in meta_dic.items():
-            extend_to_yaml(ns_meta, subdir)
+        dump_to_yaml(
+            load_metadata_from_child_module(self.runner.__module__), self.name
+        )
 
 
 def _get_comm(entries, prefix):
@@ -189,4 +187,4 @@ def _type_or_fun_elem(elem):
 
 
 def _get_name(caller):
-    return caller.__module__.replace(f"{SRC_PATH}.", "").split(".")[0]
+    return get_top_module_name(caller.__module__)

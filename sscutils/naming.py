@@ -14,8 +14,11 @@ METADATA_DIR = Path("metadata")
 
 class NamespaceMetadataPaths:
     def __init__(self, local_name: str = "") -> None:
+        _parent = METADATA_DIR / local_name
+        _parent.mkdir(exist_ok=True)
+
         def _p(s) -> Path:
-            return METADATA_DIR / local_name / s
+            return _parent / s
 
         self.composite_types = _p("composite-types.yaml")
         self.entity_classes = _p("entity-classes.yaml")
@@ -48,3 +51,13 @@ ENV_CREATION_MODULE_NAME = "create_environments"
 ENV_CREATION_FUNCTION_NAME = "create_environments"
 
 IMPORTED_NAMESPACES_SCRIPTS_PATH = SRC_PATH / IMPORTED_NAMESPACES_MODULE_NAME
+
+
+def get_top_module_name(child_module_name: str):
+    mod_pref = f"{SRC_PATH}."
+    if not child_module_name.startswith(mod_pref):
+        raise ValueError(
+            f"Can't detect top module from module {child_module_name}"
+        )
+
+    return child_module_name.replace(mod_pref, "", 1).split(".")[0]
