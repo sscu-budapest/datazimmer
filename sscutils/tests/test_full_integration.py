@@ -67,6 +67,7 @@ def test_full_dogshow(tmp_path: Path):
         import_namespaces(c, git_commit=True)
         load_external_data(c, git_commit=True)
         run_step("success")
+        run_step("base_report")
         c.run("git add *")
         c.run('git commit -m "add step output"')
         c.run("git push")

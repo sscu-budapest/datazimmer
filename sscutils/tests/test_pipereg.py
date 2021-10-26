@@ -53,9 +53,11 @@ def test_pipereg_parse_elems(tmp_path):
 
     pipereg = PipelineRegistry()
 
-    @pipereg.register(outputs=["s1_out"])
     def step1():
         pass  # pragma: no cover
+
+    step1.__module__ = "src.step_one"
+    step1_pe = pipereg.register(outputs=["s1_out"])(step1)
 
     print(type(step1))
 
@@ -70,6 +72,7 @@ def test_pipereg_parse_elems(tmp_path):
     assert pipereg._parse_elem(step1) == [
         Path(__file__).relative_to(Path.cwd()).as_posix()
     ]
+    assert pipereg._parse_elem(step1_pe) == ["s1_out"]
 
     with raises(TypeError):
         pipereg._parse_elem(20)

@@ -64,7 +64,7 @@ class PipelineRegistry:
             )
             self._steps[pe.name] = pe
 
-            return fun
+            return pe
 
         if procfun is None:
             return f
@@ -93,11 +93,11 @@ class PipelineRegistry:
             return [elem.trepo.full_path]
         if isinstance(elem, type):
             return _type_or_fun_elem(elem)
+        if isinstance(elem, PipelineElement):
+            return elem.outputs + elem.out_nocache
         if callable(elem):
-            pe = self._steps.get(elem.__name__)
-            if pe is None:
-                return _type_or_fun_elem(elem)
-            return pe.outputs + pe.out_nocache
+            return _type_or_fun_elem(elem)
+
         raise TypeError(
             f"{type(elem)} was given as parameter for pipeline element"
         )
