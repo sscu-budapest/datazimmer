@@ -47,9 +47,11 @@ def is_repo(s):
 
 
 @contextmanager
-def cd_into(dirpath: Union[str, Path], reset_src=True, checkout=None):
+def cd_into(
+    dirpath: Union[str, Path], reset_src=True, checkout=None, force_clone=False
+):
     wd = os.getcwd()
-    needs_clone = is_repo(dirpath)
+    needs_clone = force_clone or is_repo(dirpath)
 
     if needs_clone:
         tmp_dir = TemporaryDirectory()
@@ -71,7 +73,7 @@ def cd_into(dirpath: Union[str, Path], reset_src=True, checkout=None):
     os.chdir(wd)
     sys.path.pop(0)
     if needs_clone:
-        tmp_dir.__exit__()
+        tmp_dir.__exit__(None, None, None)
 
 
 def format_code(code_str):

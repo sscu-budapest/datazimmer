@@ -18,7 +18,7 @@ from sscutils.invoke_commands import (
 )
 from sscutils.naming import ENV_CREATION_MODULE_NAME, SRC_PATH
 from sscutils.tests.create_dogshow import DogshowContextCreator, csv_path
-from sscutils.utils import reset_src_module
+from sscutils.utils import cd_into, reset_src_module
 from sscutils.validation_functions import (
     validate_dataset_setup,
     validate_project_env,
@@ -80,6 +80,9 @@ def test_full_dogshow(tmp_path: Path):
         # load_external_data(c, git_commit=True)
         # pipereg = import_pipereg()
         validator()
+
+    with cd_into(ds_cc.get_git_remote("dataset-a"), force_clone=True):
+        validate_dataset_setup()
 
 
 @contextmanager

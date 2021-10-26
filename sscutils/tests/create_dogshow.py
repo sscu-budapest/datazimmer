@@ -81,7 +81,7 @@ class DogshowContextCreator:
 
     def _init_if_local(self, repo_path):
         if not str(repo_path).startswith("git@"):
-            repo_path.mkdir(parents=True)
+            repo_path.mkdir(parents=True, exist_ok=True)
             init_git_repo(
                 repo_path,
                 to_tmp_branch=True,
