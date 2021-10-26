@@ -14,6 +14,7 @@ these are used in [dataset-template](https://github.com/sscu-budapest/dataset-te
 
 ## Lookahead
 
+- resolve naming confusion with colassigner, colaccessor and table feature / composite type / index base classes
 - abstract composite type + subclass of entity class
   - import ACT, inherit from it and specify 
   - importing composite type is impossible now if it contains foreign key :(
