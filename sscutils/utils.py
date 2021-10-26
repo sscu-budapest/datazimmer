@@ -65,13 +65,7 @@ def cd_into(dirpath: Union[str, Path], reset_src=True, checkout=None):
     sys.path.insert(0, str(cd_path))
 
     if reset_src:
-        for m_id in [
-            *filter(
-                lambda k: k.startswith(f"{SRC_PATH}.") or (k == f"{SRC_PATH}"),
-                sys.modules.keys(),
-            )
-        ]:
-            sys.modules.pop(m_id)
+        reset_src_module()
     yield
 
     os.chdir(wd)
@@ -124,6 +118,16 @@ def list_to_named_dict(
         name = d.pop(key_name)
         out[name] = d[val_name] if val_name else d
     return out
+
+
+def reset_src_module():
+    for m_id in [
+        *filter(
+            lambda k: k.startswith(f"{SRC_PATH}.") or (k == f"{SRC_PATH}"),
+            sys.modules.keys(),
+        )
+    ]:
+        sys.modules.pop(m_id)
 
 
 def _none_drop_dict_factory(items):

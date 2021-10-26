@@ -118,22 +118,6 @@ def artifact_context(
         yield partial(check_expectations, name=name)
 
 
-def switch_branch(branch, cwd):
-    comm = ["git", "checkout", "-b", branch]
-    try:
-        check_call(comm, cwd=cwd)
-    except CalledProcessError:
-        comm.pop(2)
-        check_call(comm, cwd=cwd)
-
-
-def switch_branch_mf(branch, cwd):
-    def f():
-        switch_branch(branch, cwd)
-
-    return f
-
-
 def init_git_repo(
     dirpath: str,
     to_tmp_branch=False,
@@ -179,12 +163,9 @@ def init_git_repo(
         check_call(comm, cwd=dirpath)
 
 
-def add_dvc_remotes(dirpath, remotes, init=False):
+def add_dvc_remotes(dirpath, remotes):
     "adds remotes with names remote1, remote2, ..."
-
     commands = []
-    if init:
-        commands.append(["dvc", "init"])
 
     for i, remote in enumerate(remotes):
         # remote1 and remote2 names are set in the yamls
@@ -209,7 +190,7 @@ def check_expectations(name: str):
         true_obj = safe_load((METADATA_DIR / meta_exp_file.name).read_text())
         assert exp_obj == true_obj
 
-    for script_file in script_dir.glob(".py"):
+    for script_file in script_dir.glob("*.py"):
         exp_script = script_file.read_text()
         true_script = (
             IMPORTED_NAMESPACES_SCRIPTS_PATH / script_file
