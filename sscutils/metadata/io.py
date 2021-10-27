@@ -46,7 +46,7 @@ def load_imported_namespaces() -> List[ImportedNamespace]:
 def dump_to_yaml(
     ns: NamespaceMetadata, subdir="", skip_imported_namespaces=True
 ):
-    ns_paths = NamespaceMetadataPaths(subdir)
+    ns_paths = NamespaceMetadataPaths(subdir, mkdir=True)
     for path, elem_list in zip(
         [
             ns_paths.table_schemas,

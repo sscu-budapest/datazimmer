@@ -13,9 +13,10 @@ METADATA_DIR = Path("metadata")
 
 
 class NamespaceMetadataPaths:
-    def __init__(self, local_name: str = "") -> None:
+    def __init__(self, local_name: str = "", mkdir=False) -> None:
         _parent = METADATA_DIR / local_name
-        _parent.mkdir(exist_ok=True)
+        if mkdir:
+            _parent.mkdir(exist_ok=True)
 
         def _p(s) -> Path:
             return _parent / s
