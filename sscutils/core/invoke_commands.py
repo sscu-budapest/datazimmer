@@ -17,10 +17,10 @@ from .path_functions import get_subset_path
 
 
 @task
-def lint(c):
-    c.run(f"black {SRC_PATH} -l 119")
-    c.run(f"isort {SRC_PATH} -m 3 --tc")
-    c.run(f"flake8 {SRC_PATH} --max-line-length=119")
+def lint(ctx, line_length=119):
+    ctx.run(f"black {SRC_PATH} -l {line_length}")
+    ctx.run(f"isort {SRC_PATH} -m 3 --tc")
+    ctx.run(f"flake8 {SRC_PATH} --max-line-length={line_length}")
 
 
 @task
