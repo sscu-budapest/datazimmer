@@ -131,3 +131,4 @@ dmypy.json
 sonar-project.properties
 
 dask-worker-space/
+draft-*.ipynb
