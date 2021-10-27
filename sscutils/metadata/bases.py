@@ -32,5 +32,5 @@ def get_feature_dict(cls: Union[CompositeTypeBase, TableFeaturesBase]):
 def _get_feat_type(attval):
     try:
         return get_return_col_type(attval)
-    except (AssertionError, AttributeError):
+    except (AssertionError, AttributeError, KeyError):
         return attval
