@@ -1,0 +1,4 @@
+dogbase: 
+  uri: {{ dataset_b_repo }}
+dogsuccess: 
+  uri: "{{ project_a_repo }}|>success"

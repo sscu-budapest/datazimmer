@@ -1,7 +1,10 @@
 requests
 invoke
 dvc[s3]
-parquetranger
-colassigner
+parquetranger>=0.0.10
+colassigner>=0.2.0
 pyyaml
 structlog
+black>=21.5b0
+isort
+flake8

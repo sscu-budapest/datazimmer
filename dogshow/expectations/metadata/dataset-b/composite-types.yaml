@@ -1,0 +1,12 @@
+DogCategory:
+  features:
+  - name: pure
+    dtype: bool
+  - name: neutered
+    dtype: bool
+IntLimitType:
+  features:
+  - name: min
+    dtype: int
+  - name: max
+    dtype: int

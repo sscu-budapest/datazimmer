@@ -1,28 +1,13 @@
 import pytest
 
-from sscutils.core.validation_functions import (
-    validate_dataset_setup,
-    validate_project_env,
+from sscutils.validation_functions import (
     validate_repo_name,
     validate_step_name,
 )
-from sscutils.tests.utils import TemporaryDataset, TemporaryProject
-
-
-def test_dataset_validation(tmp_path):
-    dspath = tmp_path / "dst"
-    with TemporaryDataset(dspath):
-        validate_dataset_setup()
-
-
-def test_project_validation(tmp_path):
-    dspath = tmp_path / "dst"
-    with TemporaryProject(dspath, external_dvc_repos=["r1", "r2"]):
-        validate_project_env()
 
 
 @pytest.mark.parametrize(
-    "fname,is_valid",
+    "repo_name,is_valid",
     [
         ("abc", True),
         ("abc123", False),
@@ -32,16 +17,16 @@ def test_project_validation(tmp_path):
         ("abc-", False),
     ],
 )
-def test_repo_name_valid(fname, is_valid):
+def test_repo_name_valid(repo_name, is_valid):
     if is_valid:
-        validate_repo_name(fname)
+        validate_repo_name(repo_name)
     else:
         with pytest.raises(NameError):
-            validate_repo_name(fname)
+            validate_repo_name(repo_name)
 
 
 @pytest.mark.parametrize(
-    "fname,is_valid",
+    "step_name,is_valid",
     [
         ("abc", True),
         ("abc123", False),
@@ -51,9 +36,9 @@ def test_repo_name_valid(fname, is_valid):
         ("abc_", False),
     ],
 )
-def test_step_name_valid(fname, is_valid):
+def test_step_name_valid(step_name, is_valid):
     if is_valid:
-        validate_step_name(fname)
+        validate_step_name(step_name)
     else:
         with pytest.raises(NameError):
-            validate_step_name(fname)
+            validate_step_name(step_name)
