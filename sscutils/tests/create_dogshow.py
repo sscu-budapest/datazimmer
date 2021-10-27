@@ -71,6 +71,48 @@ class DogshowContextCreator:
         self.cc_context[name.replace("-", "_") + "_repo"] = str(remote)
         return remote
 
+    def init_git_repo(
+        self,
+        dirpath: str,
+        to_tmp_branch=False,
+        remote="",
+        template_repo="",
+        template_tag="",
+    ):
+
+        if template_repo:
+            commands = [["git", "clone", template_repo, "."]]
+            if template_tag:
+                commands += [
+                    ["git", "checkout", template_tag],
+                    ["git", "checkout", "-b", "tmp"],
+                    ["git", "checkout", "-B", "main", "tmp"],
+                    ["git", "branch", "-d", "tmp"],
+                ]
+        else:
+            commands = [["git", "init"]]
+
+        commands += [
+            ["git", "config", "--local", "user.name", self.git_user],
+            ["git", "config", "--local", "user.email", self.git_email],
+        ]
+        if remote:
+            commands.append(
+                [
+                    "git",
+                    "remote",
+                    "set-url" if template_repo else "add",
+                    "origin",
+                    remote,
+                ]
+            )
+        if to_tmp_branch:
+            # useful if you intend to push to a local repo
+            commands.append(["git", "checkout", "-b", "tmp-branch"])
+
+        for comm in commands:
+            check_call(comm, cwd=dirpath)
+
     def _get_dvc_remotes(self, n):
         out = []
         for i in range(n):
@@ -82,11 +124,9 @@ class DogshowContextCreator:
     def _init_if_local(self, repo_path):
         if not str(repo_path).startswith("git@"):
             repo_path.mkdir(parents=True, exist_ok=True)
-            init_git_repo(
+            self.init_git_repo(
                 repo_path,
                 to_tmp_branch=True,
-                git_user=self.git_user,
-                git_email=self.git_email,
             )
 
 
@@ -100,7 +140,7 @@ def artifact_context(
     template_path = artifact_src_root / f"cc-{name}"
     git_remote = ctx.get_git_remote(name)
 
-    init_git_repo(
+    ctx.init_git_repo(
         root_dir,
         remote=git_remote,
         template_repo=template_repo,
@@ -116,51 +156,6 @@ def artifact_context(
         _add_readme(template_repo)
         _commit_changes(root_dir)
         yield partial(check_expectations, name=name)
-
-
-def init_git_repo(
-    dirpath: str,
-    to_tmp_branch=False,
-    remote="",
-    git_user="",
-    git_email="",
-    template_repo="",
-    template_tag="",
-):
-
-    if template_repo:
-        commands = [["git", "clone", template_repo, "."]]
-        if template_tag:
-            commands += [
-                ["git", "checkout", template_tag],
-                ["git", "checkout", "-b", "tmp"],
-                ["git", "checkout", "-B", "main", "tmp"],
-                ["git", "branch", "-d", "tmp"],
-            ]
-    else:
-        commands = [["git", "init"]]
-
-    if git_user and git_email:
-        commands += [
-            ["git", "config", "--local", "user.name", git_user],
-            ["git", "config", "--local", "user.email", git_email],
-        ]
-    if remote:
-        commands.append(
-            [
-                "git",
-                "remote",
-                "set-url" if template_repo else "add",
-                "origin",
-                remote,
-            ]
-        )
-    if to_tmp_branch:
-        # useful if you intend to push to a local repo
-        commands.append(["git", "checkout", "-b", "tmp-branch"])
-
-    for comm in commands:
-        check_call(comm, cwd=dirpath)
 
 
 def add_dvc_remotes(dirpath, remotes):
