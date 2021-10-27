@@ -1,5 +1,8 @@
+Glossary
+========
+
 Namespace
-~~~~~~~~~
+^^^^^^^^^
 
    Atomic unit of the knowledge system containing data and metadata
 
@@ -14,7 +17,7 @@ Namespace
 -  has different environments
 
 Dataset
-~~~~~~~
+^^^^^^^
 
    A set of defined tables in a namespace with metadata and different
    environments
@@ -23,7 +26,7 @@ Dataset
 -  one namespace
 
 Project
-~~~~~~~
+^^^^^^^
 
    A pipeline built on datasets
 
@@ -31,7 +34,7 @@ Project
 -  steps of the pipeline create can namespaces
 
 Metadata
-~~~~~~~~
+^^^^^^^^
 
    Information describing the knowledge in a namespace
 
@@ -39,7 +42,7 @@ Metadata
 -  defined tables, composite types and entity classes
 
 Config
-~~~~~~
+^^^^^^
 
    Parameters that can change from run to run
 
@@ -54,7 +57,7 @@ Config
    -  parameters of the steps in the pipeline
 
 Environment
-~~~~~~~~~~~
+^^^^^^^^^^^
 
    A subset or a scrambled version of a set of data tables
 
@@ -63,19 +66,19 @@ Environment
 -  defined by the environments of the sources for a project step
 
 Feature
-~~~~~~~
+^^^^^^^
 
    A named set of columns in a table
 
 -  can be primitive feature, foreign key or composite feature
 
 Subject of Records
-~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^
 
    Entity class that is represented in a table
 
 Step
-~~~~
+^^^^
 
    An element of the pipeline, collected in topmodules for a project and
    executed as one function with explicitly dtated outputs and
@@ -84,11 +87,11 @@ Step
 -  is logged in dvc
 
 Topmodule
-~~~~~~~~~
+^^^^^^^^^
 
    Python module that is a direct child of the root src module
 
 Child Module
-~~~~~~~~~~~~
+^^^^^^^^^^^^
 
    Module that is nested under a topmodule
