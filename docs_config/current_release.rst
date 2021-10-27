@@ -1,7 +1,5 @@
-- use pathlib in pipeline registry
-- pipereg slight extend
-- change param parsing
-- drop dag formatting
-- add pipereg tests
-- add structlog requirement
-- pipereg fix version
+A large revamp based on use cases
+
+- refine and separate metadata and config
+- add dogshow standard
+- start project parsing logic
