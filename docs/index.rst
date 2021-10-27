@@ -8,6 +8,10 @@ Welcome to sscutils's documentation!
 
    notebooks/doc-000-intro
    notebooks/doc-001-quickstart
+   notebooks/doc-002-conventions
+   notebooks/doc-003-mock-artifacts
+   notebooks/doc-004-glossary
+   notebooks/doc-005-rules
    autosumm
    release_notes/main
 
