@@ -5,6 +5,6 @@ parquetranger>=0.0.10
 colassigner>=0.2.0
 pyyaml
 structlog
-black
+black>=21.5
 isort
 flake8
