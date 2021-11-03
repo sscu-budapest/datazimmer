@@ -1,17 +1,17 @@
 from contextlib import contextmanager
-from importlib import import_module
 from pathlib import Path
 
 import pytest
 from invoke import Context
 
 from sscutils.exceptions import DatasetSetupException
+from sscutils.helpers import run_step
 from sscutils.invoke_commands import (
     import_namespaces,
     lint,
     load_external_data,
     push_envs,
-    serialize_inscript_metadata,
+    serialize_datascript_metadata,
     set_dvc_remotes,
     update_data,
     write_envs,
@@ -23,15 +23,6 @@ from sscutils.validation_functions import (
     validate_dataset_setup,
     validate_project_env,
 )
-
-
-def import_pipereg():
-    return import_module(str(SRC_PATH)).pipereg
-
-
-def run_step(step):
-    pipereg = import_pipereg()
-    pipereg.get_step(step).run()
 
 
 def test_full_dogshow(tmp_path: Path):
@@ -52,7 +43,7 @@ def test_full_dogshow(tmp_path: Path):
             lint(c)
             with pytest.raises(DatasetSetupException):
                 validate_dataset_setup()
-            serialize_inscript_metadata(c, git_commit=True)
+            serialize_datascript_metadata(c, git_commit=True)
             update_data(c, (csv_path,))
             set_dvc_remotes(c)
             write_envs(c)
