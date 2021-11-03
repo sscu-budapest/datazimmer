@@ -1,5 +1,4 @@
-from sscutils import CompositeTypeBase, IndexBase, ScruTable
-from sscutils.metadata.bases import TableFeaturesBase
+from sscutils import CompositeTypeBase, IndexBase, ScruTable, TableFeaturesBase
 
 from .imported_namespaces import dogbase
 

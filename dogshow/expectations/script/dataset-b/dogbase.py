@@ -1,6 +1,11 @@
 from datetime import datetime  # noqa: F401
 
-from sscutils import BaseEntity, CompositeTypeBase, IndexBase, TableFeaturesBase
+from sscutils import (
+    BaseEntity,
+    CompositeTypeBase,
+    IndexBase,
+    TableFeaturesBase,
+)
 
 
 class Creature(BaseEntity):
