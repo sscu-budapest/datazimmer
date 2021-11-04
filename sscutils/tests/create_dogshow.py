@@ -5,6 +5,7 @@ from subprocess import CalledProcessError, check_call
 from typing import Optional
 
 from cookiecutter.main import generate_files
+from structlog import get_logger
 from yaml import safe_load
 
 from sscutils.naming import (
@@ -15,6 +16,8 @@ from sscutils.naming import (
     ProjectConfigPaths,
 )
 from sscutils.utils import cd_into
+
+logger = get_logger()
 
 sscutil_root = Path(__file__).parent.parent.parent
 dogshow_root = sscutil_root / "dogshow"
@@ -181,16 +184,21 @@ def check_expectations(name: str):
         expectation_root / d / name for d in ["script", "metadata"]
     ]
     for meta_exp_file in meta_dir.glob("*.yaml"):
-        exp_obj = safe_load(meta_exp_file.read_text())
-        true_obj = safe_load((METADATA_DIR / meta_exp_file.name).read_text())
-        assert exp_obj == true_obj
+        _check_files(
+            meta_exp_file, METADATA_DIR / meta_exp_file.name, safe_load
+        )
 
     for script_file in script_dir.glob("*.py"):
-        exp_script = script_file.read_text()
-        true_script = (
-            IMPORTED_NAMESPACES_SCRIPTS_PATH / script_file
-        ).read_text()
-        assert exp_script == true_script
+        _check_files(
+            script_file, IMPORTED_NAMESPACES_SCRIPTS_PATH / script_file.name
+        )
+
+
+def _check_files(exp_path, true_path, wrapper=str):
+    logger.info("Validating", true=true_path, exp=exp_path)
+    exp_obj = wrapper(exp_path.read_text())
+    true_obj = wrapper(true_path.read_text())
+    assert exp_obj == true_obj
 
 
 def _commit_changes(dirpath):
