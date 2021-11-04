@@ -93,7 +93,7 @@ class CompetitionFeatures(TableFeaturesBase):
 class SpotFeatures(TableFeaturesBase):
     dog_1 = DogIndex
     dog_2 = DogIndex
-    place = str
+    place = AddressType
 
 
 class PhotoFeatures(TableFeaturesBase):
