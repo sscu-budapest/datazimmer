@@ -8,3 +8,5 @@ structlog
 black>=21.5b0
 isort
 flake8
+sqlalchemy
+psycopg2
