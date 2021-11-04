@@ -18,3 +18,5 @@ requires = [
 ]
 [tool.pytest.ini_options]
 addopts = "-s"
+[tool.black]
+exclude = "dogshow/expectations"
