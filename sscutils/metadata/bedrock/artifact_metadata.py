@@ -67,6 +67,14 @@ class ArtifactMetadata:
         )
 
     @property
+    def local_namespaces(self):
+        return [
+            ns
+            for prefix, ns in self.namespaces.items()
+            if prefix not in self.imported_dic.keys()
+        ]
+
+    @property
     def imported_dic(self) -> Dict[str, ImportedNamespace]:
         return {ns.prefix: ns for ns in self.imported_namespaces}
 
