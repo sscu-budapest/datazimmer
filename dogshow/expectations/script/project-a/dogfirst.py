@@ -9,18 +9,6 @@ from sscutils import (
 )
 
 
-class Creature(BaseEntity):
-    pass
-
-
-class Person(Creature):
-    pass
-
-
-class Pet(BaseEntity):
-    pass
-
-
 class Competition(BaseEntity):
     pass
 
@@ -34,6 +22,18 @@ class Relationship(BaseEntity):
 
 
 class Spot(BaseEntity):
+    pass
+
+
+class Creature(BaseEntity):
+    pass
+
+
+class Person(Creature):
+    pass
+
+
+class Pet(BaseEntity):
     pass
 
 
@@ -79,12 +79,6 @@ class RelationshipIndex(IndexBase):
     dog = DogIndex
 
 
-class SpotFeatures(TableFeaturesBase):
-    dog_1 = DogIndex
-    dog_2 = DogIndex
-    place = str
-
-
 class Dog(Creature, Pet):
     pass
 
@@ -112,6 +106,12 @@ class CompetitionFeatures(TableFeaturesBase):
 class PictureFeatures(TableFeaturesBase):
     cuteness = float
     rel = RelationshipIndex
+
+
+class SpotFeatures(TableFeaturesBase):
+    dog_1 = DogIndex
+    dog_2 = DogIndex
+    place = AddressType
 
 
 table_factory = TableFactory("dogfirst")

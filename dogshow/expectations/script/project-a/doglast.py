@@ -63,6 +63,7 @@ class DogIndex(IndexBase):
 
 
 class CompetitionFeatures(TableFeaturesBase):
+    held_date = datetime
     fastest_time = float
     champion = DogIndex
 
