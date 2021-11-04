@@ -80,18 +80,10 @@ class DogshowContextCreator:
         to_tmp_branch=False,
         remote="",
         template_repo="",
-        template_tag="",
     ):
 
         if template_repo:
             commands = [["git", "clone", template_repo, "."]]
-            if template_tag:
-                commands += [
-                    ["git", "checkout", template_tag],
-                    ["git", "checkout", "-b", "tmp"],
-                    ["git", "checkout", "-B", "main", "tmp"],
-                    ["git", "branch", "-d", "tmp"],
-                ]
         else:
             commands = [["git", "init"]]
 

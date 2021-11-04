@@ -44,12 +44,6 @@ def validate_dataset_setup():
     for table in root_ns.tables:
         if table.name not in [t.name for t in a_meta.namespaces[""].tables]:
             raise DatasetSetupException(f"{table.name} table not serialized")
-
-    keylist = [*a_meta.namespaces.keys()]
-    a_meta.extend_from_datascript()
-    if len(a_meta.namespaces) > len(keylist):
-        raise DatasetSetupException("some metadata not serialized")
-
     import_env_creator_function()
     import_update_data_function()
 

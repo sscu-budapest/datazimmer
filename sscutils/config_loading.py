@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from functools import partial
 from pathlib import Path
 from typing import List, Optional, Union
 
@@ -78,11 +77,9 @@ class ProjectConfig:
     def __init__(self) -> None:
         from .metadata import ArtifactMetadata
 
-        _loader = partial(_yaml_or_err, exc_cls=ProjectSetupException)
-
-        current_env_spec: List[DataEnvSpecification] = _loader(
-            load_data_env_spec_list
-        )
+        current_env_spec: List[
+            DataEnvSpecification
+        ] = load_data_env_spec_list()
         a_meta = ArtifactMetadata.load_serialized()
 
         self.data_envs: List[DataEnvironmentToLoad] = []
@@ -153,18 +150,17 @@ def load_branch_remote_pairs():
     ).items()
 
 
-load_data_env_spec_list = partial(
-    load_named_dict_to_list,
-    path=ProjectConfigPaths.CURRENT_ENV,
-    key_name="prefix",
-    cls=DataEnvSpecification,
-)
-
-
-def _yaml_or_err(path_or_fun, exc_cls, desc=None):
+def load_data_env_spec_list():
     try:
-        if callable(path_or_fun):
-            return path_or_fun()
-        return yaml.safe_load(path_or_fun.read_text())
+        return load_named_dict_to_list(
+            ProjectConfigPaths.CURRENT_ENV, DataEnvSpecification, "prefix"
+        )
+    except FileNotFoundError:
+        raise ProjectSetupException("missing env spec")
+
+
+def _yaml_or_err(path, exc_cls, desc=None):
+    try:
+        return yaml.safe_load(path.read_text())
     except FileNotFoundError as e:
-        raise exc_cls(f"Config of {desc or path_or_fun} not found in {e}")
+        raise exc_cls(f"Config of {desc or path} not found in {e}")

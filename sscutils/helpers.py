@@ -22,7 +22,7 @@ from .naming import (
 )
 
 if TYPE_CHECKING:
-    from .pipeline_registry import PipelineRegistry
+    from .pipeline_registry import PipelineRegistry  # pragma: no cover
 
 
 def dump_dfs_to_tables(env_name, df_structable_pairs):
