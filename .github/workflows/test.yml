@@ -35,6 +35,8 @@ jobs:
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
     - name: Test
+      env:
+        POSTGRES_HOST: postgres
       run: |
         inv misc.lint
         inv test.test
