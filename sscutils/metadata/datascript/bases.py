@@ -33,4 +33,5 @@ def _get_feat_type(attval):
     try:
         return get_return_col_type(attval)
     except (AssertionError, AttributeError, KeyError):
+        # TODO: way too general
         return attval

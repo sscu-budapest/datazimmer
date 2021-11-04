@@ -1,7 +1,8 @@
 import os
 import sys
 from contextlib import contextmanager
-from dataclasses import asdict
+from datetime import datetime
+from enum import Enum
 from pathlib import Path
 from subprocess import check_call
 from tempfile import TemporaryDirectory
@@ -16,8 +17,17 @@ from .naming import SRC_PATH
 
 LINE_LEN = 119
 PRIMITIVE_MODULES = ["builtins", "datetime"]
-OWN_NAME = "sscutils"
 T = TypeVar("T")
+
+
+class PrimitiveType(Enum):
+    # TODO: categorical
+    float = float
+    int = int
+    str = str
+    bytes = bytes
+    bool = bool
+    datetime = datetime
 
 
 def get_cls_defined_in_module(module, parent):
@@ -111,17 +121,6 @@ def load_named_dict_to_list(
     return out
 
 
-def list_to_named_dict(
-    in_list: List[T], key_name="name", val_name=None
-) -> dict:
-    out = {}
-    for elem in in_list:
-        d = asdict(elem, dict_factory=_none_drop_dict_factory)
-        name = d.pop(key_name)
-        out[name] = d[val_name] if val_name else d
-    return out
-
-
 def reset_src_module():
     for m_id in [
         *filter(
@@ -132,5 +131,8 @@ def reset_src_module():
         sys.modules.pop(m_id)
 
 
-def _none_drop_dict_factory(items):
-    return {k: v for k, v in items if v is not None}
+def is_type_hint_origin(hint, cls):
+    try:
+        return hint.__origin__ is cls
+    except AttributeError:
+        return False

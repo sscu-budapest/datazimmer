@@ -7,6 +7,7 @@ FEATURES_CLS_SUFFIX = "features"
 INDEX_CLS_SUFFIX = "index"
 
 PIPELINE_STEP_SEPARATOR = "|>"
+NAMESPACE_PREFIX_SEPARATOR = ":"
 
 CONFIG_DIR = Path("conf")
 METADATA_DIR = Path("metadata")
@@ -50,15 +51,14 @@ UPDATE_DATA_MODULE_NAME = "update_data"
 UPDATE_DATA_FUNCTION_NAME = "update_data"
 ENV_CREATION_MODULE_NAME = "create_environments"
 ENV_CREATION_FUNCTION_NAME = "create_environments"
+PIPEREG_MODULE_NAME = "pipereg"
+PIPEREG_INSTANCE_NAME = "pipereg"
+
 
 IMPORTED_NAMESPACES_SCRIPTS_PATH = SRC_PATH / IMPORTED_NAMESPACES_MODULE_NAME
 
-
-def get_top_module_name(child_module_name: str):
-    mod_pref = f"{SRC_PATH}."
-    if not child_module_name.startswith(mod_pref):
-        raise ValueError(
-            f"Can't detect top module from module {child_module_name}"
-        )
-
-    return child_module_name.replace(mod_pref, "", 1).split(".")[0]
+imported_namespaces_abs_module = (
+    f"{SRC_PATH}.{IMPORTED_NAMESPACES_MODULE_NAME}"
+)
+ns_metadata_abs_module = f"{SRC_PATH}.{NAMESPACE_METADATA_MODULE_NAME}"
+ns_metadata_file = SRC_PATH / (NAMESPACE_METADATA_MODULE_NAME + ".py")
