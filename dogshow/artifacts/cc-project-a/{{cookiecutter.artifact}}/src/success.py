@@ -129,13 +129,14 @@ sized_dogs_table = ScruTable(
     subject_of_records=dogfirst.Dog,
     name="dogs_w_sizes",
 )
-person_by_dogsize_table = ScruTable(
-    PersonByDogsizeFeatures, PersonByDogsizeIndex
-)
-domination_table = ScruTable(DominationFeatures)
-dogsize_leaders_table = ScruTable(
-    DogsizeLegendFeatures, subject_of_records=doglast.DogSize
-)
+# TODO:
+#  person_by_dogsize_table = ScruTable(
+#    PersonByDogsizeFeatures, PersonByDogsizeIndex
+#  )
+# domination_table = ScruTable(DominationFeatures)
+# dogsize_leaders_table = ScruTable(
+#    DogsizeLegendFeatures, subject_of_records=doglast.DogSize
+# )
 
 # TODO: formalize reporting one day
 status_md_path = Path("reports", "status_table.md")
