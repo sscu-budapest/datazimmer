@@ -1,5 +1,7 @@
 competition:
   features:
+  - name: held_date
+    dtype: datetime
   - name: fastest_time
     dtype: float
   - prefix: champion

@@ -1,4 +1,4 @@
-competition_id,held_date,fastest_time,champion
+competition_id,held_date,fastest_time,champion__canine_id
 cx-1,2020-07-22 20:00:00,684.0513643698686,d-7
 cx-2,2019-11-10 01:00:00,740.2881169842549,d-6
 cx-3,2021-04-24 11:00:00,197.9254591721182,d-3

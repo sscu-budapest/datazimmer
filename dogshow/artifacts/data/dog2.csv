@@ -1,4 +1,4 @@
-canine_id,name,size,color
+canine_id,name,size__dogsize_name,color
 d-1,Christine,SM,Snow
 d-2,Tami,MED,Cornsilk
 d-3,Kimberly,LG,Crimson
