@@ -1,9 +1,12 @@
 import importlib
 from typing import TYPE_CHECKING
 
-from .config_loading import DatasetConfig
+from parquetranger import TableRepo
+
+from .config_loading import DatasetConfig, load_artifact_config
 from .exceptions import DatasetSetupException, ProjectSetupException
 from .naming import (
+    DATA_PATH,
     DATASET_METADATA_PATHS,
     ENV_CREATION_FUNCTION_NAME,
     ENV_CREATION_MODULE_NAME,
@@ -80,11 +83,39 @@ def get_top_module_name(child_module_name: str):
     return child_module_name.split(".")[module_ind]
 
 
+def get_associated_step(caller):
+    return get_top_module_name(caller.__module__)
+
+
 def get_serialized_namespace_dirs():
     subdirs = [p.name for p in METADATA_DIR.iterdir() if p.is_dir()]
     if DATASET_METADATA_PATHS.entity_classes.exists():
         subdirs.append("")
     return subdirs
+
+
+def create_trepo(
+    name, namespace, partitioning_cols=None, max_partition_size=None
+):
+
+    artifact_config = load_artifact_config()
+    is_in_dataset = isinstance(artifact_config, DatasetConfig)
+
+    if is_in_dataset:
+        parents_dict = {
+            env.name: env.path for env in artifact_config.created_environments
+        }
+        trepo_path = parents_dict[artifact_config.default_env.name] / name
+    else:
+        parents_dict = {}
+        trepo_path = DATA_PATH / namespace / name
+
+    return TableRepo(
+        trepo_path,
+        group_cols=partitioning_cols,
+        max_records=max_partition_size or 0,
+        env_parents=parents_dict,
+    )
 
 
 def _import_fun(module_name, fun_name, err=DatasetSetupException):

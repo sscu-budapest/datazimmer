@@ -7,7 +7,7 @@ import yaml
 from invoke import Collection, task
 from structlog import get_logger
 
-from .helpers import get_top_module_name
+from .helpers import get_associated_step
 from .metadata import ArtifactMetadata
 from .metadata.datascript.scrutable import ScruTable
 from .naming import SRC_PATH, ProjectConfigPaths
@@ -46,10 +46,6 @@ class PipelineRegistry:
             relpath = inspect.getfile(fun)
             lineno = inspect.findsource(fun)[1]
             parsed_deps = self._parse_list(dependencies)
-
-            for out in outputs or []:
-                if isinstance(out, ScruTable):
-                    out.register_as_step_output(_get_name(fun))
 
             pe = PipelineElement(
                 runner=fun,
@@ -167,7 +163,7 @@ class PipelineElement:
 
     @property
     def name(self):
-        return _get_name(self.runner)
+        return get_associated_step(self.runner)
 
     def _log_metadata(self):
         a_meta = ArtifactMetadata.load_serialized()
@@ -181,7 +177,3 @@ def _get_comm(entries, prefix):
 
 def _type_or_fun_elem(elem):
     return [Path(inspect.getfile(elem)).relative_to(Path.cwd()).as_posix()]
-
-
-def _get_name(caller):
-    return get_top_module_name(caller.__module__)
