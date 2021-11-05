@@ -40,8 +40,7 @@ jobs:
       env:
         POSTGRES_HOST: localhost
       run: |
-        inv misc.lint
-        inv test.test
+        inv test
     - name: "Upload coverage to Codecov"
       uses: codecov/codecov-action@v1
       with:

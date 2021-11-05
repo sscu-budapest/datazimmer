@@ -10,3 +10,4 @@ isort
 flake8
 sqlalchemy
 psycopg2
+toml
