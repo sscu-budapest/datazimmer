@@ -132,4 +132,4 @@ sonar-project.properties
 
 dask-worker-space/
 draft-*.ipynb
-dogshow/confs.yaml
+dogshow/confs-live.yaml

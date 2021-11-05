@@ -18,13 +18,16 @@ from sscutils.invoke_commands import (
     write_envs,
 )
 from sscutils.naming import ENV_CREATION_MODULE_NAME, SRC_PATH
+from sscutils.sql.draw import dump_graph
 from sscutils.sql.loader import SqlLoader
-from sscutils.tests.create_dogshow import DogshowContextCreator, csv_path
+from sscutils.tests.create_dogshow import csv_path
 from sscutils.utils import cd_into, reset_src_module
 from sscutils.validation_functions import (
     validate_dataset_setup,
     validate_project_env,
 )
+
+from .init_dogshow import setup_dogshow
 
 
 def sql_validation():
@@ -34,21 +37,17 @@ def sql_validation():
     loader = SqlLoader(constr, echo=False)
     loader.setup_schema()
     loader.load_data()
+    dump_graph(loader.sql_meta)
     loader.purge()
 
 
-def test_full_dogshow(tmp_path: Path):
+def test_full_dogshow(tmp_path: Path, pytestconfig):
 
-    lroot = tmp_path / "root-dir"
-    lroot.mkdir()
+    mode = pytestconfig.getoption("mode")
+    ds_cc = setup_dogshow(mode, tmp_path)
+
     env_fun_script = SRC_PATH / (ENV_CREATION_MODULE_NAME + ".py")
-
-    ds_cc = DogshowContextCreator(
-        local_output_root=lroot,
-    )
-
     c = Context()
-
     for ds in [ds_cc.dataset_a, ds_cc.dataset_b]:
         with ds as validator:
             import_namespaces(c, git_commit=True)

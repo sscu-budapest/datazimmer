@@ -39,7 +39,7 @@ class DogshowContextCreator:
     ) -> None:
 
         self.local_root = local_output_root
-        self.git_remote_root = (
+        self.git_remote_root = Path(
             git_remote_root or self.local_root / "git-remotes"
         )
         self.csv_path = csv_path
