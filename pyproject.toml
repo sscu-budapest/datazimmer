@@ -17,3 +17,5 @@ requires = [
 ]
 [tool.bran]
 line-length = 79
+[tool.pytest.ini_options]
+addopts = "-s"
