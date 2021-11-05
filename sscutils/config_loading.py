@@ -10,8 +10,6 @@ from .exceptions import (
     NotAnArtifactException,
     ProjectSetupException,
 )
-from .metadata.io import load_imported_namespaces
-from .metadata.schema import ImportedNamespace
 from .naming import (
     COMPLETE_ENV_NAME,
     DATA_PATH,
@@ -78,22 +76,20 @@ class ProjectConfig:
     """
 
     def __init__(self) -> None:
+        from .metadata import ArtifactMetadata
 
         _loader = partial(_yaml_or_err, exc_cls=ProjectSetupException)
 
         current_env_spec: List[DataEnvSpecification] = _loader(
             load_data_env_spec_list
         )
-        imported_namespaces: List[ImportedNamespace] = _loader(
-            load_imported_namespaces
-        )
-        ns_dic = {ns.prefix: ns for ns in imported_namespaces}
+        a_meta = ArtifactMetadata.load_serialized()
 
         self.data_envs: List[DataEnvironmentToLoad] = []
 
         for env_spec in current_env_spec:
             try:
-                ns = ns_dic[env_spec.prefix]
+                ns = a_meta.imported_dic[env_spec.prefix]
             except KeyError:
                 raise ProjectSetupException(
                     "No imported namespace corresponds to"

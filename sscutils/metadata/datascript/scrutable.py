@@ -3,15 +3,15 @@ from typing import List, Optional, Type
 
 from parquetranger import TableRepo
 
-from .config_loading import (
+from ...config_loading import (
     DataEnvironmentToLoad,
     DatasetConfig,
     load_artifact_config,
 )
-from .exceptions import ProjectSetupException
-from .metadata.bases import BaseEntity, IndexBase, TableFeaturesBase
-from .metaprogramming import camel_to_snake, snake_to_camel
-from .naming import DATA_PATH, FEATURES_CLS_SUFFIX
+from ...exceptions import ProjectSetupException
+from ...metaprogramming import camel_to_snake, snake_to_camel
+from ...naming import DATA_PATH, FEATURES_CLS_SUFFIX
+from .bases import BaseEntity, IndexBase, TableFeaturesBase
 
 
 class ScruTable:

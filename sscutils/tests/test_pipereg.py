@@ -59,8 +59,6 @@ def test_pipereg_parse_elems(tmp_path):
     step1.__module__ = "src.step_one"
     step1_pe = pipereg.register(outputs=["s1_out"])(step1)
 
-    print(type(step1))
-
     _module_file_path = (
         Path(pipereg_module.__file__).relative_to(Path.cwd()).as_posix()
     )

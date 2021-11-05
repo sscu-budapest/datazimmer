@@ -7,13 +7,10 @@ import yaml
 from invoke import Collection, task
 from structlog import get_logger
 
-from sscutils.metadata.inscript_converters import (
-    load_metadata_from_child_module,
-)
-from sscutils.metadata.io import dump_to_yaml
-
-from .naming import SRC_PATH, ProjectConfigPaths, get_top_module_name
-from .scrutable_class import ScruTable
+from .helpers import get_top_module_name
+from .metadata import ArtifactMetadata
+from .metadata.datascript.scrutable import ScruTable
+from .naming import SRC_PATH, ProjectConfigPaths
 
 logger = get_logger()
 
@@ -173,9 +170,9 @@ class PipelineElement:
         return _get_name(self.runner)
 
     def _log_metadata(self):
-        dump_to_yaml(
-            load_metadata_from_child_module(self.runner.__module__), self.name
-        )
+        a_meta = ArtifactMetadata.load_serialized()
+        a_meta.extend_from_datascript()
+        a_meta.dump()
 
 
 def _get_comm(entries, prefix):

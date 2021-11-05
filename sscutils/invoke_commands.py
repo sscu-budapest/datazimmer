@@ -4,8 +4,6 @@ from dvc.repo import Repo
 from invoke import Collection, task
 from invoke.exceptions import UnexpectedExit
 
-from sscutils.metadata.io import dump_to_yaml, load_imported_namespaces
-
 from .config_loading import (
     COMPLETE_ENV,
     DatasetConfig,
@@ -13,11 +11,13 @@ from .config_loading import (
     load_branch_remote_pairs,
 )
 from .helpers import import_env_creator_function, import_update_data_function
-from .metadata.inscript_converters import (
-    import_metadata_to_script,
-    load_metadata_from_dataset_script,
+from .metadata import ArtifactMetadata
+from .naming import (
+    COMPLETE_ENV_NAME,
+    IMPORTED_NAMESPACES_SCRIPTS_PATH,
+    METADATA_DIR,
+    SRC_PATH,
 )
-from .naming import COMPLETE_ENV_NAME, METADATA_DIR, SRC_PATH
 from .utils import LINE_LEN
 
 
@@ -40,11 +40,19 @@ def set_dvc_remotes(ctx):
 @task
 def import_namespaces(ctx, git_commit=False):
 
-    for ns in load_imported_namespaces():
-        meta_files = import_metadata_to_script(ns)
-        if git_commit:
-            ctx.run(f"git add {' '.join(meta_files)}")
-            ctx.run(f'git commit -m "import {ns.uri} ({ns.prefix}) code"')
+    meta = ArtifactMetadata.load_serialized()
+
+    for ns in meta.imported_namespaces:
+        meta.extend_from_import(ns)
+    meta.dump()
+    meta.imported_nss_to_datascript()
+    if git_commit:
+        try:
+            _commit_serialized_meta(ctx)
+            ctx.run(f"git add {IMPORTED_NAMESPACES_SCRIPTS_PATH}")
+            ctx.run('git commit -m "import namespaces to datascript"')
+        except UnexpectedExit:
+            pass
 
 
 @task(iterable=["args"])
@@ -87,12 +95,12 @@ def push_envs(ctx, git_push=False):
 
 
 @task
-def serialize_inscript_metadata(ctx, git_commit=False):
-    ns = load_metadata_from_dataset_script()
-    dump_to_yaml(ns)
+def serialize_datascript_metadata(ctx, git_commit=False):
+    meta = ArtifactMetadata.load_serialized()
+    meta.extend_from_datascript()
+    meta.dump()
     if git_commit:
-        ctx.run(f"git add {METADATA_DIR}")
-        ctx.run('git commit -m "add serialized metadata"')
+        _commit_serialized_meta(ctx)
 
 
 @task
@@ -125,11 +133,14 @@ def load_external_data(ctx, git_commit=False):
             )
 
 
-common_tasks = [lint, set_dvc_remotes, import_namespaces]
+common_tasks = [
+    lint,
+    set_dvc_remotes,
+    import_namespaces,
+    serialize_datascript_metadata,
+]
 
-dataset_ns = Collection(
-    *common_tasks, serialize_inscript_metadata, write_envs, push_envs
-)
+dataset_ns = Collection(*common_tasks, write_envs, push_envs)
 project_ns = Collection(*common_tasks, load_external_data)
 
 
@@ -138,3 +149,8 @@ def _try_checkout(ctx, branch):
         ctx.run(f"git checkout {branch}")
     except UnexpectedExit:
         ctx.run(f"git checkout -b {branch}")
+
+
+def _commit_serialized_meta(ctx):
+    ctx.run(f"git add {METADATA_DIR}")
+    ctx.run('git commit -m "update serialized metadata"')

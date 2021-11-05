@@ -1,44 +1,40 @@
 from dataclasses import dataclass
-from typing import Type, Union
+from typing import Generic, Type, Union
 
-from ..naming import (
-    IMPORTED_NAMESPACES_MODULE_NAME,
-    SRC_PATH,
-    get_top_module_name,
+from ...helpers import get_top_module_name
+from ...naming import (
+    NAMESPACE_PREFIX_SEPARATOR,
+    imported_namespaces_abs_module,
 )
-from ..utils import OWN_NAME, PRIMITIVE_MODULES
-from .schema import PrimitiveType
-
-NAMESPACE_PREFIX_SEPARATOR = ":"
-
-imported_namespaces_abs_module = (
-    f"{SRC_PATH}.{IMPORTED_NAMESPACES_MODULE_NAME}"
-)
+from ...utils import PRIMITIVE_MODULES, T
 
 
 @dataclass
 class NamespacedId:
+    """bedrock id with a namespace prefix
+
+    ns_prefix can be "" and None as well
+    "" means artifact level id
+    None means local id
+    """
+
     ns_prefix: Union[str, None]
     obj_id: str
 
     @property
-    def py_obj_accessor(self):
+    def datascript_obj_accessor(self):
         return self._joiner(".")
 
     @property
-    def conf_obj_id(self):
+    def serialized_id(self):
         return self._joiner(NAMESPACE_PREFIX_SEPARATOR)
-
-    @property
-    def is_primitive(self):
-        return self.obj_id in PrimitiveType.__members__
 
     @property
     def is_local(self):
         return self.ns_prefix is None
 
     @classmethod
-    def from_conf_obj_id(cls, id_: str) -> "NamespacedId":
+    def from_serialized_id(cls, id_: str) -> "NamespacedId":
         split_id = id_.split(NAMESPACE_PREFIX_SEPARATOR)
         obj_id = split_id[-1]
         if len(split_id) > 1:
@@ -48,11 +44,11 @@ class NamespacedId:
         return cls(ns_id, obj_id)
 
     @classmethod
-    def from_py_cls(
+    def from_datascript_cls(
         cls, py_cls: Type, current_top_module: str
     ) -> "NamespacedId":
         _mod = py_cls.__module__
-        if (_mod in PRIMITIVE_MODULES) or _mod.startswith(OWN_NAME):
+        if _mod in PRIMITIVE_MODULES:
             ns_id = None
         elif _mod.startswith(imported_namespaces_abs_module):
             ns_id = _mod.replace(imported_namespaces_abs_module + ".", "")
@@ -63,3 +59,7 @@ class NamespacedId:
 
     def _joiner(self, join_str):
         return join_str.join(filter(None, [self.ns_prefix, self.obj_id]))
+
+
+class NamespacedIdOf(Generic[T], NamespacedId):
+    pass

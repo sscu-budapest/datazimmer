@@ -3,12 +3,9 @@ import re
 from .config_loading import DatasetConfig, ProjectConfig
 from .exceptions import DatasetSetupException
 from .helpers import import_env_creator_function, import_update_data_function
-from .metadata.inscript_converters import (
-    PyObjectCollector,
-    dataset_ns_metadata_abs_module,
-    load_metadata_from_dataset_script,
-)
-from .metadata.io import load_from_yaml
+from .metadata import ArtifactMetadata
+from .metadata.datascript.to_bedrock import load_metadata_from_child_module
+from .naming import ns_metadata_abs_module
 
 
 def validate_project_env():
@@ -42,18 +39,16 @@ def validate_dataset_setup():
         explains what is wrong
     """
     _ = DatasetConfig()
-    from_script_meta = load_metadata_from_dataset_script()
-    serialized_meta = load_from_yaml()
-    py_obj_repo = PyObjectCollector(dataset_ns_metadata_abs_module)
+    a_meta = ArtifactMetadata.load_serialized()
+    root_ns = load_metadata_from_child_module(ns_metadata_abs_module)
+    for table in root_ns.tables:
+        if table.name not in [t.name for t in a_meta.namespaces[""].tables]:
+            raise DatasetSetupException(f"{table.name} table not serialized")
 
-    ser_t_names = [t.name for t in serialized_meta.tables]
-    loaded_t_names = [t.name for t in from_script_meta.tables]
-
-    for scrutable in py_obj_repo.tables:
-        if scrutable.name not in ser_t_names:
-            raise DatasetSetupException(f"{scrutable} metadata not serialized")
-        if scrutable.name not in loaded_t_names:
-            raise DatasetSetupException(f"{scrutable} can't be loaded")
+    keylist = [*a_meta.namespaces.keys()]
+    a_meta.extend_from_datascript()
+    if len(a_meta.namespaces) > len(keylist):
+        raise DatasetSetupException("some metadata not serialized")
 
     import_env_creator_function()
     import_update_data_function()
