@@ -1,2 +1,23 @@
-- fix docs indentation
-- docv update
+- bump colassigner requirement
+- import fix in dogshow
+- reorganize metadata
+- move scrutable class
+- adjust to meta reorg
+- adjust test
+- fix ds-a dtype
+- dogshow update to fit sql
+- exclude dogshow from black
+- adjust project expectations
+- proper unblack expectations
+- unblack again
+- restrict project-a
+- try postrges action
+- init sql loader
+- adjust helpers
+- validation logging
+- bump pg and black
+- unblacking nightbamre ep100
+- v1 postgres working
+- update some docs
+- try on localhost
+- cover update

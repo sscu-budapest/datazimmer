@@ -105,16 +105,9 @@ def load_named_dict_to_list(
     cls: Type[T],
     key_name="name",
     val_name=None,
-    allow_missing=False,
 ) -> List[T]:
     out = []
-    try:
-        file_contents = safe_load(path.read_text())
-    except FileNotFoundError as e:
-        if not allow_missing:
-            raise e
-        file_contents = None
-
+    file_contents = safe_load(path.read_text())
     for k, v in (file_contents or {}).items():
         kwargs = {val_name: v} if val_name else v
         out.append(cls(**{key_name: k, **kwargs}))
