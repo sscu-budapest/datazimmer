@@ -14,7 +14,7 @@ class Creature(BaseEntity):
 
 
 class Pet(BaseEntity):
-    """most likely owned by pet owners"""
+    """most likely owned by pet owners, but not necessarily a creature"""
 
     # ^ this goes to description
     pass
