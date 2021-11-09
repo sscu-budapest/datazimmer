@@ -1,4 +1,4 @@
-from sscutils import TableFeaturesBase, ScruTable
+from sscutils import TableFeaturesBase, ScruTable, IndexBase
 
 from ..imported_namespaces import doglast
 
@@ -8,9 +8,12 @@ from ..imported_namespaces import doglast
 class SizeCountFeatures(TableFeaturesBase):
     count = int
 
+class SizeCountIndex(IndexBase):
+    size = doglast.DogSizeIndex  # TODO: this knows the other col
+
 
 size_count_table = ScruTable(
     SizeCountFeatures,
-    index=doglast.DogSizeIndex,  # TODO: this to sql properly
+    index=SizeCountIndex,
     subject_of_records=doglast.DogSize,
 )
