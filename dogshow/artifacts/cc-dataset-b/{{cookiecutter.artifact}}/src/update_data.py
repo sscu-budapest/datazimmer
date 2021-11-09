@@ -1,6 +1,6 @@
 import pandas as pd
 import src.namespace_metadata as ns
-from colassigner.core import get_all_cols
+from colassigner import get_all_cols
 from sscutils import dump_dfs_to_tables
 
 

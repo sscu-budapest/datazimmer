@@ -11,6 +11,6 @@ class SizeCountFeatures(TableFeaturesBase):
 
 size_count_table = ScruTable(
     SizeCountFeatures,
-    index=doglast.DogSizeIndex,
+    index=doglast.DogSizeIndex,  # TODO: this to sql properly
     subject_of_records=doglast.DogSize,
 )
