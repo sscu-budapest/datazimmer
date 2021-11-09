@@ -4,14 +4,13 @@ from dvc.repo import Repo
 from invoke import Collection, task
 from invoke.exceptions import UnexpectedExit
 
-from .config_loading import (
-    COMPLETE_ENV,
-    DatasetConfig,
-    ProjectConfig,
-    load_branch_remote_pairs,
-)
+from .artifact_context import ArtifactContext
+from .config_loading import DatasetConfig
 from .helpers import import_env_creator_function, import_update_data_function
-from .metadata import ArtifactMetadata
+from .metadata.datascript.conversion import (
+    all_datascript_to_bedrock,
+    imported_bedrock_to_datascript,
+)
 from .naming import (
     COMPLETE_ENV_NAME,
     IMPORTED_NAMESPACES_SCRIPTS_PATH,
@@ -30,7 +29,7 @@ def lint(ctx, line_length=LINE_LEN):
 
 @task
 def set_dvc_remotes(ctx):
-    for branch, remote in load_branch_remote_pairs():
+    for branch, remote in ArtifactContext().branch_remote_pairs:
         _try_checkout(ctx, branch)
         ctx.run(f"dvc remote default {remote}")
         ctx.run("git add .dvc")
@@ -38,21 +37,19 @@ def set_dvc_remotes(ctx):
 
 
 @task
-def import_namespaces(ctx, git_commit=False):
+def import_namespaces(ctx, to_datascript=True, git_commit=False):
+    ArtifactContext().import_namespaces()
+    if to_datascript:
+        imported_bedrock_to_datascript()
+    if not git_commit:  # pragma: no cover
+        return
 
-    meta = ArtifactMetadata.load_serialized()
-
-    for ns in meta.imported_namespaces:
-        meta.extend_from_import(ns)
-    meta.dump()
-    meta.imported_nss_to_datascript()
-    if git_commit:
-        try:
-            _commit_serialized_meta(ctx)
-            ctx.run(f"git add {IMPORTED_NAMESPACES_SCRIPTS_PATH}")
-            ctx.run('git commit -m "import namespaces to datascript"')
-        except UnexpectedExit:
-            pass
+    try:
+        _commit_serialized_meta(ctx)
+        ctx.run(f"git add {IMPORTED_NAMESPACES_SCRIPTS_PATH}")
+        ctx.run('git commit -m "import namespaces to datascript"')
+    except UnexpectedExit:
+        pass
 
 
 @task(iterable=["args"])
@@ -64,12 +61,12 @@ def update_data(_, args=None):
 @task
 def write_envs(_):
     dataset_config = DatasetConfig()
+    def_env = dataset_config.default_env
+    err_str = f"{def_env} env needs to exist before creating others"
+    assert def_env.path.exists(), err_str
     env_creator_fun = import_env_creator_function()
     for env in dataset_config.created_environments:
         if env.name == COMPLETE_ENV_NAME:
-            assert (
-                env.path.exists()
-            ), f"{COMPLETE_ENV} env needs to exist before creating others"
             continue
         env_creator_fun(env.name, **env.kwargs)
 
@@ -84,7 +81,7 @@ def push_envs(ctx, git_push=False):
         ctx.run(f"git add {env.posix}.dvc **/.gitignore")
         try:
             ctx.run(f'git commit -m "add data subset {env.name}"')
-        except UnexpectedExit:
+        except UnexpectedExit:  # pragma: no cover
             continue
         if git_push:
             try:
@@ -96,9 +93,7 @@ def push_envs(ctx, git_push=False):
 
 @task
 def serialize_datascript_metadata(ctx, git_commit=False):
-    meta = ArtifactMetadata.load_serialized()
-    meta.extend_from_datascript()
-    meta.dump()
+    all_datascript_to_bedrock()
     if git_commit:
         _commit_serialized_meta(ctx)
 
@@ -110,9 +105,9 @@ def load_external_data(ctx, git_commit=False):
     should probably be a bit more clever,
     but dvc handles quite a lot of caching
     """
-    project_config = ProjectConfig()
+
     dvc_repo = Repo()
-    for ns_env in project_config.data_envs:
+    for ns_env in ArtifactContext().data_envs:
         src_loc = ns_env.src_posix
         out_path = ns_env.out_path
         rmtree(out_path, ignore_errors=True)  # brave thing...

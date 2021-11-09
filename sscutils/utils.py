@@ -104,12 +104,17 @@ def load_named_dict_to_list(
     path: Path,
     cls: Type[T],
     key_name="name",
-    val_name=None,
+) -> List[T]:
+    return named_dict_to_list(safe_load(path.read_text()) or {}, cls, key_name)
+
+
+def named_dict_to_list(
+    named_dict: dict,
+    cls: Type[T],
+    key_name="name",
 ) -> List[T]:
     out = []
-    file_contents = safe_load(path.read_text())
-    for k, v in (file_contents or {}).items():
-        kwargs = {val_name: v} if val_name else v
+    for k, kwargs in named_dict.items():
         out.append(cls(**{key_name: k, **kwargs}))
     return out
 

@@ -3,11 +3,9 @@ from typing import Dict, List
 
 from yaml import safe_dump
 
-from ...helpers import get_all_child_modules, get_serialized_namespace_dirs
+from ...helpers import get_serialized_namespace_dirs
 from ...naming import IMPORTED_NAMESPACES_PATH
 from ...utils import load_named_dict_to_list
-from ..datascript.from_bedrock import ns_metadata_to_script
-from ..datascript.to_bedrock import load_metadata_from_child_module
 from .atoms import NS_ATOM_TYPE
 from .imported_namespace import ImportedNamespace
 from .importer import ImportedMetadata
@@ -40,17 +38,12 @@ class ArtifactMetadata:
             else:
                 return
         imp_meta = ImportedMetadata(self, nsi)
-        self._add(imp_meta.external_ns_meta)
+        self.add_ns(imp_meta.external_ns_meta)
         for new_dep in imp_meta.new_dependencies:
             self.extend_from_import(new_dep)
 
-    def extend_from_datascript(self):
-        for child_module in get_all_child_modules():
-            self._add(load_metadata_from_child_module(child_module))
-
-    def imported_nss_to_datascript(self):
-        for nsi in self.imported_namespaces:
-            ns_metadata_to_script(self.namespaces[nsi.prefix])
+    def add_ns(self, ns_meta: NamespaceMetadata):
+        self.namespaces[ns_meta.local_name] = ns_meta
 
     @classmethod
     def load_serialized(cls) -> "ArtifactMetadata":
@@ -67,16 +60,5 @@ class ArtifactMetadata:
         )
 
     @property
-    def local_namespaces(self):
-        return [
-            ns
-            for prefix, ns in self.namespaces.items()
-            if prefix not in self.imported_dic.keys()
-        ]
-
-    @property
     def imported_dic(self) -> Dict[str, ImportedNamespace]:
         return {ns.prefix: ns for ns in self.imported_namespaces}
-
-    def _add(self, ns_meta: NamespaceMetadata):
-        self.namespaces[ns_meta.local_name] = ns_meta

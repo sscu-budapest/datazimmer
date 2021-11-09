@@ -4,8 +4,18 @@ from .config_loading import DatasetConfig, ProjectConfig
 from .exceptions import DatasetSetupException
 from .helpers import import_env_creator_function, import_update_data_function
 from .metadata import ArtifactMetadata
-from .metadata.datascript.to_bedrock import load_metadata_from_child_module
+from .metadata.datascript.to_bedrock import DatascriptToBedrockConverter
 from .naming import ns_metadata_abs_module
+from .sql.draw import dump_graph
+from .sql.loader import SqlLoader
+
+
+def sql_validation(constr):
+    loader = SqlLoader(constr, echo=False)
+    loader.setup_schema()
+    dump_graph(loader.sql_meta, loader.engine)
+    loader.load_data()
+    loader.purge()
 
 
 def validate_project_env():
@@ -40,7 +50,9 @@ def validate_dataset_setup():
     """
     _ = DatasetConfig()
     a_meta = ArtifactMetadata.load_serialized()
-    root_ns = load_metadata_from_child_module(ns_metadata_abs_module)
+    root_ns = DatascriptToBedrockConverter(
+        ns_metadata_abs_module
+    ).to_ns_metadata()
     for table in root_ns.tables:
         if table.name not in [t.name for t in a_meta.namespaces[""].tables]:
             raise DatasetSetupException(f"{table.name} table not serialized")

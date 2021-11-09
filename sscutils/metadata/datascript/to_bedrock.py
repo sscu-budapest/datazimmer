@@ -179,11 +179,3 @@ class DatascriptObjectCollector:
         return get_cls_defined_in_module(
             self.namespace_module, py_cls
         ).values()
-
-
-def load_metadata_from_child_module(
-    child_module_name: str,
-) -> NamespaceMetadata:
-
-    converter = DatascriptToBedrockConverter(child_module_name)
-    return converter.to_ns_metadata()

@@ -1,7 +1,8 @@
 from functools import partial
 from typing import List, Optional, Type
 
-from ...helpers import create_trepo, get_associated_step
+from ...artifact_context import ArtifactContext
+from ...helpers import get_associated_step
 from ...metaprogramming import camel_to_snake, snake_to_camel
 from ...naming import FEATURES_CLS_SUFFIX, INDEX_CLS_SUFFIX
 from .bases import BaseEntity, IndexBase, TableFeaturesBase
@@ -30,10 +31,6 @@ class ScruTable:
         - table of a step output in a project
 
         figures out whether its in a dataset, or a project
-
-
-        if it is in a project, it is updated when it is the output of a step,
-        when it is put into @pipereg.register(outputs=[...])
         """
 
         self.features = features
@@ -43,21 +40,15 @@ class ScruTable:
         self.subject: Type[BaseEntity] = self._infer_subject(
             subject_of_records
         )
-
         self.namespace = self._infer_namespace(namespace)
         self.partitioning_cols = partitioning_cols
         self.max_partition_size = max_partition_size
-        self.trepo = create_trepo(
+        self.trepo = ArtifactContext().create_trepo(
             self.name,
             self.namespace,
             self.partitioning_cols,
             self.max_partition_size,
         )
-
-    def validate(self):
-        # TODO
-        # + deep validate where foreign keys are checked
-        pass
 
     def get_full_df(self):
         return self.trepo.get_full_df()

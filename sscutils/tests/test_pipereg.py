@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from invoke import Collection, MockContext
+from invoke import Collection
 from pytest import raises
 
 import sscutils.pipeline_registry as pipereg_module
@@ -32,7 +32,6 @@ def test_pipereg_basics():
     coll = pipereg.get_collection()
     assert isinstance(coll, Collection)
     assert [*coll.task_names] == ["step-one", "step-two"]
-    coll.tasks["step-one"](MockContext(run="dvc run *"))
 
     assert (
         pipereg.get_step("step_two").run({"step_two": {"b": 10}}, False) == 9

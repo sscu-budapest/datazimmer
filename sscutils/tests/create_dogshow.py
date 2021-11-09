@@ -19,8 +19,8 @@ from sscutils.utils import cd_into
 
 logger = get_logger()
 
-sscutil_root = Path(__file__).parent.parent.parent
-dogshow_root = sscutil_root / "dogshow"
+package_root = Path(__file__).parent.parent.parent
+dogshow_root = package_root / "dogshow"
 artifact_src_root = dogshow_root / "artifacts"
 expectation_root = dogshow_root / "expectations"
 csv_path = Path(artifact_src_root, "data").absolute().as_posix()
