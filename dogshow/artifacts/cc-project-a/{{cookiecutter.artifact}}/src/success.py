@@ -4,8 +4,8 @@ from typing import Type
 
 import numpy as np
 import pandas as pd
-from colassigner import ChildColAssigner, ColAssigner
-from sscutils import Col, IndexBase, ScruTable, TableFeaturesBase
+from colassigner import ChildColAssigner, ColAssigner, Col
+from sscutils import IndexBase, ScruTable, TableFeaturesBase
 
 from .imported_namespaces import dogfirst, doglast
 from .pipereg import pipereg
