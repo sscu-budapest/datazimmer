@@ -12,6 +12,7 @@ Welcome to sscutils's documentation!
    notebooks/doc-003-mock-artifacts
    notebooks/doc-004-glossary
    notebooks/doc-005-rules
+   notebooks/doc-006-metadata
    autosumm
    release_notes/main
 

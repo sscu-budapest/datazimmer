@@ -38,8 +38,13 @@ Metadata
 
    Information describing the knowledge in a namespace
 
--  imported namespaces, with prefix
 -  defined tables, composite types and entity classes
+
+Artifact Metadata
+^^^^^^^^^^^^^^^^^
+
+-  imported namespaces, with prefix
+-  metadata for all namespaces
 
 Config
 ^^^^^^

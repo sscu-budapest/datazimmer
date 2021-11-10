@@ -11,3 +11,5 @@ rules need to change!
 -  Only one step function per top module
 -  TableNameFeatures should be the name of table feature classes if
    table name is to be inferred
+-  No composite features with same prefix in same table
+-  Feature name cant contain \_\_
