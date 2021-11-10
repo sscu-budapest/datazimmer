@@ -8,7 +8,7 @@ from sscutils.metadata.bedrock.namespaced_id import NamespacedId
 
 def test_base_lookup():
 
-    tab1 = Table("t1", [], "EC")
+    tab1 = Table("t1", "EC", [])
     t1_id = NamespacedId("ns2", "t1")
 
     ns_empty_meta = NamespaceMetadata([], [], [], "")

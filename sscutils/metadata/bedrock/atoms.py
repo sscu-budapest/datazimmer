@@ -55,8 +55,8 @@ class EntityClass(_AtomBase):
 @dataclass
 class Table(_AtomBase):
     name: str
-    features: List[ANY_FEATURE_TYPE]
     subject_of_records: NamespacedIdOf[EntityClass]
+    features: List[ANY_FEATURE_TYPE] = None
     index: Optional[List[ANY_FEATURE_TYPE]] = None
     partitioning_cols: Optional[List[str]] = None  # TODO: not sure
     partition_max_rows: Optional[int] = None
