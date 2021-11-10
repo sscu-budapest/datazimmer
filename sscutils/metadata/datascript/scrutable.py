@@ -32,15 +32,15 @@ class ScruTable:
 
         figures out whether its in a dataset, or a project
         """
-
+        assert index or features, "No index, no features: no table"
         self.name: str = _infer_table_name(name, features, index)
+        self.namespace = self._infer_namespace(namespace, features, index)
         self.index = index
         self.features = self._infer_features_cls(features)
 
         self.subject: Type[BaseEntity] = self._infer_subject(
             subject_of_records
         )
-        self.namespace = self._infer_namespace(namespace)
         self.partitioning_cols = partitioning_cols
         self.max_partition_size = max_partition_size
         self.trepo = ArtifactContext().create_trepo(
@@ -64,10 +64,10 @@ class ScruTable:
     def _infer_subject(self, subj) -> Type[BaseEntity]:
         return self._new_cls(subj, BaseEntity)
 
-    def _infer_namespace(self, namespace):
+    def _infer_namespace(self, namespace, features, index):
         if namespace:
             return namespace
-        return get_associated_step(self.features)
+        return get_associated_step(features or index)
 
     def _new_cls(self, poss_cls, parent_cls, suffix=""):
         if poss_cls is not None:
