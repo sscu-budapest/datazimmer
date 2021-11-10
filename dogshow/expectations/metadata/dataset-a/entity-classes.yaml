@@ -7,7 +7,7 @@ Person:
   parents:
   - Creature
 Pet:
-  description: most likely owned by pet owners
+  description: most likely owned by pet owners, but not necessarily a creature
 Competition: {}
 Picture: {}
 Relationship: {}

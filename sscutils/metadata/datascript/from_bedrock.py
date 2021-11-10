@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from queue import Queue
 from typing import Dict, Iterable, List
 
-from ...config_loading import ProjectConfig
-from ...exceptions import ProjectSetupException
 from ...metaprogramming import get_class_def
 from ...naming import IMPORTED_NAMESPACES_SCRIPTS_PATH
 from ...utils import PrimitiveType, format_code
@@ -177,21 +175,3 @@ class ScriptWriter:
         self.local_objects[cls_name] = LocalInScriptObject(
             get_class_def(cls_name, parent_names, att_dict), dependencies=deps
         )
-
-
-def ns_metadata_to_script(ns_meta: NamespaceMetadata):
-    """writes to script file
-
-    so that metadata can be imported in script
-
-    Parameters
-    ----------
-    ns : ImportedNamespace
-        needs to be a namespace where metadata is already serialized
-    """
-    try:
-        include_tables = ProjectConfig().has_data_env(ns_meta.local_name)
-    except ProjectSetupException:
-        include_tables = False
-    writer = ScriptWriter(ns_meta, include_tables)
-    return writer.script_path.as_posix()

@@ -5,6 +5,7 @@ from subprocess import CalledProcessError, check_call
 from typing import Optional
 
 from cookiecutter.main import generate_files
+from structlog import get_logger
 from yaml import safe_load
 
 from sscutils.naming import (
@@ -16,11 +17,17 @@ from sscutils.naming import (
 )
 from sscutils.utils import cd_into
 
-sscutil_root = Path(__file__).parent.parent.parent
-dogshow_root = sscutil_root / "dogshow"
+logger = get_logger()
+
+package_root = Path(__file__).parent.parent.parent
+dogshow_root = package_root / "dogshow"
 artifact_src_root = dogshow_root / "artifacts"
 expectation_root = dogshow_root / "expectations"
 csv_path = Path(artifact_src_root, "data").absolute().as_posix()
+
+
+dataset_template_repo = "https://github.com/sscu-budapest/dataset-template"
+project_template_repo = "https://github.com/sscu-budapest/project-template"
 
 
 class DogshowContextCreator:
@@ -31,12 +38,12 @@ class DogshowContextCreator:
         dvc_remotes: Optional[list] = None,
         git_user="John Doe",
         git_email="johndoe@example.com",
-        dataset_template="https://github.com/sscu-budapest/dataset-template",
-        project_template="https://github.com/sscu-budapest/project-template",
+        dataset_template=dataset_template_repo,
+        project_template=project_template_repo,
     ) -> None:
 
         self.local_root = local_output_root
-        self.git_remote_root = (
+        self.git_remote_root = Path(
             git_remote_root or self.local_root / "git-remotes"
         )
         self.csv_path = csv_path
@@ -77,18 +84,10 @@ class DogshowContextCreator:
         to_tmp_branch=False,
         remote="",
         template_repo="",
-        template_tag="",
     ):
 
         if template_repo:
             commands = [["git", "clone", template_repo, "."]]
-            if template_tag:
-                commands += [
-                    ["git", "checkout", template_tag],
-                    ["git", "checkout", "-b", "tmp"],
-                    ["git", "checkout", "-B", "main", "tmp"],
-                    ["git", "branch", "-d", "tmp"],
-                ]
         else:
             commands = [["git", "init"]]
 
@@ -181,16 +180,21 @@ def check_expectations(name: str):
         expectation_root / d / name for d in ["script", "metadata"]
     ]
     for meta_exp_file in meta_dir.glob("*.yaml"):
-        exp_obj = safe_load(meta_exp_file.read_text())
-        true_obj = safe_load((METADATA_DIR / meta_exp_file.name).read_text())
-        assert exp_obj == true_obj
+        _check_files(
+            meta_exp_file, METADATA_DIR / meta_exp_file.name, safe_load
+        )
 
     for script_file in script_dir.glob("*.py"):
-        exp_script = script_file.read_text()
-        true_script = (
-            IMPORTED_NAMESPACES_SCRIPTS_PATH / script_file
-        ).read_text()
-        assert exp_script == true_script
+        _check_files(
+            script_file, IMPORTED_NAMESPACES_SCRIPTS_PATH / script_file.name
+        )
+
+
+def _check_files(exp_path, true_path, wrapper=str):
+    logger.info("Validating", true=true_path, exp=exp_path)
+    exp_obj = wrapper(exp_path.read_text())
+    true_obj = wrapper(true_path.read_text())
+    assert exp_obj == true_obj
 
 
 def _commit_changes(dirpath):

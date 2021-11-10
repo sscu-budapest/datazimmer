@@ -64,6 +64,6 @@ spot:
     table: dog
   - prefix: dog_2
     table: dog
-  - name: place
-    dtype: str
+  - prefix: place
+    dtype: AddressType
   subject_of_records: Spot

@@ -63,6 +63,7 @@ class DogIndex(IndexBase):
 
 
 class CompetitionFeatures(TableFeaturesBase):
+    held_date = datetime
     fastest_time = float
     champion = DogIndex
 
@@ -73,19 +74,10 @@ class DogOfTheMonthFeatures(TableFeaturesBase):
 
 table_factory = TableFactory("doglast")
 competition_table = table_factory.create(
-    features=CompetitionFeatures,
-    subject_of_records=Competition,
-    index=CompetitionIndex,
+    features=CompetitionFeatures, subject_of_records=Competition, index=CompetitionIndex
 )
 dog_of_the_month_table = table_factory.create(
-    features=DogOfTheMonthFeatures,
-    subject_of_records=DogOfTheMonth,
-    index=DogOfTheMonthIndex,
-    max_partition_size=3,
+    features=DogOfTheMonthFeatures, subject_of_records=DogOfTheMonth, index=DogOfTheMonthIndex, max_partition_size=3
 )
-dog_size_table = table_factory.create(
-    features=DogSizeFeatures, subject_of_records=DogSize, index=DogSizeIndex
-)
-dog_table = table_factory.create(
-    features=DogFeatures, subject_of_records=dogfirst.Dog, index=DogIndex
-)
+dog_size_table = table_factory.create(features=DogSizeFeatures, subject_of_records=DogSize, index=DogSizeIndex)
+dog_table = table_factory.create(features=DogFeatures, subject_of_records=dogfirst.Dog, index=DogIndex)

@@ -1,4 +1,4 @@
-dog_1__dog_id,dog_2__dog_id,spot__city,spot__zip,spot__street_address,spot__building__floor,spot__building__door
+dog_1__dog_id,dog_2__dog_id,place__city,place__zip,place__street_address,place__building__floor,place__building__door
 d-28,d-14,Oliviaton,14246,0540 Chavez Lake,7,43
 d-10,d-27,North Jennifer,39964,40840 Duane Pass,12,81
 d-9,d-35,East Vicki,07038,596 Gary Haven,8,82

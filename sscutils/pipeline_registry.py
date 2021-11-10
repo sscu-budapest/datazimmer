@@ -4,11 +4,12 @@ from pathlib import Path
 from typing import Iterable, Optional, Union
 
 import yaml
+from dvc.repo import Repo
 from invoke import Collection, task
 from structlog import get_logger
 
-from .helpers import get_top_module_name
-from .metadata import ArtifactMetadata
+from .helpers import get_associated_step
+from .metadata.datascript.conversion import child_module_datascript_to_bedrock
 from .metadata.datascript.scrutable import ScruTable
 from .naming import SRC_PATH, ProjectConfigPaths
 
@@ -46,10 +47,6 @@ class PipelineRegistry:
             relpath = inspect.getfile(fun)
             lineno = inspect.findsource(fun)[1]
             parsed_deps = self._parse_list(dependencies)
-
-            for out in outputs or []:
-                if isinstance(out, ScruTable):
-                    out.register_as_step_output(_get_name(fun))
 
             pe = PipelineElement(
                 runner=fun,
@@ -138,50 +135,34 @@ class PipelineElement:
         return self.runner(**parsed_params)
 
     def get_invoke_task(self):
-        param_str = ",".join(
-            [
-                (".".join([self.name, p]) if p != "seed" else p)
-                for p in self.param_list
-            ]
-        )
-        if param_str:
-            param_str = "-p " + param_str
-        # TODO: to in-script dvc
-        command = " ".join(
-            [
-                f"dvc run -n {self.name}",
-                "{}",  # for --force
-                param_str,
-                _get_comm(self.dependencies, "d"),
-                _get_comm(self.outputs, "o"),
-                _get_comm(self.out_nocache, "O"),
-                f"python -m src {self.name}",
-            ]
-        )
-
         @task(name=self.name)
-        def _task(c, force=True):
-            c.run(command.format(" --force" if force else ""))
+        def _task(_, stage=False, force=True):
+            conf = {}
+            if stage:
+                conf["core"] = {"autostage": True}
+            dvc_repo = Repo(config=conf)
+            dvc_repo.run(
+                cmd=f"python -m src {self.name}",
+                name=self.name,
+                outs_no_cache=self.out_nocache,
+                outs=self.outputs,
+                deps=self.dependencies,
+                force=force,
+            )
 
         return _task
 
     @property
     def name(self):
-        return _get_name(self.runner)
+        return get_associated_step(self.runner)
+
+    @property
+    def child_module(self):
+        return self.runner.__module__
 
     def _log_metadata(self):
-        a_meta = ArtifactMetadata.load_serialized()
-        a_meta.extend_from_datascript()
-        a_meta.dump()
-
-
-def _get_comm(entries, prefix):
-    return " ".join([f"-{prefix} {e}" for e in entries])
+        child_module_datascript_to_bedrock(self.child_module)
 
 
 def _type_or_fun_elem(elem):
     return [Path(inspect.getfile(elem)).relative_to(Path.cwd()).as_posix()]
-
-
-def _get_name(caller):
-    return get_top_module_name(caller.__module__)

@@ -9,18 +9,6 @@ from sscutils import (
 )
 
 
-class Creature(BaseEntity):
-    pass
-
-
-class Person(Creature):
-    pass
-
-
-class Pet(BaseEntity):
-    pass
-
-
 class Competition(BaseEntity):
     pass
 
@@ -34,6 +22,18 @@ class Relationship(BaseEntity):
 
 
 class Spot(BaseEntity):
+    pass
+
+
+class Creature(BaseEntity):
+    pass
+
+
+class Person(Creature):
+    pass
+
+
+class Pet(BaseEntity):
     pass
 
 
@@ -79,12 +79,6 @@ class RelationshipIndex(IndexBase):
     dog = DogIndex
 
 
-class SpotFeatures(TableFeaturesBase):
-    dog_1 = DogIndex
-    dog_2 = DogIndex
-    place = str
-
-
 class Dog(Creature, Pet):
     pass
 
@@ -114,29 +108,22 @@ class PictureFeatures(TableFeaturesBase):
     rel = RelationshipIndex
 
 
+class SpotFeatures(TableFeaturesBase):
+    dog_1 = DogIndex
+    dog_2 = DogIndex
+    place = AddressType
+
+
 table_factory = TableFactory("dogfirst")
 competition_table = table_factory.create(
-    features=CompetitionFeatures,
-    subject_of_records=Competition,
-    index=CompetitionIndex,
+    features=CompetitionFeatures, subject_of_records=Competition, index=CompetitionIndex
 )
 dog_table = table_factory.create(
-    features=DogFeatures,
-    subject_of_records=Dog,
-    index=DogIndex,
-    partitioning_cols=["sex"],
+    features=DogFeatures, subject_of_records=Dog, index=DogIndex, partitioning_cols=["sex"]
 )
-person_table = table_factory.create(
-    features=PersonFeatures, subject_of_records=Person, index=PersonIndex
-)
-picture_table = table_factory.create(
-    features=PictureFeatures, subject_of_records=Picture, index=PictureIndex
-)
+person_table = table_factory.create(features=PersonFeatures, subject_of_records=Person, index=PersonIndex)
+picture_table = table_factory.create(features=PictureFeatures, subject_of_records=Picture, index=PictureIndex)
 relationship_table = table_factory.create(
-    features=RelationshipFeatures,
-    subject_of_records=Relationship,
-    index=RelationshipIndex,
+    features=RelationshipFeatures, subject_of_records=Relationship, index=RelationshipIndex
 )
-spot_table = table_factory.create(
-    features=SpotFeatures, subject_of_records=Spot
-)
+spot_table = table_factory.create(features=SpotFeatures, subject_of_records=Spot)
