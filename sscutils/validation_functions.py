@@ -10,12 +10,15 @@ from .sql.draw import dump_graph
 from .sql.loader import SqlLoader
 
 
-def sql_validation(constr):
+def sql_validation(constr, env=None):
     loader = SqlLoader(constr, echo=False)
     loader.setup_schema()
     dump_graph(loader.sql_meta, loader.engine)
-    loader.load_data()
-    loader.purge()
+    try:
+        loader.load_data(env)
+        loader.validate_data(env)
+    finally:
+        loader.purge()
 
 
 def validate_project_env():

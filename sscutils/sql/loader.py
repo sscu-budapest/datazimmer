@@ -45,6 +45,7 @@ class SqlLoader:
         ----------
         constr : str, optional
             constring where database is found, by default "sqlite:///:memory:"
+            but needs to be postgres if multiple namespaces are present
         """
 
         self.ctx = ArtifactContext()
@@ -65,6 +66,10 @@ class SqlLoader:
             for nsm in self._ns_mappers():
                 nsm.load_data(session, env)
             session.commit()
+
+    def validate_data(self, env=None):
+        for nsm in self._ns_mappers():
+            nsm.validate_data(self.engine, env)
 
     def purge(self):
         self.sql_meta.drop_all(self.engine)
@@ -96,16 +101,17 @@ class NamespaceMapper:
         for table in self.ns_meta.tables:
             self._load_table(table, session, env)
 
+    def validate_data(self, engine, env):
+        for table in self.ns_meta.tables:
+            self._validate_table(table, engine, env)
+
     def get_br(self, ns_id: NamespacedId, ns_name=None):
         if ns_id.is_local and ns_name is not None:
             ns_id = NamespacedId(ns_name, ns_id.obj_id)
         return self.ns_meta.get_full(ns_id, self.a_meta)
 
     def _load_table(self, table: Table, session, env):
-        trepo = table_to_trepo(table, self.ns_id)
-        if env is not None:
-            trepo.set_env(env)
-
+        trepo = table_to_trepo(table, self.ns_id, env)
         ins = self._get_sql_table(table.name).insert()
 
         # TODO partition df properly
@@ -117,6 +123,22 @@ class NamespaceMapper:
             (df.reset_index() if relevant_ind else df).to_dict("records")
         )
         session.execute(ins_obj)
+
+    def _validate_table(self, table: Table, engine, env):
+        df_sql = pd.read_sql(
+            f"SELECT * FROM {_get_sql_id(table.name, self.ns_id)}", con=engine
+        )
+        trepo = table_to_trepo(table, self.ns_id, env)
+        df = trepo.get_full_df()
+        if table.index:
+            sql_conv = SqlTableConverter(table, self)
+            ind_cols = [ic.name for ic in sql_conv.ind_cols]
+            if len(ind_cols) > 1:
+                ind_cols = [
+                    ind_cols[ind_cols.index(inc)] for inc in df.index.names
+                ]
+            df_sql = df_sql.set_index(ind_cols)
+        pd.testing.assert_frame_equal(df.loc[:, df_sql.columns], df_sql)
 
     def _get_sql_table(self, table_name):
         return self.sql_meta.tables[_get_sql_id(table_name, self.ns_id)]
@@ -231,11 +253,13 @@ class SqlTableConverter:
         return _get_sql_id(self._table.name, self._mapper.ns_id)
 
 
-def table_to_trepo(table: Table, ns) -> TableRepo:
-    ctx = ArtifactContext()
-    return ctx.create_trepo(
+def table_to_trepo(table: Table, ns: str, env=None) -> TableRepo:
+    trepo = ArtifactContext().create_trepo(
         table.name, ns, table.partitioning_cols, table.partition_max_rows
     )
+    if env is not None:
+        trepo.set_env(env)
+    return trepo
 
 
 def _chainmap(fun, iterable):

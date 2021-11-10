@@ -39,7 +39,11 @@ class ArtifactContext:
         self.metadata.dump()
 
     def create_trepo(
-        self, name, namespace, partitioning_cols=None, max_partition_size=None
+        self,
+        name,
+        namespace: str,
+        partitioning_cols=None,
+        max_partition_size=None,
     ):
         if self.is_dataset:
             parents_dict = {
