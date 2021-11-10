@@ -11,7 +11,7 @@ from .bases import BaseEntity, IndexBase, TableFeaturesBase
 class ScruTable:
     def __init__(
         self,
-        features: Type[TableFeaturesBase],
+        features: Type[TableFeaturesBase] = None,
         index: Optional[Type[IndexBase]] = None,
         name: Optional[str] = None,
         subject_of_records: Optional[Type[BaseEntity]] = None,
@@ -32,15 +32,15 @@ class ScruTable:
 
         figures out whether its in a dataset, or a project
         """
-
-        self.features = features
+        assert index or features, "No index, no features: no table"
+        self.name: str = _infer_table_name(name, features, index)
+        self.namespace = self._infer_namespace(namespace, features, index)
         self.index = index
+        self.features = self._infer_features_cls(features)
 
-        self.name: str = self._infer_table_name(name)
         self.subject: Type[BaseEntity] = self._infer_subject(
             subject_of_records
         )
-        self.namespace = self._infer_namespace(namespace)
         self.partitioning_cols = partitioning_cols
         self.max_partition_size = max_partition_size
         self.trepo = ArtifactContext().create_trepo(
@@ -56,27 +56,38 @@ class ScruTable:
     def get_full_ddf(self):
         return self.trepo.get_full_ddf()
 
-    def _infer_table_name(self, name) -> str:
-        if name:
-            return name
-        return _infer_table_name_from_cls(self.features, FEATURES_CLS_SUFFIX)
-
-    def _infer_namespace(self, namespace):
-        if namespace:
-            return namespace
-        return get_associated_step(self.features)
+    def _infer_features_cls(self, features):
+        return self._new_cls(
+            features, TableFeaturesBase, FEATURES_CLS_SUFFIX.title()
+        )
 
     def _infer_subject(self, subj) -> Type[BaseEntity]:
-        if subj is not None:
-            assert BaseEntity in subj.mro()
-            return subj
-        subj_name = snake_to_camel(self.name)
-        return type(subj_name, (BaseEntity,), {})
+        return self._new_cls(subj, BaseEntity)
+
+    def _infer_namespace(self, namespace, features, index):
+        if namespace:
+            return namespace
+        return get_associated_step(features or index)
+
+    def _new_cls(self, poss_cls, parent_cls, suffix=""):
+        if poss_cls is not None:
+            assert parent_cls in parent_cls.mro()
+            return poss_cls
+        cls_name = snake_to_camel(self.name) + suffix
+        return type(cls_name, (parent_cls,), {})
 
 
 class TableFactory:
     def __init__(self, namespace) -> None:
         self.create = partial(ScruTable, namespace=namespace)
+
+
+def _infer_table_name(name, features_cls, index_cls) -> str:
+    if name:
+        return name
+    if features_cls is not None:
+        return _infer_table_name_from_cls(features_cls, FEATURES_CLS_SUFFIX)
+    return _infer_table_name_from_cls(index_cls, INDEX_CLS_SUFFIX)
 
 
 def _infer_table_name_from_cls(cls: Type, suffix=INDEX_CLS_SUFFIX):

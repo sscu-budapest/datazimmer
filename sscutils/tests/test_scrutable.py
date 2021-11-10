@@ -3,7 +3,7 @@ import datetime as dt
 import pandas as pd
 import pytest
 
-from sscutils import ScruTable, TableFeaturesBase
+from sscutils import IndexBase, ScruTable, TableFeaturesBase
 from sscutils.tests.create_dogshow import dataset_template_repo
 from sscutils.utils import cd_into
 
@@ -16,6 +16,9 @@ def test_scrutable_io(tmp_path):
         a = int
         b = dt.datetime
 
+    class ThingIndex(IndexBase):
+        pass
+
     class WrongName(TableFeaturesBase):
         pass
 
@@ -23,6 +26,10 @@ def test_scrutable_io(tmp_path):
         scrutable = ScruTable(TableFeatures, namespace="test")
         scrutable.trepo.replace_all(df)
         assert scrutable.get_full_ddf().compute().equals(df)
+        assert scrutable.name == "table"
+
+        sc2 = ScruTable(index=ThingIndex, namespace="test")
+        assert sc2.name == "thing"
 
         with pytest.raises(NameError):
             ScruTable(WrongName, namespace="test")
