@@ -169,7 +169,7 @@ def calculate_success(top_status_multiplier: int):
     )[dogfirst.CompetitionFeatures.prize_pool].count()
     q_arr = np.quantile(win_count, sorted(ends))
     q_arr[-1] = q_arr[-1] * top_status_multiplier
-    q_map = dict(zip(ends, q_arr))
+    q_map = dict(zip(ends, q_arr.astype(int)))
     status_df = pd.DataFrame(
         [
             {

@@ -16,7 +16,7 @@ def update_data(data_root):
 
     comp_df = pd.read_csv(f"{data_root}/race.csv").set_index(
         ns.CompetitionIndex.competition_id
-    )
+    ).astype({ns.CompetitionFeatures.held_date: "datetime64"})
 
     dotm_df = pd.read_csv(f"{data_root}/dog_of_the_month.csv").set_index(
         get_all_cols(ns.DogOfTheMonthIndex)
