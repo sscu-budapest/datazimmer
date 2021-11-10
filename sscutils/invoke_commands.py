@@ -137,7 +137,7 @@ common_tasks = [
     serialize_datascript_metadata,
 ]
 
-dataset_ns = Collection(*common_tasks, write_envs, push_envs)
+dataset_ns = Collection(*common_tasks, update_data, write_envs, push_envs)
 project_ns = Collection(*common_tasks, load_external_data)
 
 
