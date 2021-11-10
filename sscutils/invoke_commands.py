@@ -37,11 +37,13 @@ def set_dvc_remotes(ctx):
 
 
 @task
-def import_namespaces(ctx, to_datascript=True, git_commit=False):
-    ArtifactContext().import_namespaces()
+def import_namespaces(
+    ctx, to_datascript=True, git_commit=False, overwrite=True
+):
+    ArtifactContext().import_namespaces(overwrite)
     if to_datascript:
         imported_bedrock_to_datascript()
-    if not git_commit:  # pragma: no cover
+    if not git_commit:
         return
 
     try:

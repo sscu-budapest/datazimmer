@@ -76,10 +76,13 @@ class DatasetConfig:
 
 
 def load_branch_remote_pairs():
-    return _yaml_or_err(
-        DEFAULT_REMOTES_PATH,
-        "branch: remote pairs",
-        NotAnArtifactException,
+    return (
+        _yaml_or_err(
+            DEFAULT_REMOTES_PATH,
+            "branch: remote pairs",
+            NotAnArtifactException,
+        )
+        or {}
     ).items()
 
 

@@ -83,6 +83,8 @@ def test_full_dogshow(tmp_path: Path, pytestconfig):
 
     with ds_cc.project_b as validator:
         import_namespaces(c, git_commit=True)
+        import_namespaces(c, git_commit=False)  # test repeating import
+        import_namespaces(c, git_commit=False, overwrite=False)
         load_external_data(c, git_commit=True)
         validator()
         env_path = ProjectConfigPaths.CURRENT_ENV

@@ -30,9 +30,9 @@ class ArtifactContext:
 
         self._fill_data_envs()
 
-    def import_namespaces(self):
+    def import_namespaces(self, overwrite=True):
         for ns in self.metadata.imported_namespaces:
-            self.metadata.extend_from_import(ns)
+            self.metadata.extend_from_import(ns, overwrite)
         self.metadata.dump()
 
     def serialize(self):
