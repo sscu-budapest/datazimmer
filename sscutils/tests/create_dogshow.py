@@ -26,6 +26,10 @@ expectation_root = dogshow_root / "expectations"
 csv_path = Path(artifact_src_root, "data").absolute().as_posix()
 
 
+dataset_template_repo = "https://github.com/sscu-budapest/dataset-template"
+project_template_repo = "https://github.com/sscu-budapest/project-template"
+
+
 class DogshowContextCreator:
     def __init__(
         self,
@@ -34,8 +38,8 @@ class DogshowContextCreator:
         dvc_remotes: Optional[list] = None,
         git_user="John Doe",
         git_email="johndoe@example.com",
-        dataset_template="https://github.com/sscu-budapest/dataset-template",
-        project_template="https://github.com/sscu-budapest/project-template",
+        dataset_template=dataset_template_repo,
+        project_template=project_template_repo,
     ) -> None:
 
         self.local_root = local_output_root
