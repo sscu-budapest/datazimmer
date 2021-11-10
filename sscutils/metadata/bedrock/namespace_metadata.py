@@ -1,10 +1,14 @@
 from dataclasses import dataclass
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from ...naming import NamespaceMetadataPaths
 from .atoms import NS_ATOM_TYPE, CompositeType, EntityClass, Table
 from .feature_types import ANY_FEATURE_TYPE
 from .load_util import dump_atom_list_to_dict, load_atom_dict_to_list
+from .namespaced_id import NamespacedId
+
+if TYPE_CHECKING:
+    from .artifact_metadata import ArtifactMetadata  # pragma: no cover
 
 
 @dataclass
@@ -18,9 +22,14 @@ class NamespaceMetadata:
 
     def get(self, obj_id: str) -> NS_ATOM_TYPE:
         for atom in self._atoms:
-            if atom.name.obj_id == obj_id:
+            if atom.name == obj_id:
                 return atom
         raise KeyError(f"{obj_id} not found in: \n {self}")
+
+    def get_full(self, ns_id: NamespacedId, parent: "ArtifactMetadata"):
+        if ns_id.is_local:
+            return self.get(ns_id.obj_id)
+        return parent.get_atom(ns_id)
 
     @classmethod
     def load_serialized(cls, subdir="") -> "NamespaceMetadata":

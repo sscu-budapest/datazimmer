@@ -14,7 +14,7 @@ class Creature(BaseEntity):
 
 
 class Pet(BaseEntity):
-    """most likely owned by pet owners"""
+    """most likely owned by pet owners, but not necessarily a creature"""
 
     # ^ this goes to description
     pass
@@ -93,7 +93,7 @@ class CompetitionFeatures(TableFeaturesBase):
 class SpotFeatures(TableFeaturesBase):
     dog_1 = DogIndex
     dog_2 = DogIndex
-    place = str
+    place = AddressType
 
 
 class PhotoFeatures(TableFeaturesBase):

@@ -5,7 +5,7 @@ from ...utils import PrimitiveType, is_type_hint_origin
 from .namespaced_id import NamespacedId, NamespacedIdOf
 
 if TYPE_CHECKING:
-    from .atoms import CompositeType, Table
+    from .atoms import CompositeType, Table  # pragma: no cover
 
 
 class _FeatBase:

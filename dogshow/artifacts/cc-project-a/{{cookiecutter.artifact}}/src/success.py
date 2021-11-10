@@ -4,8 +4,8 @@ from typing import Type
 
 import numpy as np
 import pandas as pd
-from colassigner import ChildColAssigner, ColAssigner
-from sscutils import Col, IndexBase, ScruTable, TableFeaturesBase
+from colassigner import ChildColAssigner, ColAssigner, Col
+from sscutils import IndexBase, ScruTable, TableFeaturesBase
 
 from .imported_namespaces import dogfirst, doglast
 from .pipereg import pipereg
@@ -129,13 +129,14 @@ sized_dogs_table = ScruTable(
     subject_of_records=dogfirst.Dog,
     name="dogs_w_sizes",
 )
-person_by_dogsize_table = ScruTable(
-    PersonByDogsizeFeatures, PersonByDogsizeIndex
-)
-domination_table = ScruTable(DominationFeatures)
-dogsize_leaders_table = ScruTable(
-    DogsizeLegendFeatures, subject_of_records=doglast.DogSize
-)
+# TODO:
+#  person_by_dogsize_table = ScruTable(
+#    PersonByDogsizeFeatures, PersonByDogsizeIndex
+#  )
+# domination_table = ScruTable(DominationFeatures)
+# dogsize_leaders_table = ScruTable(
+#    DogsizeLegendFeatures, subject_of_records=doglast.DogSize
+# )
 
 # TODO: formalize reporting one day
 status_md_path = Path("reports", "status_table.md")
@@ -168,7 +169,7 @@ def calculate_success(top_status_multiplier: int):
     )[dogfirst.CompetitionFeatures.prize_pool].count()
     q_arr = np.quantile(win_count, sorted(ends))
     q_arr[-1] = q_arr[-1] * top_status_multiplier
-    q_map = dict(zip(ends, q_arr))
+    q_map = dict(zip(ends, q_arr.astype(int)))
     status_df = pd.DataFrame(
         [
             {

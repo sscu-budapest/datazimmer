@@ -1,8 +1,7 @@
 from typing import Union
 
 from colassigner import ColAccessor
-
-from .type_hinting import get_return_col_type
+from colassigner.type_hinting import get_return_hint
 
 
 class BaseEntity:
@@ -30,8 +29,4 @@ def get_feature_dict(cls: Union[CompositeTypeBase, TableFeaturesBase]):
 
 
 def _get_feat_type(attval):
-    try:
-        return get_return_col_type(attval)
-    except (AssertionError, AttributeError, KeyError):
-        # TODO: way too general
-        return attval
+    return get_return_hint(attval) or attval

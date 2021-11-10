@@ -51,7 +51,7 @@ def create_environments(env_name, min_prize_pool):
         lambda df: df[SpotFeatures.dog_1.dog_id].isin(relevant_dogs)
         & df[SpotFeatures.dog_2.dog_id].isin(relevant_dogs),
         :,
-    ]
+    ].reset_index(drop=True)
     rels_df = relationship_table.get_full_df().pipe(
         lambda df: df.reset_index()
         .loc[

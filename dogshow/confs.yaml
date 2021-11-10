@@ -1,0 +1,5 @@
+# for local debugging of dogshow (rename to confs-live.yaml)
+explore:
+  local_output_root: path/to/thing
+live:
+  git_remote_root: git@github.com:sscu-budapest
