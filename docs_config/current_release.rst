@@ -1,4 +1,1 @@
-- add sql conversion
-- unify config and metadata representations
-- add some data validation
-- extend tests
+add empty features possibility
