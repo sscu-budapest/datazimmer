@@ -49,12 +49,21 @@ class ScruTable:
             self.partitioning_cols,
             self.max_partition_size,
         )
+        self.dtype_map = {}
+        self.get_full_df = self.trepo.get_full_df
+        self.get_full_ddf = self.trepo.get_full_ddf
+        self.extend = self._parsewrap(self.trepo.extend)
+        self.replace_all = self._parsewrap(self.trepo.replace_all)
+        self.replace_records = self._parsewrap(self.trepo.replace_records)
+        self.replace_groups = self._parsewrap(self.trepo.replace_groups)
 
-    def get_full_df(self):
-        return self.trepo.get_full_df()
+    def _parsewrap(self, fun):
+        def f(df, parse: bool):
+            if parse:
+                return fun(df.astype(self.dtype_map))
+            return fun(df)
 
-    def get_full_ddf(self):
-        return self.trepo.get_full_ddf()
+        return f
 
     def _infer_features_cls(self, features):
         return self._new_cls(

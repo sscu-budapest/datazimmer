@@ -3,6 +3,8 @@ from dataclasses import dataclass, field
 import pydot
 import sqlalchemy as sa
 
+from ..utils import is_postgres
+
 
 def dump_graph(sql_meta, sql_engine, schema_path="dbschema.png"):
     """WIP"""
@@ -85,7 +87,7 @@ class Drawer:
             % (col.name, format_col_str(col))
             for col in table.columns
         )
-        if self._is_postgres:
+        if is_postgres(self.engine):
             # postgres engine doesn't reflect indexes
 
             filters = [f"tablename = '{table.name}'"]
@@ -114,12 +116,6 @@ class Drawer:
     @property
     def tables(self):
         return self.meta.tables
-
-    @property
-    def _is_postgres(self):
-        return isinstance(
-            self.engine.dialect, sa.dialects.postgresql.base.PGDialect
-        )
 
 
 def format_col_str(col):

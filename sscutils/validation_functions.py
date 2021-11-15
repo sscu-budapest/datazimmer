@@ -4,6 +4,7 @@ from .config_loading import DatasetConfig, ProjectConfig
 from .exceptions import DatasetSetupException
 from .helpers import import_env_creator_function, import_update_data_function
 from .metadata import ArtifactMetadata
+from .metadata.bedrock.atoms import NS_ATOM_TYPE
 from .metadata.datascript.to_bedrock import DatascriptToBedrockConverter
 from .naming import ns_metadata_abs_module
 from .sql.draw import dump_graph
@@ -38,29 +39,53 @@ def validate_project_env():
     _ = ProjectConfig()
 
 
-def validate_dataset_setup():
+def validate_dataset_setup(env=None):
     """asserts a few things about a dataset
 
-    - metadata is properly exported
     - configuration files are present
-    - metadata is same across all branches
+    - standard functions can be imported
+    - metadata is properly exported from datascript
     - metadata fits what is in the data files
+    - is properly uploaded -> can be imported to a project
 
     Raises
     ------
     DatasetSetupException
         explains what is wrong
     """
-    _ = DatasetConfig()
-    a_meta = ArtifactMetadata.load_serialized()
-    root_ns = DatascriptToBedrockConverter(
-        ns_metadata_abs_module
-    ).to_ns_metadata()
-    for table in root_ns.tables:
-        if table.name not in [t.name for t in a_meta.namespaces[""].tables]:
-            raise DatasetSetupException(f"{table.name} table not serialized")
+    DatasetConfig()
     import_env_creator_function()
     import_update_data_function()
+
+    root_serialized_ns = ArtifactMetadata.load_serialized().root_ns
+    root_datascript_ns = DatascriptToBedrockConverter(
+        ns_metadata_abs_module
+    ).to_ns_metadata()
+    ds_atom_n = 0
+    for ds_atom in root_datascript_ns.atoms:
+        try:
+            ser_atom = root_serialized_ns.get(ds_atom.name)
+        except KeyError as e:
+            raise DatasetSetupException(f"{ds_atom} not serialized: {e}")
+
+        _nondesc_eq(ser_atom, ds_atom)
+        ds_atom_n += 1
+    if ds_atom_n != len(root_serialized_ns.atoms):
+        raise DatasetSetupException("")
+    sql_validation("sqlite:///:memory:", env)
+    validate_ds_importable(env)
+
+
+def validate_ds_importable(env):
+    pass
+
+
+def validate_step_name(s):
+    _check_match("_", s)
+
+
+def validate_repo_name(s):
+    _check_match("-", s)
 
 
 def _check_match(bc, s):
@@ -72,9 +97,13 @@ def _check_match(bc, s):
         )
 
 
-def validate_step_name(s):
-    _check_match("_", s)
+def _nondesc_eq(serialized: NS_ATOM_TYPE, datascript: NS_ATOM_TYPE):
+    if _dropdesc(serialized) != _dropdesc(datascript):
+        raise DatasetSetupException(
+            "inconsistent metadata: "
+            f"serialized: {serialized} datascript: {datascript}"
+        )
 
 
-def validate_repo_name(s):
-    _check_match("-", s)
+def _dropdesc(obj: NS_ATOM_TYPE):
+    return {k: v for k, v in obj.to_dict().items() if k != "description"}

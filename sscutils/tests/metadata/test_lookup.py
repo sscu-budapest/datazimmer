@@ -15,7 +15,7 @@ def test_base_lookup():
     ns_meta = NamespaceMetadata([], [], [tab1], "ns2")
     a_meta = ArtifactMetadata([], {"": ns_empty_meta, "ns2": ns_meta})
 
-    assert tab1 == ns_empty_meta.get_full(t1_id, a_meta)
+    assert tab1 == a_meta.get_atom(t1_id)
 
     with pytest.raises(KeyError):
         ns_empty_meta.get("t1")

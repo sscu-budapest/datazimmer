@@ -9,6 +9,7 @@ from .naming import (
     METADATA_DIR,
     PIPEREG_INSTANCE_NAME,
     PIPEREG_MODULE_NAME,
+    ROOT_NS_LOCAL_NAME,
     SRC_PATH,
     UPDATE_DATA_FUNCTION_NAME,
     UPDATE_DATA_MODULE_NAME,
@@ -61,7 +62,7 @@ def get_top_module_name(child_module_name: str):
             f"Can't detect top module from module {child_module_name}"
         )
     elif child_module_name == ns_metadata_abs_module:
-        return ""
+        return ROOT_NS_LOCAL_NAME
     elif child_module_name.startswith(imported_namespaces_abs_module):
         module_ind = 2
     return child_module_name.split(".")[module_ind]
@@ -74,7 +75,7 @@ def get_associated_step(caller):
 def get_serialized_namespace_dirs():
     subdirs = [p.name for p in METADATA_DIR.iterdir() if p.is_dir()]
     if DATASET_METADATA_PATHS.entity_classes.exists():
-        subdirs.append("")
+        subdirs.append(ROOT_NS_LOCAL_NAME)
     return subdirs
 
 

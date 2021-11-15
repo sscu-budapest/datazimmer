@@ -12,9 +12,13 @@ NAMESPACE_PREFIX_SEPARATOR = ":"
 CONFIG_DIR = Path("conf")
 METADATA_DIR = Path("metadata")
 
+ROOT_NS_LOCAL_NAME = ""
+
 
 class NamespaceMetadataPaths:
-    def __init__(self, local_name: str = "", mkdir=False) -> None:
+    def __init__(
+        self, local_name: str = ROOT_NS_LOCAL_NAME, mkdir=False
+    ) -> None:
         _parent = METADATA_DIR / local_name
         if mkdir:
             _parent.mkdir(exist_ok=True)

@@ -51,3 +51,7 @@ def test_failing_config(tmp_path):
     with cd_into(tmp_path):
         with pytest.raises(NotAnArtifactException):
             ArtifactContext()
+
+
+def test_missing_fk(tmp_path):
+    pass
