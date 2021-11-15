@@ -10,9 +10,10 @@ from sqlalchemy.orm import sessionmaker
 from ..artifact_context import ArtifactContext
 from ..metadata import ArtifactMetadata
 from ..metadata.bedrock.atoms import Table
-from ..metadata.bedrock.column import to_dt_map, to_sql_col
+from ..metadata.bedrock.column import to_sql_col
 from ..metadata.bedrock.conversion import FeatConverter
 from ..metadata.bedrock.namespace_metadata import NamespaceMetadata
+from ..metadata.datascript.scrutable import table_to_dtype_map
 from ..utils import is_postgres
 
 
@@ -198,12 +199,6 @@ class SqlTableConverter:
     @property
     def _sql_id(self):
         return _get_sql_id(self._table.name, self._mapper.ns_id)
-
-
-def table_to_dtype_map(table: Table, ns_meta, a_meta):
-    full_list = table.features + (table.index or [])
-    cols = FeatConverter(ns_meta, a_meta).feats_to_cols(full_list)
-    return to_dt_map(cols)
 
 
 def table_to_trepo(table: Table, ns: str, env=None) -> TableRepo:

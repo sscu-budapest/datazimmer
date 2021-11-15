@@ -61,11 +61,11 @@ class ArtifactContext:
             env_parents=parents_dict,
         )
 
-    def replace_data(self, df, structable, env_name=None):
+    def replace_data(self, df, structable, env_name=None, parse: bool = True):
         if env_name is not None:
             assert self.is_dataset
             structable.trepo.set_env(env_name)
-        structable.trepo.replace_all(df)
+        structable.replace_all(df, parse)
         if self.is_dataset:
             structable.trepo.set_env(self.config.default_env.name)
 
@@ -150,8 +150,8 @@ def _load_artifact_config() -> Union[DatasetConfig, ProjectConfig]:
         )
 
 
-def dump_dfs_to_tables(env_name, df_structable_pairs):
+def dump_dfs_to_tables(env_name, df_structable_pairs, parse=True):
     """helper function to fill an env of a dataset"""
     context = ArtifactContext()
     for df, structable in df_structable_pairs:
-        context.replace_data(df, structable, env_name)
+        context.replace_data(df, structable, env_name, parse)

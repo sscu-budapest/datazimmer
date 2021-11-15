@@ -1,11 +1,19 @@
 from functools import partial
 from typing import List, Optional, Type
 
+from structlog import get_logger
+
 from ...artifact_context import ArtifactContext
 from ...helpers import get_associated_step
 from ...metaprogramming import camel_to_snake, snake_to_camel
 from ...naming import FEATURES_CLS_SUFFIX, INDEX_CLS_SUFFIX
+from ..bedrock.artifact_metadata import ArtifactMetadata
+from ..bedrock.atoms import Table
+from ..bedrock.column import to_dt_map
+from ..bedrock.conversion import FeatConverter
 from .bases import BaseEntity, IndexBase, TableFeaturesBase
+
+logger = get_logger()
 
 
 class ScruTable:
@@ -49,7 +57,6 @@ class ScruTable:
             self.partitioning_cols,
             self.max_partition_size,
         )
-        self.dtype_map = {}
         self.get_full_df = self.trepo.get_full_df
         self.get_full_ddf = self.trepo.get_full_ddf
         self.extend = self._parsewrap(self.trepo.extend)
@@ -58,12 +65,40 @@ class ScruTable:
         self.replace_groups = self._parsewrap(self.trepo.replace_groups)
 
     def _parsewrap(self, fun):
-        def f(df, parse: bool):
+        def f(df, parse: bool = True):
             if parse:
-                return fun(df.astype(self.dtype_map))
+                return fun(self._parse_df(df))
             return fun(df)
 
         return f
+
+    def _parse_df(self, df):
+        logger.info("parsing", table=self.name, namespace=self.namespace)
+        feat_dic, ind_dic = self._get_dtype_maps()
+        full_dic = feat_dic
+        set_ind = ind_dic and (set(df.index.names) != set(ind_dic.keys()))
+        if set_ind:
+            logger.info("indexing needed", inds=ind_dic)
+            full_dic.update(ind_dic)
+
+        out = df.astype(full_dic)
+        if set_ind:
+            return out.set_index([*ind_dic.keys()])
+        return out
+
+    def _get_dtype_maps(self):
+        a_meta = ArtifactMetadata.load_serialized()
+        try:
+            ns_meta = a_meta.namespaces[self.namespace]
+            table = ns_meta.get(self.name)
+        except KeyError:
+            logger.warn(
+                f"Metadata for table '{self.name}' "
+                f"in namespace '{self.namespace}' not yet serialized. "
+                "can't map types of dataframe"
+            )
+            return {}, {}
+        return table_to_dtype_maps(table, ns_meta, a_meta)
 
     def _infer_features_cls(self, features):
         return self._new_cls(
@@ -108,3 +143,16 @@ def _infer_table_name_from_cls(cls: Type, suffix=INDEX_CLS_SUFFIX):
         f"{cls} class name should end in {suffix},"
         f" {cls_name} given, can't infer table name"
     )
+
+
+def table_to_dtype_maps(table: Table, ns_meta, a_meta):
+    convfun = FeatConverter(ns_meta, a_meta).feats_to_cols
+    return map(
+        lambda feats: to_dt_map(convfun(feats)),
+        [table.features, table.index or []],
+    )
+
+
+def table_to_dtype_map(table: Table, ns_meta, a_meta):
+    feat_dic, ind_dic = table_to_dtype_maps(table, ns_meta, a_meta)
+    return {**feat_dic, **ind_dic}

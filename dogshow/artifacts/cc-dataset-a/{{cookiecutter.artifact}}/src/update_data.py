@@ -10,7 +10,7 @@ def update_data(data_root):
         ns.PersonIndex.person_id
     ).astype({ns.PersonFeatures.date_of_birth: "datetime64"})  # TODO: automate this
 
-    dogs_df = pd.read_csv(f"{data_root}/dog.csv").set_index(ns.DogIndex.dog_id).astype({ns.DogFeatures.date_of_birth: "datetime64"})
+    dogs_df = pd.read_csv(f"{data_root}/dog.csv")
     comps_df = pd.read_csv(f"{data_root}/comp.csv").set_index(
         ns.CompetitionIndex.competition_id
     )
@@ -23,7 +23,7 @@ def update_data(data_root):
         .rename(columns=rel_renamer)
         .set_index(get_all_cols(ns.RelationshipIndex))
     )
-    spots_df = pd.read_csv(f"{data_root}/spotted.csv").astype({ns.SpotFeatures.place.zip: str})
+    spots_df = pd.read_csv(f"{data_root}/spotted.csv")
     photo_df = (
         pd.read_csv(f"{data_root}/photo.csv")
         .rename(
