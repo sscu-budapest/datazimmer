@@ -37,6 +37,7 @@ class ArtifactContext:
 
     def serialize(self):
         self.metadata.dump()
+        self.config.dump()
 
     def create_trepo(
         self,

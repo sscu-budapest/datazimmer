@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 COMPLETE_ENV_NAME = "complete"
@@ -66,3 +67,12 @@ imported_namespaces_abs_module = (
 )
 ns_metadata_abs_module = f"{SRC_PATH}.{NAMESPACE_METADATA_MODULE_NAME}"
 ns_metadata_file = SRC_PATH / (NAMESPACE_METADATA_MODULE_NAME + ".py")
+
+_tfstr = "https://github.com/sscu-budapest/{}-template"
+
+dataset_template_repo = os.environ.get(
+    "SSC_LOCAL_DS_TEMPLATE", _tfstr.format("dataset")
+)
+project_template_repo = os.environ.get(
+    "SSC_LOCAL_PROJECT_TEMPLATE", _tfstr.format("project")
+)

@@ -1,14 +1,32 @@
 import re
+from functools import partial
+from pathlib import Path
 
-from .config_loading import DatasetConfig, ProjectConfig
+from structlog import get_logger
+
+from .artifact_context import ArtifactContext
+from .config_loading import DataEnvSpecification, DatasetConfig, ProjectConfig
 from .exceptions import DatasetSetupException
 from .helpers import import_env_creator_function, import_update_data_function
 from .metadata import ArtifactMetadata
 from .metadata.bedrock.atoms import NS_ATOM_TYPE
+from .metadata.bedrock.imported_namespace import ImportedNamespace
+from .metadata.datascript.conversion import imported_bedrock_to_datascript
 from .metadata.datascript.to_bedrock import DatascriptToBedrockConverter
-from .naming import ns_metadata_abs_module
+from .naming import (
+    COMPLETE_ENV_NAME,
+    ns_metadata_abs_module,
+    project_template_repo,
+)
 from .sql.draw import dump_graph
 from .sql.loader import SqlLoader
+from .utils import cd_into
+
+logger = get_logger()
+
+
+def log(msg, artifact_type):
+    logger.info(f"validating {artifact_type} - {msg}")
 
 
 def sql_validation(constr, env=None):
@@ -22,7 +40,7 @@ def sql_validation(constr, env=None):
         loader.purge()
 
 
-def validate_project_env():
+def validate_project():
     """asserts a few things about a dataset
 
     - all prefixes in envs have imported namespaces
@@ -39,7 +57,7 @@ def validate_project_env():
     _ = ProjectConfig()
 
 
-def validate_dataset_setup(env=None):
+def validate_dataset(env=None):
     """asserts a few things about a dataset
 
     - configuration files are present
@@ -53,11 +71,31 @@ def validate_dataset_setup(env=None):
     DatasetSetupException
         explains what is wrong
     """
-    DatasetConfig()
+
+    _log = partial(log, artifact_type="dataset")
+
+    _log("full context")
+    ctx = ArtifactContext()
+
+    _log("config files and naming")
+    conf = DatasetConfig()
+    ctx.branch_remote_pairs
+    for _env in [*conf.created_environments, conf.default_env]:
+        is_underscored_name(_env.name)
+        is_dashed_name(_env.branch)
+
+    _log("function imports")
     import_env_creator_function()
     import_update_data_function()
 
+    _log("serialized metadata fits conventions")
     root_serialized_ns = ArtifactMetadata.load_serialized().root_ns
+    for table in root_serialized_ns.tables:
+        is_underscored_name(table.name)
+        for feat in table.features + (table.index or []):
+            is_underscored_name(feat.prime_id)
+
+    _log("serialized metadata matching datascript")
     root_datascript_ns = DatascriptToBedrockConverter(
         ns_metadata_abs_module
     ).to_ns_metadata()
@@ -70,26 +108,51 @@ def validate_dataset_setup(env=None):
 
         _nondesc_eq(ser_atom, ds_atom)
         ds_atom_n += 1
-    if ds_atom_n != len(root_serialized_ns.atoms):
-        raise DatasetSetupException("")
+    assert ds_atom_n == len(root_serialized_ns.atoms)
+
+    _log("data can be read to sql db")
     sql_validation("sqlite:///:memory:", env)
-    validate_ds_importable(env)
+
+    _log("data can be imported to a project via dvc")
+    validate_ds_importable(env or COMPLETE_ENV_NAME)
 
 
 def validate_ds_importable(env):
-    pass
+    artifact_dir = Path.cwd().as_posix()
+    test_prefix = "test_dataset"
+
+    with cd_into(project_template_repo, force_clone=True):
+        ctx = ArtifactContext()
+        ctx.config.data_envs.append(DataEnvSpecification(test_prefix, env))
+        ctx.metadata.imported_namespaces.append(
+            ImportedNamespace(test_prefix, artifact_dir)
+        )
+        ctx.serialize()
+        ctx.import_namespaces()
+        imported_bedrock_to_datascript()
 
 
-def validate_step_name(s):
+def is_underscored_name(s):
     _check_match("_", s)
 
 
-def validate_repo_name(s):
+def is_dashed_name(s):
     _check_match("-", s)
 
 
-def _check_match(bc, s):
-    rex = r"[a-z]+((?!{bc}{bc})[a-z|\{bc}])*[a-z]+".format(bc=bc)
+def is_repo_name(s):
+    _check_match("-", s, False)
+
+
+def is_step_name(s):
+    _check_match("_", s, False)
+
+
+def _check_match(bc, s, nums_ok=True):
+    ok_chr = "a-z|0-9" if nums_ok else "a-z"
+    rex = r"[a-z]+((?!{bc}{bc})[{okc}|\{bc}])*[{okc}]+".format(
+        bc=bc, okc=ok_chr
+    )
     if re.compile(rex).fullmatch(s) is None:
         raise NameError(
             f"{s} does not fit the expected format of "

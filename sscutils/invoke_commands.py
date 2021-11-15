@@ -18,6 +18,7 @@ from .naming import (
     SRC_PATH,
 )
 from .utils import LINE_LEN
+from .validation_functions import validate_dataset, validate_project
 
 
 @task
@@ -130,11 +131,21 @@ def load_external_data(ctx, git_commit=False):
             )
 
 
+@task
+def validate(ctx, env=None):
+    artifact_ctx = ArtifactContext()
+    if artifact_ctx.is_dataset:
+        validate_dataset(env)
+    else:
+        validate_project()
+
+
 common_tasks = [
     lint,
     set_dvc_remotes,
     import_namespaces,
     serialize_datascript_metadata,
+    validate,
 ]
 
 dataset_ns = Collection(*common_tasks, update_data, write_envs, push_envs)

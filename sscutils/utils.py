@@ -48,20 +48,25 @@ def is_repo(s):
 
 @contextmanager
 def cd_into(
-    dirpath: Union[str, Path], reset_src=True, checkout=None, force_clone=False
+    dirpath: Union[str, Path],
+    reset_src=True,
+    checkout=None,
+    force_clone=False,
 ):
+    _run = check_call
+
     wd = os.getcwd()
     needs_clone = force_clone or is_repo(dirpath)
 
     if needs_clone:
         tmp_dir = TemporaryDirectory()
         cd_path = tmp_dir.__enter__()
-        check_call(["git", "clone", str(dirpath), "."], cwd=cd_path)
+        _run(["git", "clone", str(dirpath), "."], cwd=cd_path)
     else:
         cd_path = dirpath
 
     if checkout:
-        check_call(["git", "checkout", checkout], cwd=cd_path)
+        _run(["git", "checkout", checkout], cwd=cd_path)
 
     os.chdir(cd_path)
     sys.path.insert(0, str(cd_path))

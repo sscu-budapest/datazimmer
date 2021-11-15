@@ -16,20 +16,18 @@ from sscutils.invoke_commands import (
     serialize_datascript_metadata,
     set_dvc_remotes,
     update_data,
+    validate,
     write_envs,
 )
 from sscutils.naming import (
+    DATASET_METADATA_PATHS,
     ENV_CREATION_MODULE_NAME,
     SRC_PATH,
     ProjectConfigPaths,
 )
 from sscutils.tests.create_dogshow import csv_path, package_root
 from sscutils.utils import cd_into, reset_src_module
-from sscutils.validation_functions import (
-    sql_validation,
-    validate_dataset_setup,
-    validate_project_env,
-)
+from sscutils.validation_functions import sql_validation, validate_dataset
 
 from .init_dogshow import setup_dogshow
 
@@ -56,13 +54,11 @@ def test_full_dogshow(tmp_path: Path, pytestconfig):
             invtask = step.get_invoke_task()
             invtask(c, stage=True)
         serialize_datascript_metadata(c, git_commit=True)
-        c.run("git add reports metadata")
-        c.run('git commit -m "ran steps"')
-        c.run("git push")
-        c.run("dvc push")
+        c.run('git add reports metadata;git commit -m "ran steps"')
+        c.run("git push; dvc push")
         step.run()  # make sure it does not mess up
         validator()
-        validate_project_env()
+        validate(c)
         sql_validation(constr)
 
     with ds_cc.project_b as validator:
@@ -79,7 +75,12 @@ def test_full_dogshow(tmp_path: Path, pytestconfig):
 
     with cd_into(ds_cc.get_git_remote("dataset-a"), force_clone=True):
         c.run("dvc pull")
-        validate_dataset_setup()
+        validate(c, env="top_comps")
+        _spath = DATASET_METADATA_PATHS.table_schemas
+        bad_str = "bad_" + _spath.read_text()
+        _spath.write_text(bad_str)
+        with pytest.raises(DatasetSetupException):
+            validate(c)
 
 
 @contextmanager
@@ -97,7 +98,7 @@ def run_ds_test(ds_context, c):
         import_namespaces(c, git_commit=True)
         lint(c)
         with pytest.raises(DatasetSetupException):
-            validate_dataset_setup()
+            validate_dataset()
         serialize_datascript_metadata(c, git_commit=True)
         update_data(c, (csv_path,))
         set_dvc_remotes(c)
@@ -107,7 +108,7 @@ def run_ds_test(ds_context, c):
         sql_validation(
             "postgresql://postgres:postgres@localhost:5432/postgres"
         )
-        validate_dataset_setup()
+        validate(c)
         with _move_file(c, env_fun_script):
             with pytest.raises(DatasetSetupException):
-                validate_dataset_setup()
+                validate_dataset()
