@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 COMPLETE_ENV_NAME = "complete"
@@ -12,9 +13,13 @@ NAMESPACE_PREFIX_SEPARATOR = ":"
 CONFIG_DIR = Path("conf")
 METADATA_DIR = Path("metadata")
 
+ROOT_NS_LOCAL_NAME = ""
+
 
 class NamespaceMetadataPaths:
-    def __init__(self, local_name: str = "", mkdir=False) -> None:
+    def __init__(
+        self, local_name: str = ROOT_NS_LOCAL_NAME, mkdir=False
+    ) -> None:
         _parent = METADATA_DIR / local_name
         if mkdir:
             _parent.mkdir(exist_ok=True)
@@ -62,3 +67,12 @@ imported_namespaces_abs_module = (
 )
 ns_metadata_abs_module = f"{SRC_PATH}.{NAMESPACE_METADATA_MODULE_NAME}"
 ns_metadata_file = SRC_PATH / (NAMESPACE_METADATA_MODULE_NAME + ".py")
+
+_tfstr = "https://github.com/sscu-budapest/{}-template"
+
+dataset_template_repo = os.environ.get(
+    "SSC_LOCAL_DS_TEMPLATE", _tfstr.format("dataset")
+)
+project_template_repo = os.environ.get(
+    "SSC_LOCAL_PROJECT_TEMPLATE", _tfstr.format("project")
+)

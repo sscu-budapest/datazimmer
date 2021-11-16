@@ -1,4 +1,5 @@
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
+from functools import partial
 from pathlib import Path
 from typing import List
 
@@ -66,6 +67,11 @@ class ProjectConfig:
         default_factory=load_data_env_spec_list
     )
 
+    def dump(self):
+        _dump_named_dicts(
+            ProjectConfigPaths.CURRENT_ENV, "prefix", self.data_envs
+        )
+
 
 @dataclass
 class DatasetConfig:
@@ -73,6 +79,11 @@ class DatasetConfig:
     created_environments: List[EnvToCreate] = field(
         default_factory=load_created_env_spec_list
     )
+
+    def dump(self):
+        _dump_named_dicts(
+            DatasetConfigPaths.CREATED_ENVS, "name", self.created_environments
+        )
 
 
 def load_branch_remote_pairs():
@@ -88,6 +99,19 @@ def load_branch_remote_pairs():
 
 def _yaml_or_err(path, exc_cls, desc=None):
     try:
-        return yaml.safe_load(path.read_text())
+        return yaml.safe_load(path.read_text()) or {}
     except FileNotFoundError as e:
         raise exc_cls(f"Config of {desc or path} not found in {e}")
+
+
+def _dump_named_dicts(path, att_name, obj_list):
+    _att_fac = partial(_dicfac, att_name=att_name)
+    named_dict = {
+        getattr(obj, att_name): asdict(obj, dict_factory=_att_fac)
+        for obj in obj_list
+    }
+    path.write_text(yaml.safe_dump(named_dict))
+
+
+def _dicfac(items, att_name):
+    return {k: v for k, v in items if v is not None and k != att_name}

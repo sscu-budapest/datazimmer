@@ -1,14 +1,10 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List
+from typing import List
 
-from ...naming import NamespaceMetadataPaths
+from ...naming import ROOT_NS_LOCAL_NAME, NamespaceMetadataPaths
 from .atoms import NS_ATOM_TYPE, CompositeType, EntityClass, Table
 from .feature_types import ANY_FEATURE_TYPE
 from .load_util import dump_atom_list_to_dict, load_atom_dict_to_list
-from .namespaced_id import NamespacedId
-
-if TYPE_CHECKING:
-    from .artifact_metadata import ArtifactMetadata  # pragma: no cover
 
 
 @dataclass
@@ -21,18 +17,13 @@ class NamespaceMetadata:
     local_name: str
 
     def get(self, obj_id: str) -> NS_ATOM_TYPE:
-        for atom in self._atoms:
+        for atom in self.atoms:
             if atom.name == obj_id:
                 return atom
         raise KeyError(f"{obj_id} not found in: \n {self}")
 
-    def get_full(self, ns_id: NamespacedId, parent: "ArtifactMetadata"):
-        if ns_id.is_local:
-            return self.get(ns_id.obj_id)
-        return parent.get_atom(ns_id)
-
     @classmethod
-    def load_serialized(cls, subdir="") -> "NamespaceMetadata":
+    def load_serialized(cls, subdir=ROOT_NS_LOCAL_NAME) -> "NamespaceMetadata":
         ns_paths = NamespaceMetadataPaths(subdir)
         return cls(
             composite_types=load_atom_dict_to_list(
@@ -76,5 +67,5 @@ class NamespaceMetadata:
         return list(set(filter(None, full_ns_id_list)))
 
     @property
-    def _atoms(self) -> List[NS_ATOM_TYPE]:
+    def atoms(self) -> List[NS_ATOM_TYPE]:
         return [*self.composite_types, *self.entity_classes, *self.tables]

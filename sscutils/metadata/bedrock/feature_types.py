@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional, Union
 
-from ...utils import PrimitiveType, is_type_hint_origin
+from ...primitive_types import PrimitiveType
+from ...utils import is_type_hint_origin
 from .namespaced_id import NamespacedId, NamespacedIdOf
 
 if TYPE_CHECKING:

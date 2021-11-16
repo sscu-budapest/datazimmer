@@ -1,8 +1,7 @@
 import os
 import sys
 from contextlib import contextmanager
-from datetime import datetime
-from enum import Enum
+from itertools import chain
 from pathlib import Path
 from subprocess import check_call
 from tempfile import TemporaryDirectory
@@ -11,6 +10,7 @@ from typing import List, Type, TypeVar, Union
 import isort
 from black import Mode, format_file_contents
 from black.report import NothingChanged
+from sqlalchemy.dialects.postgresql import dialect as postgres_dialect
 from yaml import safe_load
 
 from .naming import SRC_PATH
@@ -18,16 +18,6 @@ from .naming import SRC_PATH
 LINE_LEN = 119
 PRIMITIVE_MODULES = ["builtins", "datetime"]
 T = TypeVar("T")
-
-
-class PrimitiveType(Enum):
-    # TODO: categorical
-    float = float
-    int = int
-    str = str
-    bytes = bytes
-    bool = bool
-    datetime = datetime
 
 
 def get_cls_defined_in_module(module, parent):
@@ -58,20 +48,25 @@ def is_repo(s):
 
 @contextmanager
 def cd_into(
-    dirpath: Union[str, Path], reset_src=True, checkout=None, force_clone=False
+    dirpath: Union[str, Path],
+    reset_src=True,
+    checkout=None,
+    force_clone=False,
 ):
+    _run = check_call
+
     wd = os.getcwd()
     needs_clone = force_clone or is_repo(dirpath)
 
     if needs_clone:
         tmp_dir = TemporaryDirectory()
         cd_path = tmp_dir.__enter__()
-        check_call(["git", "clone", str(dirpath), "."], cwd=cd_path)
+        _run(["git", "clone", str(dirpath), "."], cwd=cd_path)
     else:
         cd_path = dirpath
 
     if checkout:
-        check_call(["git", "checkout", checkout], cwd=cd_path)
+        _run(["git", "checkout", checkout], cwd=cd_path)
 
     os.chdir(cd_path)
     sys.path.insert(0, str(cd_path))
@@ -134,3 +129,11 @@ def is_type_hint_origin(hint, cls):
         return hint.__origin__ is cls
     except AttributeError:
         return False
+
+
+def chainmap(fun, iterable) -> list:
+    return [*chain(*map(fun, iterable))]
+
+
+def is_postgres(engine):
+    return isinstance(engine.dialect, postgres_dialect)

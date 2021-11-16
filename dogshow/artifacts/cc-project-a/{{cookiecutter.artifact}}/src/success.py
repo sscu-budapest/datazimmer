@@ -8,6 +8,7 @@ from colassigner import ChildColAssigner, ColAssigner, Col
 from sscutils import IndexBase, ScruTable, TableFeaturesBase
 
 from .imported_namespaces import dogfirst, doglast
+from .imported_namespaces.dogfirst import Dog
 from .pipereg import pipereg
 
 
@@ -33,7 +34,7 @@ class StatusFeatures(TableFeaturesBase):
     wins = doglast.IntLimitType
 
 
-class DogSizeCalculation(ColAssigner):
+class DogSizeCalculation(TableFeaturesBase):
     def __init__(self) -> None:
         self.limit_df = doglast.dog_size_table.get_full_df()
 
@@ -126,7 +127,7 @@ status_table = ScruTable(StatusFeatures, StatusIndex)
 sized_dogs_table = ScruTable(
     DogSizeCalculation,
     index=dogfirst.DogIndex,
-    subject_of_records=dogfirst.Dog,
+    subject_of_records=Dog,
     name="dogs_w_sizes",
 )
 # TODO:
@@ -180,7 +181,7 @@ def calculate_success(top_status_multiplier: int):
             for lname, (lminq, lmaxq) in limits.items()
         ]
     ).set_index(StatusIndex.status_name)
-    status_table.trepo.replace_all(status_df)
+    status_table.replace_all(status_df)
     status_md_path.parent.mkdir(exist_ok=True)
     status_df.to_markdown(status_md_path)
 
@@ -189,7 +190,7 @@ def calculate_success(top_status_multiplier: int):
     # (merging data from two sources)
     dogfirst.dog_table.get_full_df().pipe(DogSizeCalculation()).loc[
         :, [DogSizeCalculation.size]
-    ].pipe(sized_dogs_table.trepo.replace_all)
+    ].pipe(sized_dogs_table.replace_all)
 
     # more complex nested structure
     # pbd_assigner = PersonByDogsizeFeatures(status_df)

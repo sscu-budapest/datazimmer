@@ -14,6 +14,8 @@ from sscutils.naming import (
     METADATA_DIR,
     SRC_PATH,
     ProjectConfigPaths,
+    dataset_template_repo,
+    project_template_repo,
 )
 from sscutils.utils import cd_into
 
@@ -24,10 +26,6 @@ dogshow_root = package_root / "dogshow"
 artifact_src_root = dogshow_root / "artifacts"
 expectation_root = dogshow_root / "expectations"
 csv_path = Path(artifact_src_root, "data").absolute().as_posix()
-
-
-dataset_template_repo = "https://github.com/sscu-budapest/dataset-template"
-project_template_repo = "https://github.com/sscu-budapest/project-template"
 
 
 class DogshowContextCreator:

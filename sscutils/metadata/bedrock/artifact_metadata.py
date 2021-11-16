@@ -4,7 +4,7 @@ from typing import Dict, List
 from yaml import safe_dump
 
 from ...helpers import get_serialized_namespace_dirs
-from ...naming import IMPORTED_NAMESPACES_PATH
+from ...naming import IMPORTED_NAMESPACES_PATH, ROOT_NS_LOCAL_NAME
 from ...utils import load_named_dict_to_list
 from .atoms import NS_ATOM_TYPE
 from .imported_namespace import ImportedNamespace
@@ -20,7 +20,9 @@ class ArtifactMetadata:
     namespaces: Dict[str, NamespaceMetadata]
 
     def get_atom(self, ns_id: NamespacedId) -> NS_ATOM_TYPE:
-        return self.namespaces[ns_id.ns_prefix or ""].get(ns_id.obj_id)
+        return self.namespaces[ns_id.ns_prefix or ROOT_NS_LOCAL_NAME].get(
+            ns_id.obj_id
+        )
 
     def dump(self):
         serialized_str = safe_dump(
@@ -62,3 +64,7 @@ class ArtifactMetadata:
     @property
     def imported_dic(self) -> Dict[str, ImportedNamespace]:
         return {ns.prefix: ns for ns in self.imported_namespaces}
+
+    @property
+    def root_ns(self) -> NamespaceMetadata:
+        return self.namespaces[ROOT_NS_LOCAL_NAME]

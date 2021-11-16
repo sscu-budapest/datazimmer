@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from ...naming import PIPELINE_STEP_SEPARATOR
+from ...naming import PIPELINE_STEP_SEPARATOR, ROOT_NS_LOCAL_NAME
 
 
 @dataclass
@@ -32,4 +32,4 @@ class ImportedNamespace:
         try:
             return splitted_id[i]
         except IndexError:
-            return ""
+            return ROOT_NS_LOCAL_NAME

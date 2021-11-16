@@ -3,8 +3,6 @@ from typing import List, Optional, Union
 
 from parquetranger import TableRepo
 
-from sscutils.helpers import get_all_top_modules
-
 from .config_loading import (
     DatasetConfig,
     ProjectConfig,
@@ -15,6 +13,7 @@ from .exceptions import (
     NotAnArtifactException,
     ProjectSetupException,
 )
+from .helpers import get_all_top_modules
 from .metadata import ArtifactMetadata
 from .metadata.bedrock.namespace_metadata import NamespaceMetadata
 from .naming import DATA_PATH
@@ -24,6 +23,7 @@ class ArtifactContext:
     def __init__(self) -> None:
 
         self.config = _load_artifact_config()
+        self.is_dataset = isinstance(self.config, DatasetConfig)
         self.metadata = ArtifactMetadata.load_serialized()
         self.branch_remote_pairs = load_branch_remote_pairs()
         self.data_envs: List[DataEnvironmentToLoad] = []
@@ -37,6 +37,7 @@ class ArtifactContext:
 
     def serialize(self):
         self.metadata.dump()
+        self.config.dump()
 
     def create_trepo(
         self,
@@ -61,11 +62,11 @@ class ArtifactContext:
             env_parents=parents_dict,
         )
 
-    def replace_data(self, df, structable, env_name=None):
+    def replace_data(self, df, structable, env_name=None, parse: bool = True):
         if env_name is not None:
             assert self.is_dataset
             structable.trepo.set_env(env_name)
-        structable.trepo.replace_all(df)
+        structable.replace_all(df, parse)
         if self.is_dataset:
             structable.trepo.set_env(self.config.default_env.name)
 
@@ -82,10 +83,6 @@ class ArtifactContext:
         for ns in self.metadata.namespaces.values():
             if self.has_data_env(ns):
                 yield ns
-
-    @property
-    def is_dataset(self):
-        return isinstance(self.config, DatasetConfig)
 
     @property
     def imported_namespace_meta_list(self):
@@ -154,8 +151,8 @@ def _load_artifact_config() -> Union[DatasetConfig, ProjectConfig]:
         )
 
 
-def dump_dfs_to_tables(env_name, df_structable_pairs):
+def dump_dfs_to_tables(env_name, df_structable_pairs, parse=True):
     """helper function to fill an env of a dataset"""
     context = ArtifactContext()
     for df, structable in df_structable_pairs:
-        context.replace_data(df, structable, env_name)
+        context.replace_data(df, structable, env_name, parse)

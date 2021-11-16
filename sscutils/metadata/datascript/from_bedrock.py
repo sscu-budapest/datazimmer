@@ -4,7 +4,8 @@ from typing import Dict, Iterable, List
 
 from ...metaprogramming import get_class_def
 from ...naming import IMPORTED_NAMESPACES_SCRIPTS_PATH
-from ...utils import PrimitiveType, format_code
+from ...primitive_types import PrimitiveType
+from ...utils import format_code
 from ..bedrock.atoms import (
     CompositeType,
     EntityClass,
