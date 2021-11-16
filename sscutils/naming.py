@@ -14,6 +14,7 @@ CONFIG_DIR = Path("conf")
 METADATA_DIR = Path("metadata")
 
 ROOT_NS_LOCAL_NAME = ""
+TMP_CLS_MODULE = "__tmp_cls_module__"
 
 
 class NamespaceMetadataPaths:

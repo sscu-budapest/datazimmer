@@ -1,6 +1,8 @@
 from importlib import import_module
 from typing import Dict, Iterable, Type
 
+from sscutils.naming import TMP_CLS_MODULE
+
 from ...helpers import get_top_module_name
 from ...metaprogramming import get_simplified_mro
 from ...utils import (
@@ -71,7 +73,7 @@ class DatascriptToBedrockConverter:
         if not self._get_ns_id(scrutable.features).is_local:
             return
         ec = scrutable.subject
-        if ec.__module__ == ScruTable.__module__:
+        if ec.__module__ == TMP_CLS_MODULE:
             self._parse(ec)
         table = Table(
             name=scrutable.name,
@@ -145,7 +147,7 @@ class DatascriptToBedrockConverter:
 
     def _get_ns_id(self, cls) -> NamespacedId:
         # bit hacky .. twice
-        if cls.__module__ == ScruTable.__module__:
+        if cls.__module__ == TMP_CLS_MODULE:
             return NamespacedId(None, cls.__name__)
         return NamespacedId.from_datascript_cls(cls, self._top_module)
 

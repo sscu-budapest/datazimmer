@@ -6,7 +6,7 @@ from structlog import get_logger
 from ...artifact_context import ArtifactContext
 from ...helpers import get_associated_step
 from ...metaprogramming import camel_to_snake, snake_to_camel
-from ...naming import FEATURES_CLS_SUFFIX, INDEX_CLS_SUFFIX
+from ...naming import FEATURES_CLS_SUFFIX, INDEX_CLS_SUFFIX, TMP_CLS_MODULE
 from ..bedrock.artifact_metadata import ArtifactMetadata
 from ..bedrock.atoms import Table
 from ..bedrock.column import to_dt_map
@@ -118,7 +118,7 @@ class ScruTable:
             assert parent_cls in parent_cls.mro()
             return poss_cls
         cls_name = snake_to_camel(self.name) + suffix
-        return type(cls_name, (parent_cls,), {})
+        return type(cls_name, (parent_cls,), {"__module__": TMP_CLS_MODULE})
 
 
 class TableFactory:
