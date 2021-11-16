@@ -77,7 +77,9 @@ def test_full_dogshow(tmp_path: Path, pytestconfig):
         c.run("dvc pull")
         validate(c, env="top_comps")
         _spath = DATASET_METADATA_PATHS.table_schemas
-        bad_str = "bad_" + _spath.read_text()
+        bad_str = _spath.read_text().replace(
+            "name: prize_pool", "name: bad_prize_pool"
+        )
         _spath.write_text(bad_str)
         with pytest.raises(DatasetSetupException):
             validate(c)

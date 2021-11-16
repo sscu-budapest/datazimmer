@@ -1,6 +1,6 @@
 from typing import Union
 
-from colassigner import ColAccessor
+from colassigner import ColAccessor, ColAssigner
 from colassigner.type_hinting import get_return_hint
 
 
@@ -16,7 +16,7 @@ class CompositeTypeBase(ColAccessor):
     pass
 
 
-class TableFeaturesBase(ColAccessor):
+class TableFeaturesBase(ColAssigner):
     pass
 
 
