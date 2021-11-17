@@ -56,8 +56,8 @@ class EntityClass(_AtomBase):
 class Table(_AtomBase):
     name: str
     subject_of_records: NamespacedIdOf[EntityClass]
-    features: List[ANY_FEATURE_TYPE] = None
-    index: Optional[List[ANY_FEATURE_TYPE]] = None
+    features: List[ANY_FEATURE_TYPE] = field(default_factory=list)
+    index: Optional[List[ANY_FEATURE_TYPE]] = field(default_factory=list)
     partitioning_cols: Optional[List[str]] = None  # TODO: not sure
     partition_max_rows: Optional[int] = None
     description: Optional[str] = None
@@ -69,6 +69,10 @@ class Table(_AtomBase):
     @property
     def feature_cls_id(self) -> str:
         return _add_suffix(self.name, FEATURES_CLS_SUFFIX)
+
+    @property
+    def features_w_ind(self) -> list:
+        return self.features + self.index
 
 
 def get_index_cls_name(snake):

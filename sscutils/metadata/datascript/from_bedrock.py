@@ -103,7 +103,7 @@ class ScriptWriter:
         return cls_name
 
     def _add_table_index_cls(self, table: Table):
-        if table.index is None:
+        if not table.index:
             return
         cls_name = table.index_cls_id
         self._add_feat_list_as_cls(table.index, cls_name, IndexBase)
@@ -161,7 +161,7 @@ class ScriptWriter:
     def _deps_and_att_dic_from_feats(self, feats: Iterable[ANY_FEATURE_TYPE]):
         deps = []
         att_dic = {}
-        for feat in feats:
+        for feat in feats or []:
             full_id = feat.val_id
             if isinstance(feat, ForeignKey):
                 full_id.obj_id = get_index_cls_name(full_id.obj_id)

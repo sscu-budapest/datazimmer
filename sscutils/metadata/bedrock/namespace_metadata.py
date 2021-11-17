@@ -50,14 +50,14 @@ class NamespaceMetadata:
         full_feature_list: List[ANY_FEATURE_TYPE] = []
         ns_ids = []
         for table in self.tables:
-            full_feature_list += table.features + (table.index or [])
+            full_feature_list += table.features_w_ind
             ns_ids.append(table.subject_of_records.ns_prefix)
 
         for ct in self.composite_types:
             full_feature_list += ct.features
 
         for ec in self.entity_classes:
-            for ecp in ec.parents or []:
+            for ecp in ec.parents:
                 ns_ids.append(ecp.ns_prefix)
 
         full_ns_id_list = [

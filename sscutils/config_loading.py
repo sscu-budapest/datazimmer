@@ -114,4 +114,4 @@ def _dump_named_dicts(path, att_name, obj_list):
 
 
 def _dicfac(items, att_name):
-    return {k: v for k, v in items if v is not None and k != att_name}
+    return {k: v for k, v in items if v and k != att_name}

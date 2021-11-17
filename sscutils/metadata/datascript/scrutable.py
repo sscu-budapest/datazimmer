@@ -74,8 +74,11 @@ class ScruTable:
 
     def _parse_df(self, df):
         logger.info("parsing", table=self.name, namespace=self.namespace)
-        feat_dic, ind_dic = self._get_dtype_maps()
-        full_dic = feat_dic
+        try:
+            feat_dic, ind_dic = self._get_dtype_maps()
+        except AssertionError:
+            return df
+        full_dic = feat_dic.copy()
         set_ind = ind_dic and (set(df.index.names) != set(ind_dic.keys()))
         if set_ind:
             logger.info("indexing needed", inds=ind_dic)
@@ -84,7 +87,7 @@ class ScruTable:
         out = df.astype(full_dic)
         if set_ind:
             return out.set_index([*ind_dic.keys()])
-        return out
+        return out.loc[:, [*feat_dic.keys()]]
 
     def _get_dtype_maps(self):
         a_meta = ArtifactMetadata.load_serialized()
@@ -97,7 +100,7 @@ class ScruTable:
                 f"in namespace '{self.namespace}' not yet serialized. "
                 "can't map types of dataframe"
             )
-            return {}, {}
+            raise AssertionError()
         return table_to_dtype_maps(table, ns_meta, a_meta)
 
     def _infer_features_cls(self, features):
@@ -149,7 +152,7 @@ def table_to_dtype_maps(table: Table, ns_meta, a_meta):
     convfun = FeatConverter(ns_meta, a_meta).feats_to_cols
     return map(
         lambda feats: to_dt_map(convfun(feats)),
-        [table.features, table.index or []],
+        [table.features, table.index],
     )
 
 

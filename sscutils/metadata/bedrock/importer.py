@@ -95,7 +95,7 @@ class ImportedMetadata:
         id_.ns_prefix = self._prefix_map.get(id_.ns_prefix, id_.ns_prefix)
 
     def _map_feat_list_prefix(self, feat_list):
-        for feat in feat_list or []:
+        for feat in feat_list:
             if isinstance(feat, ForeignKey):
                 self._map_prefix(feat.table)
             elif isinstance(feat, CompositeFeature):
