@@ -1,6 +1,12 @@
 from datetime import datetime  # noqa: F401
 
-from sscutils import BaseEntity, CompositeTypeBase, IndexBase, TableFeaturesBase
+from sscutils import (
+    BaseEntity,
+    CompositeTypeBase,
+    IndexBase,
+    Nullable,
+    TableFeaturesBase,
+)
 
 
 class Competition(BaseEntity):
@@ -43,7 +49,7 @@ class CompetitionIndex(IndexBase):
 class DogFeatures(TableFeaturesBase):
     name = str
     date_of_birth = datetime
-    waist = float
+    waist = Nullable(float)
     sex = str
 
 
@@ -53,7 +59,7 @@ class DogIndex(IndexBase):
 
 class PersonFeatures(TableFeaturesBase):
     name = str
-    date_of_birth = datetime
+    date_of_birth = Nullable(datetime)
 
 
 class PersonIndex(IndexBase):

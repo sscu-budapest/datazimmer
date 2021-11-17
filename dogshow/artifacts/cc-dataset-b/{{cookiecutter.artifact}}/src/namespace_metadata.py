@@ -1,5 +1,5 @@
 from datetime import datetime
-from sscutils import CompositeTypeBase, IndexBase, ScruTable, TableFeaturesBase
+from sscutils import CompositeTypeBase, IndexBase, ScruTable, TableFeaturesBase, Nullable
 
 from .imported_namespaces import dogbase
 
@@ -42,14 +42,14 @@ class DogSizeFeatures(TableFeaturesBase):
 
 class DogFeatures(TableFeaturesBase):
     name = str
-    color = str
+    color = Nullable(str)
     size = DogSizeIndex
 
 
 class CompetitionFeatures(TableFeaturesBase):
     held_date = datetime
     fastest_time = float
-    champion = DogIndex
+    champion = Nullable(DogIndex)
 
 
 class DogOfTheMonthFeatures(TableFeaturesBase):

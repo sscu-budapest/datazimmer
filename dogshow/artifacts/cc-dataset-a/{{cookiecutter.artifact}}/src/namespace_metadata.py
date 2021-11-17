@@ -6,6 +6,7 @@ from sscutils import (
     ScruTable,
     TableFeaturesBase,
     BaseEntity,
+    Nullable
 )
 
 
@@ -69,13 +70,13 @@ class AddressType(CompositeTypeBase):
 
 class PersonFeatures(TableFeaturesBase):
     name = str
-    date_of_birth = dt.datetime
+    date_of_birth = Nullable(dt.datetime)
 
 
 class DogFeatures(TableFeaturesBase):
     name = str
     date_of_birth = dt.datetime
-    waist = float
+    waist = Nullable(float)
     sex = str
 
 

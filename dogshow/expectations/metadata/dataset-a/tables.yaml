@@ -1,4 +1,5 @@
 competition:
+  subject_of_records: Competition
   features:
   - name: prize_pool
     dtype: int
@@ -8,11 +9,11 @@ competition:
     dtype: ResultType
   - prefix: special_mention
     dtype: ResultType
-  subject_of_records: Competition
   index:
   - name: competition_id
     dtype: str
 dog:
+  subject_of_records: Dog
   features:
   - name: name
     dtype: str
@@ -20,45 +21,47 @@ dog:
     dtype: datetime
   - name: waist
     dtype: float
+    nullable: true
   - name: sex
     dtype: str
-  subject_of_records: Dog
   index:
   - name: dog_id
     dtype: str
   partitioning_cols:
   - sex
 person:
+  subject_of_records: Person
   features:
   - name: name
     dtype: str
   - name: date_of_birth
     dtype: datetime
-  subject_of_records: Person
+    nullable: true
   index:
   - name: person_id
     dtype: str
 picture:
+  subject_of_records: Picture
   features:
   - name: cuteness
     dtype: float
   - prefix: rel
     table: relationship
-  subject_of_records: Picture
   index:
   - name: photo_id
     dtype: str
 relationship:
+  subject_of_records: Relationship
   features:
   - name: since_birth
     dtype: bool
-  subject_of_records: Relationship
   index:
   - prefix: owner
     table: person
   - prefix: dog
     table: dog
 spot:
+  subject_of_records: Spot
   features:
   - prefix: dog_1
     table: dog
@@ -66,4 +69,3 @@ spot:
     table: dog
   - prefix: place
     dtype: AddressType
-  subject_of_records: Spot
