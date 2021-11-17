@@ -1,0 +1,6 @@
+v0.2.7
+------
+
+Empty features
+Validation extension
+Nullable
