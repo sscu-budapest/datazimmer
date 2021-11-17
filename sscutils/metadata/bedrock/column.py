@@ -10,10 +10,11 @@ from ...primitive_types import PrimitiveType, get_np_type, get_sa_type
 class Column:
     name: str
     dtype: PrimitiveType
+    nullable: bool = False
 
 
 def to_sql_col(col: Column):
-    return sa.Column(col.name, get_sa_type(col.dtype))
+    return sa.Column(col.name, get_sa_type(col.dtype), nullable=col.nullable)
 
 
 def to_dt_map(cols: List[Column]):
