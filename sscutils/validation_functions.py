@@ -57,7 +57,7 @@ def validate_project():
     _ = ProjectConfig()
 
 
-def validate_dataset(env=None):
+def validate_dataset(constr="sqlite:///:memory:", env=None):
     """asserts a few things about a dataset
 
     - configuration files are present
@@ -92,7 +92,7 @@ def validate_dataset(env=None):
     root_serialized_ns = ArtifactMetadata.load_serialized().root_ns
     for table in root_serialized_ns.tables:
         is_underscored_name(table.name)
-        for feat in table.features + (table.index or []):
+        for feat in table.features_w_ind:
             is_underscored_name(feat.prime_id)
 
     _log("serialized metadata matching datascript")
@@ -111,7 +111,7 @@ def validate_dataset(env=None):
     assert ds_atom_n == len(root_serialized_ns.atoms)
 
     _log("data can be read to sql db")
-    sql_validation("sqlite:///:memory:", env)
+    sql_validation(constr, env)
 
     _log("data can be imported to a project via dvc")
     validate_ds_importable(env or COMPLETE_ENV_NAME)
@@ -130,6 +130,7 @@ def validate_ds_importable(env):
         ctx.serialize()
         ctx.import_namespaces()
         imported_bedrock_to_datascript()
+        # TODO: some asserions
 
 
 def is_underscored_name(s):
