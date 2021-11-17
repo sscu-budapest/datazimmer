@@ -2,6 +2,7 @@ import re
 from functools import partial
 from pathlib import Path
 
+from dvc.repo import Repo
 from structlog import get_logger
 
 from .artifact_context import ArtifactContext
@@ -130,7 +131,10 @@ def validate_ds_importable(env):
         ctx.serialize()
         ctx.import_namespaces()
         imported_bedrock_to_datascript()
-        # TODO: some asserions
+        _denv = ArtifactContext().data_envs[0]
+        _denv.out_path.parent.mkdir(exist_ok=True)
+        _denv.load_data(Repo())
+        # TODO: assert this data matches local
 
 
 def is_underscored_name(s):

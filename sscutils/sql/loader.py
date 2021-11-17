@@ -6,6 +6,7 @@ import sqlalchemy as sa
 from colassigner.constants import PREFIX_SEP
 from parquetranger import TableRepo
 from sqlalchemy.orm import sessionmaker
+from structlog import get_logger
 
 from ..artifact_context import ArtifactContext
 from ..metadata import ArtifactMetadata
@@ -15,6 +16,8 @@ from ..metadata.bedrock.conversion import FeatConverter
 from ..metadata.bedrock.namespace_metadata import NamespaceMetadata
 from ..metadata.datascript.scrutable import table_to_dtype_map
 from ..utils import is_postgres
+
+logger = get_logger()
 
 
 class SqlLoader:
@@ -125,10 +128,12 @@ class NamespaceMapper:
 
     def _validate_table(self, table: Table, env):
         dt_map = {}
+        table_id = _get_sql_id(table.name, self.ns_id)
+        logger.info("validating table", table=table_id)
         if not is_postgres(self.engine):
             dt_map = table_to_dtype_map(table, self.ns_meta, self.a_meta)
         df_sql = pd.read_sql(
-            f"SELECT * FROM {_get_sql_id(table.name, self.ns_id)}",
+            f"SELECT * FROM {table_id}",
             con=self.engine,
         ).astype(dt_map)
         trepo = table_to_trepo(table, self.ns_id, env)
@@ -140,7 +145,12 @@ class NamespaceMapper:
                 ind_cols = [
                     ind_cols[ind_cols.index(inc)] for inc in df.index.names
                 ]
-            df_sql = df_sql.set_index(ind_cols)
+            df_sql = df_sql.set_index(ind_cols).reindex(df.index)
+        else:
+            df, df_sql = [
+                _df.sort_values(df_sql.columns.tolist()).reset_index(drop=True)
+                for _df in [df, df_sql]
+            ]
         pd.testing.assert_frame_equal(df.loc[:, df_sql.columns], df_sql)
 
     def _get_sql_table(self, table_name):

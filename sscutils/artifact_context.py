@@ -131,8 +131,21 @@ class DataEnvironmentToLoad:
         return (DATA_PATH / (self.output_of_step or self.env)).as_posix()
 
     @property
+    def out_posix(self):
+        return self.out_path.as_posix()
+
+    @property
     def out_path(self):
         return DATA_PATH / self.local_name
+
+    def load_data(self, dvc_repo):
+        dvc_repo.imp(
+            url=self.repo,
+            path=self.src_posix,
+            out=self.out_posix,
+            rev=self.tag or None,
+            fname=None,
+        )
 
 
 def _load_artifact_config() -> Union[DatasetConfig, ProjectConfig]:

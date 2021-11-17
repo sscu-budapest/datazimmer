@@ -111,20 +111,11 @@ def load_external_data(ctx, git_commit=False):
 
     dvc_repo = Repo()
     for ns_env in ArtifactContext().data_envs:
-        src_loc = ns_env.src_posix
-        out_path = ns_env.out_path
-        rmtree(out_path, ignore_errors=True)  # brave thing...
-        out_path.parent.mkdir(exist_ok=True, parents=True)
-        out_loc = out_path.as_posix()
-        dvc_repo.imp(
-            url=ns_env.repo,
-            path=src_loc,
-            out=out_loc,
-            rev=ns_env.tag or None,
-            fname=None,
-        )
+        rmtree(ns_env.out_path, ignore_errors=True)  # brave thing...
+        ns_env.out_path.parent.mkdir(exist_ok=True, parents=True)
+        ns_env.load_data(dvc_repo)
         if git_commit:
-            ctx.run(f"git add *.gitignore {out_loc}.dvc")
+            ctx.run(f"git add *.gitignore {ns_env.out_posix}.dvc")
             ctx.run(
                 'git commit -m "add imported dataset'
                 f' {ns_env.local_name}: {ns_env.env}"'
