@@ -1,10 +1,9 @@
 from importlib import import_module
 from typing import Dict, Iterable, Type
 
-from sscutils.naming import TMP_CLS_MODULE
-
 from ...helpers import get_top_module_name
 from ...metaprogramming import get_simplified_mro
+from ...naming import TMP_CLS_MODULE
 from ...utils import (
     PRIMITIVE_MODULES,
     get_cls_defined_in_module,
@@ -18,7 +17,13 @@ from ..bedrock.feature_types import (
 )
 from ..bedrock.namespace_metadata import NamespaceMetadata
 from ..bedrock.namespaced_id import NamespacedId
-from .bases import BaseEntity, CompositeTypeBase, IndexBase, get_feature_dict
+from .bases import (
+    BaseEntity,
+    CompositeTypeBase,
+    IndexBase,
+    Nullable,
+    get_feature_dict,
+)
 from .scrutable import ScruTable
 
 
@@ -118,10 +123,15 @@ class DatascriptToBedrockConverter:
     def _parse_feature_dict(self, feature_dict: Dict[str, Type]):
         out = []
         for k, cls in feature_dict.items():
+            if isinstance(cls, Nullable):
+                cls = cls.base
+                nullable = True
+            else:
+                nullable = False
             full_id = self._get_ns_id(cls)
             if cls.__module__ in PRIMITIVE_MODULES:
                 parsed_feat = PrimitiveFeature(
-                    name=k, dtype=full_id.serialized_id
+                    name=k, dtype=full_id.serialized_id, nullable=nullable
                 )
             elif IndexBase in cls.mro():
                 full_id.obj_id = self._table_from_index(cls)

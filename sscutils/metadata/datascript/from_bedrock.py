@@ -12,9 +12,19 @@ from ..bedrock.atoms import (
     Table,
     get_index_cls_name,
 )
-from ..bedrock.feature_types import ANY_FEATURE_TYPE, ForeignKey
+from ..bedrock.feature_types import (
+    ANY_FEATURE_TYPE,
+    ForeignKey,
+    PrimitiveFeature,
+)
 from ..bedrock.namespace_metadata import NamespaceMetadata
-from .bases import BaseEntity, CompositeTypeBase, IndexBase, TableFeaturesBase
+from .bases import (
+    BaseEntity,
+    CompositeTypeBase,
+    IndexBase,
+    Nullable,
+    TableFeaturesBase,
+)
 from .scrutable import TableFactory
 
 
@@ -161,7 +171,7 @@ class ScriptWriter:
     def _deps_and_att_dic_from_feats(self, feats: Iterable[ANY_FEATURE_TYPE]):
         deps = []
         att_dic = {}
-        for feat in feats or []:
+        for feat in feats:
             full_id = feat.val_id
             if isinstance(feat, ForeignKey):
                 full_id.obj_id = get_index_cls_name(full_id.obj_id)
@@ -169,7 +179,11 @@ class ScriptWriter:
                 full_id.obj_id in PrimitiveType.__members__
             ):
                 deps.append(full_id.datascript_obj_accessor)
-            att_dic[feat.prime_id] = full_id.datascript_obj_accessor
+            ds_obj_accessor = full_id.datascript_obj_accessor
+            if isinstance(feat, PrimitiveFeature) and feat.nullable:
+                ds_obj_accessor = f"{Nullable.__name__}({ds_obj_accessor})"
+                self.ssc_imports.add(Nullable)
+            att_dic[feat.prime_id] = ds_obj_accessor
         return deps, att_dic
 
     def _add_cls_def(self, cls_name, parent_names, deps, att_dict=None):

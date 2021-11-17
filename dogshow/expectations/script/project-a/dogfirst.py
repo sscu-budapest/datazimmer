@@ -4,6 +4,7 @@ from sscutils import (
     BaseEntity,
     CompositeTypeBase,
     IndexBase,
+    Nullable,
     TableFactory,
     TableFeaturesBase,
 )
@@ -49,7 +50,7 @@ class CompetitionIndex(IndexBase):
 class DogFeatures(TableFeaturesBase):
     name = str
     date_of_birth = datetime
-    waist = float
+    waist = Nullable(float)
     sex = str
 
 
@@ -59,7 +60,7 @@ class DogIndex(IndexBase):
 
 class PersonFeatures(TableFeaturesBase):
     name = str
-    date_of_birth = datetime
+    date_of_birth = Nullable(datetime)
 
 
 class PersonIndex(IndexBase):

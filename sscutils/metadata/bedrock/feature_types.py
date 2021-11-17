@@ -28,7 +28,7 @@ class _FeatBase:
         out = {}
         for attname in self.__annotations__:
             parsed_v = getattr(self, attname)
-            if parsed_v is None:
+            if not parsed_v:
                 continue
             if isinstance(parsed_v, NamespacedId):
                 parsed_v = parsed_v.serialized_id
@@ -53,6 +53,7 @@ class PrimitiveFeature(_FeatBase):
 
     name: str
     dtype: PrimitiveType
+    nullable: bool = False
     description: Optional[str] = None
 
     @property

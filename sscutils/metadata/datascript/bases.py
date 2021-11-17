@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Type, Union
 
 from colassigner import ColAccessor, ColAssigner
 from colassigner.type_hinting import get_return_hint
@@ -18,6 +18,14 @@ class CompositeTypeBase(ColAccessor):
 
 class TableFeaturesBase(ColAssigner):
     pass
+
+
+class Nullable(type):
+
+    base: Type
+
+    def __new__(cls, dtype):
+        return super().__new__(cls, dtype.__name__, (), {"base": dtype})
 
 
 def get_feature_dict(cls: Union[CompositeTypeBase, TableFeaturesBase]):

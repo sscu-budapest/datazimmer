@@ -1,4 +1,5 @@
 competition:
+  subject_of_records: Competition
   features:
   - name: held_date
     dtype: datetime
@@ -6,15 +7,14 @@ competition:
     dtype: float
   - prefix: champion
     table: dog
-  subject_of_records: Competition
   index:
   - name: competition_id
     dtype: str
 dog_of_the_month:
+  subject_of_records: DogOfTheMonth
   features:
   - prefix: winner
     table: dog
-  subject_of_records: DogOfTheMonth
   index:
   - prefix: dog_type
     dtype: DogCategory
@@ -24,24 +24,25 @@ dog_of_the_month:
     dtype: int
   partition_max_rows: 3
 dog_size:
+  subject_of_records: DogSize
   features:
   - prefix: waist_limit
     dtype: IntLimitType
   - prefix: weight_limit
     dtype: IntLimitType
-  subject_of_records: DogSize
   index:
   - name: dogsize_name
     dtype: str
 dog:
+  subject_of_records: dogbase:Dog
   features:
   - name: name
     dtype: str
   - name: color
     dtype: str
+    nullable: true
   - prefix: size
     table: dog_size
-  subject_of_records: dogbase:Dog
   index:
   - name: canine_id
     dtype: str

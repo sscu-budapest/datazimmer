@@ -1,19 +1,14 @@
 import pandas as pd
 import src.namespace_metadata as ns
-from colassigner import get_all_cols
 from sscutils import dump_dfs_to_tables
 
 
 def update_data(data_root):
 
-    persons_df = pd.read_csv(f"{data_root}/people.csv").set_index(
-        ns.PersonIndex.person_id
-    ).astype({ns.PersonFeatures.date_of_birth: "datetime64"})  # TODO: automate this
+    persons_df = pd.read_csv(f"{data_root}/people.csv")
 
     dogs_df = pd.read_csv(f"{data_root}/dog.csv")
-    comps_df = pd.read_csv(f"{data_root}/comp.csv").set_index(
-        ns.CompetitionIndex.competition_id
-    )
+    comps_df = pd.read_csv(f"{data_root}/comp.csv")
     rel_renamer = {
         "owner_id": ns.RelationshipIndex.owner.person_id,
         "dog_id": ns.RelationshipIndex.dog.dog_id,
@@ -21,15 +16,13 @@ def update_data(data_root):
     rels_df = (
         pd.read_csv(f"{data_root}/rel.csv")
         .rename(columns=rel_renamer)
-        .set_index(get_all_cols(ns.RelationshipIndex))
     )
-    spots_df = pd.read_csv(f"{data_root}/spotted.csv")
+    spots_df = pd.read_csv(f"{data_root}/spotted.csv", dtype=str)
     photo_df = (
         pd.read_csv(f"{data_root}/photo.csv")
         .rename(
             columns={f"rel__{k}": f"rel__{v}" for k, v in rel_renamer.items()}
         )
-        .set_index(ns.PhotoIndex.photo_id)
     )
 
     dump_dfs_to_tables(

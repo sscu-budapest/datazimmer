@@ -4,6 +4,7 @@ from sscutils import (
     BaseEntity,
     CompositeTypeBase,
     IndexBase,
+    Nullable,
     TableFactory,
     TableFeaturesBase,
 )
@@ -54,7 +55,7 @@ class DogSizeIndex(IndexBase):
 
 class DogFeatures(TableFeaturesBase):
     name = str
-    color = str
+    color = Nullable(str)
     size = DogSizeIndex
 
 

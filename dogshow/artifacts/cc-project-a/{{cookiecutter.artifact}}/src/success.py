@@ -19,9 +19,10 @@ def fit_to_limit(
 ):
     out = pd.Series(dtype=df_w_limits.index.dtype, index=series.index)
     for cat, catrow in df_w_limits.iterrows():
+        # the ~ bc of nan's
         out.loc[
-            (series >= catrow[LimitFeat.min])
-            & (series <= catrow[LimitFeat.max])
+            ~(series < catrow[LimitFeat.min])
+            & ~(series > catrow[LimitFeat.max])
         ] = cat
     return out
 

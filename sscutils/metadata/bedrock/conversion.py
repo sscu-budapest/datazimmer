@@ -24,14 +24,18 @@ class FeatConverter:
         return chainmap(self.feat_to_cols, feats)
 
     def feat_to_cols(
-        self, feat, init_prefix=(), calling_ns_prefix=None, open_to_fk=True
+        self,
+        feat,
+        init_prefix=(),
+        calling_ns_prefix=None,
+        open_to_fk=True,
     ) -> List[Column]:
 
         new_open_to_fk = True
         fk_to = None
         if isinstance(feat, PrimitiveFeature):
             name = PREFIX_SEP.join([*init_prefix, feat.name])
-            return [self.wrapper(Column(name, feat.dtype))]
+            return [self.wrapper(Column(name, feat.dtype, feat.nullable))]
         if isinstance(feat, CompositeFeature):
             sub_id = feat.dtype
             subfeats = self._get_atom(sub_id, calling_ns_prefix).features

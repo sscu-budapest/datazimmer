@@ -24,7 +24,9 @@ class SqlLoader:
 
     """
 
-    def __init__(self, constr="sqlite:///:memory:", echo=False) -> None:
+    def __init__(
+        self, constr="sqlite:///:memory:", echo=False, batch_size=200
+    ) -> None:
         """start up a loader
 
         Parameters
@@ -38,6 +40,7 @@ class SqlLoader:
         self.engine = sa.create_engine(constr, echo=echo)
         self.sql_meta = sa.MetaData()
         self._Session = sessionmaker(self.engine)
+        self._batch_size = batch_size
 
     def setup_schema(self):
         for nsm in self._ns_mappers():
@@ -67,7 +70,11 @@ class SqlLoader:
     def _ns_mappers(self):
         for ns in self._namespaces:
             yield NamespaceMapper(
-                ns, self.ctx.metadata, self.sql_meta, self.engine
+                ns,
+                self.ctx.metadata,
+                self.sql_meta,
+                self.engine,
+                self._batch_size,
             )
 
     @property
@@ -81,6 +88,7 @@ class NamespaceMapper:
     a_meta: ArtifactMetadata
     sql_meta: sa.MetaData
     engine: sa.engine.Engine
+    batch_size: int
 
     def create_schema(self):
         for table in self.ns_meta.tables:
@@ -98,15 +106,22 @@ class NamespaceMapper:
         trepo = table_to_trepo(table, self.ns_id, env)
         ins = self._get_sql_table(table.name).insert()
 
-        # TODO partition df properly
+        # TODO partition and parse df properly
         df = trepo.get_full_df()
-        relevant_ind = df.index.name is not None or isinstance(
-            df.index, pd.MultiIndex
-        )
-        ins_obj = ins.values(
-            (df.reset_index() if relevant_ind else df).to_dict("records")
-        )
-        session.execute(ins_obj)
+        relevant_ind = table.index
+        for sind in range(0, df.shape[0], self.batch_size):
+            eind = sind + self.batch_size
+            ins_obj = ins.values(
+                [
+                    *map(
+                        _parse_d,
+                        (df.reset_index() if relevant_ind else df)
+                        .iloc[sind:eind, :]
+                        .to_dict("records"),
+                    )
+                ]
+            )
+            session.execute(ins_obj)
 
     def _validate_table(self, table: Table, env):
         dt_map = {}
@@ -145,7 +160,7 @@ class SqlTableConverter:
         col_conversion_fun = FeatConverter(
             self._mapper.ns_meta, self._mapper.a_meta, to_sql_col, self._add_fk
         ).feats_to_cols
-        self.ind_cols = col_conversion_fun(self._table.index or [])
+        self.ind_cols = col_conversion_fun(self._table.index)
         self.feat_cols = col_conversion_fun(self._table.features)
 
     def create(self):
@@ -212,3 +227,7 @@ def table_to_trepo(table: Table, ns: str, env=None) -> TableRepo:
 
 def _get_sql_id(table_name, ns_id):
     return ".".join(filter(None, [ns_id, table_name]))
+
+
+def _parse_d(d):
+    return {k: None if pd.isna(v) else v for k, v in d.items()}
