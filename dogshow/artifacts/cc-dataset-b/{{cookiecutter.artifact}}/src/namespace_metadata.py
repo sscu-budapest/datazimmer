@@ -49,7 +49,7 @@ class DogFeatures(TableFeaturesBase):
 class CompetitionFeatures(TableFeaturesBase):
     held_date = datetime
     fastest_time = float
-    champion = Nullable(DogIndex)
+    champion = DogIndex
 
 
 class DogOfTheMonthFeatures(TableFeaturesBase):
