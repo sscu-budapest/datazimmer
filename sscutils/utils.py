@@ -3,7 +3,7 @@ import sys
 from contextlib import contextmanager
 from itertools import chain
 from pathlib import Path
-from subprocess import check_call
+from subprocess import check_output
 from tempfile import TemporaryDirectory
 from typing import List, Type, TypeVar, Union
 
@@ -53,7 +53,7 @@ def cd_into(
     checkout=None,
     force_clone=False,
 ):
-    _run = check_call
+    _run = check_output
 
     wd = os.getcwd()
     needs_clone = force_clone or is_repo(dirpath)
