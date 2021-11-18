@@ -94,7 +94,7 @@ def push_envs(ctx, git_push=False):
         dvc_repo.push()
 
 
-@task
+@task(aliases=("sdm",))
 def serialize_datascript_metadata(ctx, git_commit=False):
     all_datascript_to_bedrock()
     if git_commit:
