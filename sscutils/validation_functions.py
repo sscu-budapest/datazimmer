@@ -59,7 +59,7 @@ def validate_project():
     _ = ProjectConfig()
 
 
-def validate_dataset(constr="sqlite:///:memory:", env=None):
+def validate_dataset(constr="sqlite:///:memory:", env=None, draw=False):
     """asserts a few things about a dataset
 
     - configuration files are present
@@ -113,7 +113,7 @@ def validate_dataset(constr="sqlite:///:memory:", env=None):
     assert ds_atom_n == len(root_serialized_ns.atoms)
 
     _log("data can be read to sql db")
-    sql_validation(constr, env)
+    sql_validation(constr, env, draw)
 
     _log("data can be imported to a project via dvc")
     validate_ds_importable(env or COMPLETE_ENV_NAME)

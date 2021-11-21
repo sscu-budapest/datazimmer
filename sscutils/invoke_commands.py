@@ -123,10 +123,10 @@ def load_external_data(ctx, git_commit=False):
 
 
 @task
-def validate(ctx, env=None, con="sqlite:///:memory:"):
+def validate(ctx, env=None, con="sqlite:///:memory:", draw=False):
     artifact_ctx = ArtifactContext()
     if artifact_ctx.is_dataset:
-        validate_dataset(con, env)
+        validate_dataset(con, env, draw)
     else:
         validate_project()
 
