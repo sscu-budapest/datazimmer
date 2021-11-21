@@ -30,10 +30,11 @@ def log(msg, artifact_type):
     logger.info(f"validating {artifact_type} - {msg}")
 
 
-def sql_validation(constr, env=None):
+def sql_validation(constr, env=None, draw=False):
     loader = SqlLoader(constr, echo=False)
     loader.setup_schema()
-    dump_graph(loader.sql_meta, loader.engine)
+    if draw:
+        dump_graph(loader.sql_meta, loader.engine)
     try:
         loader.load_data(env)
         loader.validate_data(env)

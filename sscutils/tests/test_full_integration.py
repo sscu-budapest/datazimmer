@@ -59,7 +59,7 @@ def test_full_dogshow(tmp_path: Path, pytestconfig):
         step.run()  # make sure it does not mess up
         validator()
         validate(c)
-        sql_validation(constr)
+        sql_validation(constr, draw=True)
 
     with ds_cc.project_b as validator:
         import_namespaces(c, git_commit=True)
@@ -108,7 +108,7 @@ def run_ds_test(ds_context, c):
         push_envs(c, git_push=True)
         validator()
         sql_validation(
-            "postgresql://postgres:postgres@localhost:5432/postgres"
+            "postgresql://postgres:postgres@localhost:5432/postgres", draw=True
         )
         validate(c)
         with _move_file(c, env_fun_script):
