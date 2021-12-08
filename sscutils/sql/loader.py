@@ -28,7 +28,7 @@ class SqlLoader:
     """
 
     def __init__(
-        self, constr="sqlite:///:memory:", echo=False, batch_size=200
+        self, constr="sqlite:///:memory:", echo=False, batch_size=2000
     ) -> None:
         """start up a loader
 
