@@ -1,5 +1,4 @@
 from dataclasses import asdict, dataclass, field
-from functools import partial
 from pathlib import Path
 from typing import List
 
@@ -18,7 +17,7 @@ from .naming import (
     DatasetConfigPaths,
     ProjectConfigPaths,
 )
-from .utils import named_dict_to_list
+from .utils import get_dict_factory, named_dict_to_list
 
 
 @dataclass
@@ -105,13 +104,10 @@ def _yaml_or_err(path, exc_cls, desc=None):
 
 
 def _dump_named_dicts(path, att_name, obj_list):
-    _att_fac = partial(_dicfac, att_name=att_name)
     named_dict = {
-        getattr(obj, att_name): asdict(obj, dict_factory=_att_fac)
+        getattr(obj, att_name): asdict(
+            obj, dict_factory=get_dict_factory(att_name)
+        )
         for obj in obj_list
     }
     path.write_text(yaml.safe_dump(named_dict))
-
-
-def _dicfac(items, att_name):
-    return {k: v for k, v in items if v and k != att_name}
