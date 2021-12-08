@@ -65,15 +65,16 @@ class ScruTable:
         self.replace_groups = self._parsewrap(self.trepo.replace_groups)
 
     def _parsewrap(self, fun):
-        def f(df, parse: bool = True):
+        def f(df, parse: bool = True, verbose=True):
             if parse:
-                return fun(self._parse_df(df))
+                return fun(self._parse_df(df, verbose))
             return fun(df)
 
         return f
 
-    def _parse_df(self, df):
-        logger.info("parsing", table=self.name, namespace=self.namespace)
+    def _parse_df(self, df, verbose=True):
+        if verbose:
+            logger.info("parsing", table=self.name, namespace=self.namespace)
         try:
             feat_dic, ind_dic = self._get_dtype_maps()
         except AssertionError:
@@ -81,7 +82,8 @@ class ScruTable:
         full_dic = feat_dic.copy()
         set_ind = ind_dic and (set(df.index.names) != set(ind_dic.keys()))
         if set_ind:
-            logger.info("indexing needed", inds=ind_dic)
+            if verbose:
+                logger.info("indexing needed", inds=ind_dic)
             full_dic.update(ind_dic)
 
         out = df.astype(full_dic)
@@ -90,6 +92,7 @@ class ScruTable:
         return out.loc[:, [*feat_dic.keys()]]
 
     def _get_dtype_maps(self):
+        # TODO make this update
         a_meta = ArtifactMetadata.load_serialized()
         try:
             ns_meta = a_meta.namespaces[self.namespace]
