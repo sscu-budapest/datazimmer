@@ -1,6 +1,7 @@
 import os
 import sys
 from contextlib import contextmanager
+from functools import partial
 from itertools import chain
 from pathlib import Path
 from subprocess import check_output
@@ -114,6 +115,10 @@ def named_dict_to_list(
     return out
 
 
+def get_dict_factory(key_name: str):
+    return partial(_dicfac, att_name=key_name)
+
+
 def reset_src_module():
     for m_id in [
         *filter(
@@ -137,3 +142,7 @@ def chainmap(fun, iterable) -> list:
 
 def is_postgres(engine):
     return isinstance(engine.dialect, postgres_dialect)
+
+
+def _dicfac(items, att_name):
+    return {k: v for k, v in items if v and k != att_name}
