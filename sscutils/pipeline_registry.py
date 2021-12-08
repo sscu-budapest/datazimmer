@@ -85,8 +85,6 @@ class PipelineRegistry:
             return [elem.as_posix()]
         if isinstance(elem, ScruTable):
             return [elem.trepo.full_path]
-        if isinstance(elem, type):
-            return _type_or_fun_elem(elem)
         if isinstance(elem, PipelineElement):
             return elem.outputs + elem.out_nocache
         if callable(elem):
