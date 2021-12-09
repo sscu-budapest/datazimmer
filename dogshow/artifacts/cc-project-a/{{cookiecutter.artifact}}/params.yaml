@@ -1,2 +1,4 @@
 success:
   top_status_multiplier: 10
+top_report:
+  show_top: 3

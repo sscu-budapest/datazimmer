@@ -110,6 +110,10 @@ class DogshowContextCreator:
         for comm in commands:
             check_call(comm, cwd=dirpath)
 
+    def modify_project_a(self):
+        "rename sex match to sex pairing"
+        pass
+
     def _get_dvc_remotes(self, n):
         out = []
         for i in range(n):
