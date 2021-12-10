@@ -10,6 +10,7 @@ from sscutils import IndexBase, ScruTable, TableFeaturesBase
 from .imported_namespaces import dogfirst, doglast
 from .imported_namespaces.dogfirst import Dog
 from .pipereg import pipereg
+from .util import report_md
 
 
 def fit_to_limit(
@@ -141,7 +142,7 @@ sized_dogs_table = ScruTable(
 # )
 
 # TODO: formalize reporting one day
-status_md_path = Path("reports", "status_table.md")
+status_md_path = report_md("status_table")
 
 
 @pipereg.register(

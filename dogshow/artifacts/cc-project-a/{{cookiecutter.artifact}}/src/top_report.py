@@ -2,9 +2,10 @@ from pathlib import Path
 
 from .get_size_counts.meta import SizeCountFeatures, size_count_table
 from .pipereg import pipereg
+from .util import report_md
 from .sex_matches import SexMatchFeatures, sex_match_table
 
-top_tables_report = Path("reports", "tops.md")
+top_tables_report = report_md("tops")
 
 
 @pipereg.register(
