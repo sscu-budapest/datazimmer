@@ -1,7 +1,5 @@
-import os
 from pathlib import Path
 
-from invoke import Collection
 from pytest import raises
 
 import sscutils.pipeline_registry as pipereg_module
@@ -29,23 +27,10 @@ def test_pipereg_basics():
     step2.__module__ = "src.step_two.deeper"
     pipereg.register(dependencies=["some_string"])(step2)
 
-    coll = pipereg.get_collection()
-    assert isinstance(coll, Collection)
-    assert [*coll.task_names] == ["step-one", "step-two"]
-
     assert (
         pipereg.get_step("step_two").run({"step_two": {"b": 10}}, False) == 9
     )
     assert pipereg.get_step("step_two").run({"b": 5}, False) == 4
-
-
-def test_pipereg_params(tmp_path):
-    cwd = Path.cwd()
-    os.chdir(tmp_path)
-    PARAMS_PATH.write_text("a: 10")
-    pipereg = PipelineRegistry()
-    assert pipereg.all_params["a"] == 10
-    os.chdir(cwd)
 
 
 def test_pipereg_parse_elems(tmp_path):

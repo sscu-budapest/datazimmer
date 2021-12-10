@@ -4,8 +4,6 @@ from pathlib import Path
 from typing import Iterable, Optional, Union
 
 import yaml
-from dvc.repo import Repo
-from invoke import Collection, task
 from structlog import get_logger
 
 from .helpers import get_associated_step
@@ -21,12 +19,6 @@ class PipelineRegistry:
 
     def __init__(self):
         self._steps = {}
-        try:
-            self.all_params = yaml.safe_load(
-                ProjectConfigPaths.PARAMS.read_text()
-            )
-        except FileNotFoundError:
-            self.all_params = {}
 
     def register(
         self,
@@ -67,17 +59,13 @@ class PipelineRegistry:
     def get_step(self, name: str) -> "PipelineElement":
         return self._steps[name]
 
-    def get_collection(self):
-        tasks = [pe.get_invoke_task() for pe in self.steps]
-        return Collection("pipeline", *tasks)
-
     @property
     def steps(self) -> Iterable["PipelineElement"]:
         return self._steps.values()
 
     def _parse_elem(
         self,
-        elem: Union[str, Path, ScruTable, type],
+        elem: Union[str, Path, ScruTable, "PipelineElement", type],
     ) -> str:
         if isinstance(elem, str):
             return [elem]
@@ -109,46 +97,22 @@ class PipelineElement:
     lineno: int
 
     def run(self, params: dict = None, log_metadata=True):
-
-        loaded_params = (
-            params
-            or yaml.safe_load(ProjectConfigPaths.PARAMS.read_text())
-            or {}
-        )
-
-        parsed_params = {}
-        _level_params = loaded_params.get(self.name, {})
-        for k in self.param_list:
-            try:
-                parsed_params[k] = _level_params[k]
-            except KeyError:
-                logger.warn(
-                    "couldn't find key in step level params, looking globally",
-                    key=k,
-                    step_keys=_level_params.keys(),
-                )
-                parsed_params[k] = loaded_params[k]
+        _, kwargs = self._get_params(params)
         if log_metadata:
             self._log_metadata()
-        return self.runner(**parsed_params)
+        return self.runner(**kwargs)
 
-    def get_invoke_task(self):
-        @task(name=self.name)
-        def _task(_, stage=False, force=True):
-            conf = {}
-            if stage:
-                conf["core"] = {"autostage": True}
-            dvc_repo = Repo(config=conf)
-            dvc_repo.run(
-                cmd=f"python -m src {self.name}",
-                name=self.name,
-                outs_no_cache=self.out_nocache,
-                outs=self.outputs,
-                deps=self.dependencies,
-                force=force,
-            )
-
-        return _task
+    def add_as_stage(self, dvc_repo):
+        param_ids, _ = self._get_params()
+        dvc_repo.stage.add(
+            cmd=f"python -m src {self.name}",
+            name=self.name,
+            outs_no_cache=self.out_nocache,
+            outs=self.outputs,
+            deps=self.dependencies,
+            params=param_ids,
+            force=True,
+        )
 
     @property
     def name(self):
@@ -161,6 +125,30 @@ class PipelineElement:
     def _log_metadata(self):
         child_module_datascript_to_bedrock(self.child_module)
 
+    def _get_params(self, override=None):
+        loaded_params = override or _load_params()
+        parsed_params = {}
+        _level_params = loaded_params.get(self.name, {})
+        param_ids = []
+        for k in self.param_list:
+            try:
+                parsed_params[k] = _level_params[k]
+                param_id = f"{self.name}.{k}"
+            except KeyError:
+                logger.warn(
+                    "couldn't find key in step level params, looking globally",
+                    key=k,
+                    step_keys=_level_params.keys(),
+                )
+                parsed_params[k] = loaded_params[k]
+                param_id = k
+            param_ids.append(param_id)
+        return param_ids, parsed_params
+
 
 def _type_or_fun_elem(elem):
     return [Path(inspect.getfile(elem)).relative_to(Path.cwd()).as_posix()]
+
+
+def _load_params():
+    return yaml.safe_load(ProjectConfigPaths.PARAMS.read_text()) or {}

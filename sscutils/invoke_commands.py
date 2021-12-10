@@ -6,7 +6,11 @@ from invoke.exceptions import UnexpectedExit
 
 from .artifact_context import ArtifactContext
 from .config_loading import DatasetConfig
-from .helpers import import_env_creator_function, import_update_data_function
+from .helpers import (
+    import_env_creator_function,
+    import_pipereg,
+    import_update_data_function,
+)
 from .metadata.datascript.conversion import (
     all_datascript_to_bedrock,
     imported_bedrock_to_datascript,
@@ -131,6 +135,32 @@ def validate(_, env=None, con="sqlite:///:memory:", draw=False, batch=2000):
         validate_project()
 
 
+@task
+def run(_, stage=True):
+    conf = {}
+    if stage:
+        conf["core"] = {"autostage": True}
+    dvc_repo = Repo(config=conf)
+
+    pipereg = import_pipereg()
+    stage_names = []
+    for step in pipereg.steps:
+        step.add_as_stage(dvc_repo)
+        stage_names.append(step.name)
+
+    for stage in dvc_repo.stages:
+        if stage.is_data_source or stage.is_import:
+            continue
+        if stage.name in stage_names:
+            continue
+        dvc_repo.remove(stage.name)
+        dvc_repo.lock.lock()
+        stage.remove_outs(force=True)
+        dvc_repo.lock.unlock()
+
+    dvc_repo.reproduce()
+
+
 common_tasks = [
     lint,
     set_dvc_remotes,
@@ -140,7 +170,7 @@ common_tasks = [
 ]
 
 dataset_ns = Collection(*common_tasks, update_data, write_envs, push_envs)
-project_ns = Collection(*common_tasks, load_external_data)
+project_ns = Collection(*common_tasks, load_external_data, run)
 
 
 def _try_checkout(ctx, branch):

@@ -111,8 +111,11 @@ class DogshowContextCreator:
             check_call(comm, cwd=dirpath)
 
     def modify_project_a(self):
-        "rename sex match to sex pairing"
-        pass
+        "add one output for something"
+        "add one dependency for something"
+        "delete one of either"
+        {"sex_match": "sex_pairing"}
+        ["top_report.py", "__init__.py"]
 
     def _get_dvc_remotes(self, n):
         out = []

@@ -13,6 +13,7 @@ from sscutils.invoke_commands import (
     lint,
     load_external_data,
     push_envs,
+    run,
     serialize_datascript_metadata,
     set_dvc_remotes,
     update_data,
@@ -33,6 +34,7 @@ from .init_dogshow import setup_dogshow
 
 
 def test_full_dogshow(tmp_path: Path, pytestconfig):
+    # TODO: turn this into documentation
 
     mode = pytestconfig.getoption("mode")
     ds_cc = setup_dogshow(mode, tmp_path)
@@ -45,21 +47,7 @@ def test_full_dogshow(tmp_path: Path, pytestconfig):
         run_ds_test(ds, c)
 
     with ds_cc.project_a as validator:
-        c.run(f"pip install {package_root}")
-        import_namespaces(c, git_commit=True)
-        load_external_data(c, git_commit=True)
-        set_dvc_remotes(c)
-        pipereg = import_pipereg()
-        for step in pipereg.steps:
-            invtask = step.get_invoke_task()
-            invtask(c, stage=True)
-        serialize_datascript_metadata(c, git_commit=True)
-        c.run('git add reports metadata;git commit -m "ran steps"')
-        c.run("git push; dvc push")
-        step.run()  # make sure it does not mess up
-        validator()
-        validate(c)
-        sql_validation(constr, draw=True)
+        run_project_a_test(c, validator, ds_cc, constr)
 
     with ds_cc.project_b as validator:
         import_namespaces(c, git_commit=True)
@@ -74,15 +62,7 @@ def test_full_dogshow(tmp_path: Path, pytestconfig):
                 ArtifactContext()
 
     with cd_into(ds_cc.get_git_remote("dataset-a"), force_clone=True):
-        c.run("dvc pull")
-        validate(c, env="top_comps")
-        _spath = DATASET_METADATA_PATHS.table_schemas
-        bad_str = _spath.read_text().replace(
-            "name: prize_pool", "name: bad_prize_pool"
-        )
-        _spath.write_text(bad_str)
-        with pytest.raises(DatasetSetupException):
-            validate(c)
+        run_wrong_ds_a_test(c)
 
 
 @contextmanager
@@ -114,3 +94,33 @@ def run_ds_test(ds_context, c):
         with _move_file(c, env_fun_script):
             with pytest.raises(DatasetSetupException):
                 validate_dataset()
+
+
+def run_wrong_ds_a_test(c):
+    c.run("dvc pull")
+    validate(c, env="top_comps")
+    _spath = DATASET_METADATA_PATHS.table_schemas
+    bad_str = _spath.read_text().replace(
+        "name: prize_pool", "name: bad_prize_pool"
+    )
+    _spath.write_text(bad_str)
+    with pytest.raises(DatasetSetupException):
+        validate(c)
+
+
+def run_project_a_test(c, validator, ds_context, constr):
+    c.run(f"pip install {package_root}")
+    import_namespaces(c, git_commit=True)
+    load_external_data(c, git_commit=True)
+    set_dvc_remotes(c)
+    serialize_datascript_metadata(c, git_commit=True)
+    run(c)
+    c.run('git add reports metadata data dvc.yaml;git commit -m "ran steps"')
+    c.run("git push; dvc push")
+    ds_context.modify_project_a()
+    run(c)
+    validator()
+    validate(c)
+    sql_validation(constr, draw=True)
+    for s in import_pipereg().steps:
+        s.run()  # for coverage
