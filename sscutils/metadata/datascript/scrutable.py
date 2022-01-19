@@ -86,6 +86,9 @@ class ScruTable:
                 logger.info("indexing needed", inds=ind_dic)
             full_dic.update(ind_dic)
 
+        missing_cols = set(full_dic.keys()) - set(df.columns)
+        if missing_cols:
+            logger.warn(f"missing from columns {missing_cols}")
         out = df.astype(full_dic)
         if set_ind:
             return out.set_index([*ind_dic.keys()])
