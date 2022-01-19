@@ -171,3 +171,11 @@ def _profile(run: bool, name: str):
     path = PROFILES_PATH / f"{name}.html"
     path.parent.mkdir(exist_ok=True)
     path.write_text(profiler.output_html())
+    all_profiles = PROFILES_PATH.glob("*.html")
+    lis = [
+        f'<li><a href="./{_p.name}">{_p.name[:-5]}</a></li>'
+        for _p in all_profiles
+    ]
+    li_html = "".join(lis)
+    full_html = f"<html><body><ul>{li_html}</ul></body></html>"
+    (PROFILES_PATH / "index.html").write_text(full_html)
