@@ -110,11 +110,12 @@ def run_wrong_ds_a_test(c):
 
 def run_project_a_test(c, validator, ds_context, constr):
     c.run(f"pip install {package_root}")
+    c.run("dvc cache dir ../cache-dir")
     import_namespaces(c, git_commit=True)
     load_external_data(c, git_commit=True)
     set_dvc_remotes(c)
     serialize_datascript_metadata(c, git_commit=True)
-    run(c)
+    run(c, profile=True)
     c.run('git add reports metadata data dvc.yaml;git commit -m "ran steps"')
     c.run("git push; dvc push")
     ds_context.modify_project_a()

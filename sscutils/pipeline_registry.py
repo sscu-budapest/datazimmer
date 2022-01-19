@@ -1,15 +1,18 @@
 import inspect
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Optional, Union
 
 import yaml
+from pyinstrument import Profiler
 from structlog import get_logger
 
+from .config_loading import RunConfig
 from .helpers import get_associated_step
 from .metadata.datascript.conversion import child_module_datascript_to_bedrock
 from .metadata.datascript.scrutable import ScruTable
-from .naming import SRC_PATH, ProjectConfigPaths
+from .naming import PROFILES_PATH, SRC_PATH, ProjectConfigPaths
 
 logger = get_logger()
 
@@ -100,7 +103,9 @@ class PipelineElement:
         _, kwargs = self._get_params(params)
         if log_metadata:
             self._log_metadata()
-        return self.runner(**kwargs)
+        conf = RunConfig.load()
+        with _profile(conf.profile, self.name):
+            return self.runner(**kwargs)
 
     def add_as_stage(self, dvc_repo):
         param_ids, _ = self._get_params()
@@ -152,3 +157,17 @@ def _type_or_fun_elem(elem):
 
 def _load_params():
     return yaml.safe_load(ProjectConfigPaths.PARAMS.read_text()) or {}
+
+
+@contextmanager
+def _profile(run: bool, name: str):
+    if not run:
+        yield
+        return
+    profiler = Profiler()
+    profiler.start()
+    yield
+    profiler.stop()
+    path = PROFILES_PATH / f"{name}.html"
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(profiler.output_html())

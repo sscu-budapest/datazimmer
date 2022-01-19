@@ -1,3 +1,4 @@
+from dataclasses import asdict
 from shutil import rmtree
 
 from dvc.repo import Repo
@@ -6,7 +7,7 @@ from invoke.exceptions import UnexpectedExit
 from structlog import get_logger
 
 from .artifact_context import ArtifactContext
-from .config_loading import DatasetConfig
+from .config_loading import DatasetConfig, RunConfig
 from .helpers import (
     import_env_creator_function,
     import_pipereg,
@@ -139,7 +140,7 @@ def validate(_, env=None, con="sqlite:///:memory:", draw=False, batch=2000):
 
 
 @task
-def run(_, stage=True):
+def run(_, stage=True, profile=False, force=False):
     conf = {}
     if stage:
         conf["core"] = {"autostage": True}
@@ -164,8 +165,10 @@ def run(_, stage=True):
         stage.remove_outs(force=True)
         dvc_repo.lock.unlock()
 
-    logger.info("running repro")
-    dvc_repo.reproduce()
+    conf = RunConfig(profile=profile)
+    logger.info("running repro", **asdict(conf))
+    with conf:
+        dvc_repo.reproduce(force=force)
 
 
 common_tasks = [
