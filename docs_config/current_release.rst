@@ -1,0 +1,3 @@
+- add basic profiling
+- move some logic
+- improve logging
