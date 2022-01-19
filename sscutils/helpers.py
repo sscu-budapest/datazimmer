@@ -1,4 +1,5 @@
 import importlib
+import sys
 from typing import TYPE_CHECKING
 
 from .exceptions import DatasetSetupException, ProjectSetupException
@@ -20,6 +21,10 @@ from .naming import (
 
 if TYPE_CHECKING:
     from .pipeline_registry import PipelineRegistry  # pragma: no cover
+
+
+def run_step(pipereg: "PipelineRegistry"):
+    pipereg.get_step(sys.argv[1]).run()
 
 
 def import_env_creator_function():
