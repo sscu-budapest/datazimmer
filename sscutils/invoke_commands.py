@@ -3,6 +3,7 @@ from shutil import rmtree
 from dvc.repo import Repo
 from invoke import Collection, task
 from invoke.exceptions import UnexpectedExit
+from structlog import get_logger
 
 from .artifact_context import ArtifactContext
 from .config_loading import DatasetConfig
@@ -23,6 +24,8 @@ from .naming import (
 )
 from .utils import LINE_LEN
 from .validation_functions import validate_dataset, validate_project
+
+logger = get_logger(ctx="invoke task")
 
 
 @task
@@ -145,6 +148,7 @@ def run(_, stage=True):
     pipereg = import_pipereg()
     stage_names = []
     for step in pipereg.steps:
+        logger.info("adding step", step=step)
         step.add_as_stage(dvc_repo)
         stage_names.append(step.name)
 
@@ -153,11 +157,14 @@ def run(_, stage=True):
             continue
         if stage.name in stage_names:
             continue
+
+        logger.info("removing step", step=step)
         dvc_repo.remove(stage.name)
         dvc_repo.lock.lock()
         stage.remove_outs(force=True)
         dvc_repo.lock.unlock()
 
+    logger.info("running repro")
     dvc_repo.reproduce()
 
 
