@@ -13,6 +13,8 @@ NAMESPACE_PREFIX_SEPARATOR = ":"
 CONFIG_DIR = Path("conf")
 METADATA_DIR = Path("metadata")
 
+RUN_CONF_PATH = CONFIG_DIR / "_run_conf.yaml"
+
 ROOT_NS_LOCAL_NAME = ""
 TMP_CLS_MODULE = "__tmp_cls_module__"
 
@@ -50,6 +52,7 @@ class ProjectConfigPaths:
 
 
 DATA_PATH = Path("data")
+PROFILES_PATH = Path("run-profiles")
 SRC_PATH = Path("src")
 IMPORTED_NAMESPACES_MODULE_NAME = "imported_namespaces"
 NAMESPACE_METADATA_MODULE_NAME = "namespace_metadata"

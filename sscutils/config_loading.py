@@ -14,6 +14,7 @@ from .naming import (
     DATA_PATH,
     DEFAULT_BRANCH_NAME,
     DEFAULT_REMOTES_PATH,
+    RUN_CONF_PATH,
     DatasetConfigPaths,
     ProjectConfigPaths,
 )
@@ -83,6 +84,24 @@ class DatasetConfig:
         _dump_named_dicts(
             DatasetConfigPaths.CREATED_ENVS, "name", self.created_environments
         )
+
+
+@dataclass
+class RunConfig:
+    profile: bool = False
+
+    def __enter__(self):
+        RUN_CONF_PATH.write_text(yaml.safe_dump(asdict(self)))
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        RUN_CONF_PATH.unlink()
+
+    @classmethod
+    def load(cls):
+        try:
+            return cls(**_yaml_or_err(RUN_CONF_PATH, FileNotFoundError))
+        except FileNotFoundError:
+            return cls()
 
 
 def load_branch_remote_pairs():
