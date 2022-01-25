@@ -109,7 +109,7 @@ def run_wrong_ds_a_test(c):
 
 
 def run_project_a_test(c, validator, ds_context, constr):
-    c.run(f"pip install {package_root}")
+    c.run(f"pip install -e {package_root}")
     c.run("dvc cache dir ../cache-dir")
     import_namespaces(c, git_commit=True)
     load_external_data(c, git_commit=True)
