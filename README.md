@@ -12,8 +12,11 @@ Some utility function to help with
 
 these are used in [dataset-template](https://github.com/sscu-budapest/dataset-template) and [research-project-template](https://github.com/sscu-budapest/project-template)
 
+Make sure that `python` points to `python>=3.8`
+
 ## Lookahead
 
+- overlapping names convention
 - resolve naming confusion with colassigner, colaccessor and table feature / composite type / index base classes
 - abstract composite type + subclass of entity class
   - import ACT, inherit from it and specify 
@@ -29,3 +32,4 @@ these are used in [dataset-template](https://github.com/sscu-budapest/dataset-te
   - can wait, as initial import is just the assigner transformed to accessor
 - overlapping in entities
   - detect / signal the same type of entity
+- properly assert importing
