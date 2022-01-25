@@ -65,10 +65,10 @@ class ScruTable:
         self.replace_groups = self._parsewrap(self.trepo.replace_groups)
 
     def _parsewrap(self, fun):
-        def f(df, parse: bool = True, verbose=True):
+        def f(df, parse: bool = True, verbose=True, **kwargs):
             if parse:
                 return fun(self._parse_df(df, verbose))
-            return fun(df)
+            return fun(df, **kwargs)
 
         return f
 
