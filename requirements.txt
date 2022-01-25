@@ -1,7 +1,7 @@
 requests
 invoke
 dvc[s3]
-parquetranger>=0.0.10
+parquetranger>=0.1.0
 colassigner>=0.2.2
 pyyaml
 structlog
@@ -12,3 +12,4 @@ sqlalchemy
 psycopg2
 toml
 pyinstrument
+pandas_profiling
