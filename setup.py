@@ -1,6 +1,8 @@
 import os
+import re
+from glob import glob
+
 import toml
-import importlib
 from setuptools import find_packages, setup
 
 pytom = toml.load("pyproject.toml")
@@ -16,6 +18,14 @@ with open("README.md") as fp:
 
 with open("requirements.txt") as fp:
     requirements = fp.read().strip().split()
+
+extras_dict = {}
+for extra_req_path in glob("requirements-*.txt"):
+    extra_id = re.findall("requirements-(.*)\.txt", extra_req_path)[0]
+    with open(extra_req_path) as fp:
+        extras_dict[extra_id] = fp.read().strip().split()
+
+extras_dict["complete"] = sum(extras_dict.values(), [])
 
 if __name__ == "__main__":
     setup(
@@ -34,4 +44,5 @@ if __name__ == "__main__":
         python_requires=pytom["project"]["python"],
         platforms="any",
         install_requires=requirements,
+        extras_require=extras_dict,
     )
