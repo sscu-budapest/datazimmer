@@ -6,7 +6,7 @@ authors = [
 ]
 license = "MIT"
 readme = "README.md"
-python = ">=3.7"
+python = ">=3.8"
 url = "https://github.com/sscu-budapest/sscutils"
 [build-system]
 requires = [
