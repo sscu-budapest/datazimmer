@@ -66,9 +66,7 @@ class ScruTable:
 
     def _parsewrap(self, fun):
         def f(df, parse: bool = True, verbose=True, **kwargs):
-            if parse:
-                return fun(self._parse_df(df, verbose))
-            return fun(df, **kwargs)
+            return fun(self._parse_df(df, verbose) if parse else df, **kwargs)
 
         return f
 
