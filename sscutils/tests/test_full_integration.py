@@ -44,7 +44,7 @@ def test_full_dogshow(tmp_path: Path, pytestconfig):
 
     c = Context()
     for ds in [ds_cc.dataset_a, ds_cc.dataset_b]:
-        run_ds_test(ds, c)
+        run_ds_test(ds, c, constr)
 
     with ds_cc.project_a as validator:
         run_project_a_test(c, validator, ds_cc, constr)
@@ -74,7 +74,7 @@ def _move_file(c, file_path):
     c.run(f"mv -f {tmp_name} {file_path}")
 
 
-def run_ds_test(ds_context, c):
+def run_ds_test(ds_context, c, constr):
     env_fun_script = SRC_PATH / (ENV_CREATION_MODULE_NAME + ".py")
     with ds_context as validator:
         import_namespaces(c, git_commit=True)
@@ -87,9 +87,7 @@ def run_ds_test(ds_context, c):
         write_envs(c)
         push_envs(c, git_push=True)
         validator()
-        sql_validation(
-            "postgresql://postgres:postgres@localhost:5432/postgres", draw=True
-        )
+        sql_validation(constr, draw=True)
         validate(c)
         with _move_file(c, env_fun_script):
             with pytest.raises(DatasetSetupException):

@@ -13,3 +13,4 @@ psycopg2
 toml
 pyinstrument
 pandas_profiling
+tqdm

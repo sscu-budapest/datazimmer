@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from functools import partial
 from typing import List
 
 import pandas as pd
@@ -7,6 +8,7 @@ from colassigner.constants import PREFIX_SEP
 from parquetranger import TableRepo
 from sqlalchemy.orm import sessionmaker
 from structlog import get_logger
+from tqdm import tqdm
 
 from ..artifact_context import ArtifactContext
 from ..metadata import ArtifactMetadata
@@ -17,7 +19,7 @@ from ..metadata.bedrock.namespace_metadata import NamespaceMetadata
 from ..metadata.datascript.scrutable import table_to_dtype_map
 from ..utils import is_postgres
 
-logger = get_logger()
+logger = get_logger(ctx="sql loader")
 
 
 class SqlLoader:
@@ -108,23 +110,12 @@ class NamespaceMapper:
     def _load_table(self, table: Table, session, env):
         trepo = table_to_trepo(table, self.ns_id, env)
         ins = self._get_sql_table(table.name).insert()
-
         # TODO partition and parse df properly
-        df = trepo.get_full_df()
-        relevant_ind = table.index
-        for sind in range(0, df.shape[0], self.batch_size):
-            eind = sind + self.batch_size
-            ins_obj = ins.values(
-                [
-                    *map(
-                        _parse_d,
-                        (df.reset_index() if relevant_ind else df)
-                        .iloc[sind:eind, :]
-                        .to_dict("records"),
-                    )
-                ]
-            )
-            session.execute(ins_obj)
+        has_ind = table.index
+        _log = partial(logger.info, table=table.name)
+        _log("loading")
+        for df in trepo.dfs:
+            self._partition(df.reset_index() if has_ind else df, ins, session)
 
     def _validate_table(self, table: Table, env):
         dt_map = {}
@@ -152,6 +143,12 @@ class NamespaceMapper:
                 for _df in [df, df_sql]
             ]
         pd.testing.assert_frame_equal(df.loc[:, df_sql.columns], df_sql)
+
+    def _partition(self, df: pd.DataFrame, ins, session):
+        for sind in tqdm(range(0, df.shape[0], self.batch_size)):
+            eind = sind + self.batch_size
+            recs = df.iloc[sind:eind, :].to_dict("records")
+            session.execute(ins.values([*map(_parse_d, recs)]))
 
     def _get_sql_table(self, table_name):
         return self.sql_meta.tables[_get_sql_id(table_name, self.ns_id)]
@@ -184,13 +181,8 @@ class SqlTableConverter:
     @property
     def pk_constraints(self):
         if self.ind_cols:
-            return [
-                sa.Index(
-                    f"_{self._sql_id}_index",
-                    *self.ind_cols,
-                    unique=True,
-                )
-            ]
+            ind = sa.Index(f"_{self._sql_id}_i", *self.ind_cols, unique=True)
+            return [ind]
         return []
 
     def _add_fk(self, sql_cols: List[sa.Column], table_id, prefix_arr):

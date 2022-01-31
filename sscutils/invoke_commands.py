@@ -131,7 +131,7 @@ def load_external_data(ctx, git_commit=False):
 
 
 @task
-def validate(_, env=None, con="sqlite:///:memory:", draw=False, batch=2000):
+def validate(_, env=None, con="sqlite:///:memory:", draw=False, batch=20000):
     artifact_ctx = ArtifactContext()
     if artifact_ctx.is_dataset:
         validate_dataset(con, env, draw, batch_size=batch)

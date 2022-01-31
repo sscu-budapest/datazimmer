@@ -23,20 +23,23 @@ from .sql.draw import dump_graph
 from .sql.loader import SqlLoader
 from .utils import cd_into
 
-logger = get_logger()
-
-
-def log(msg, artifact_type):
-    logger.info(f"validating {artifact_type} - {msg}")
+logger = get_logger(ctx="validation")
 
 
 def sql_validation(constr, env=None, draw=False, batch_size=2000):
     loader = SqlLoader(constr, echo=False, batch_size=batch_size)
+    _log = partial(
+        logger.info, step="sql", constr=constr, batch_size=batch_size
+    )
+    _log("schema setup")
     loader.setup_schema()
     if draw:
+        _log("drawing")
         dump_graph(loader.sql_meta, loader.engine)
     try:
+        _log("loading to db")
         loader.load_data(env)
+        _log("validating")
         loader.validate_data(env)
     finally:
         loader.purge()
@@ -76,7 +79,7 @@ def validate_dataset(
         explains what is wrong
     """
 
-    _log = partial(log, artifact_type="dataset")
+    _log = partial(logger.info, env=env)
 
     _log("full context")
     ctx = ArtifactContext()
