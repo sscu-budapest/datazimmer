@@ -7,7 +7,7 @@
 
 Some utility function to help with
 
-- setting up data subsets with invoke
+- setting up data environments with invoke
 - simplified dvc pipeline registry
 
 these are used in [dataset-template](https://github.com/sscu-budapest/dataset-template) and [research-project-template](https://github.com/sscu-budapest/project-template)

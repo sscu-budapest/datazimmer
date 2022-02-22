@@ -91,7 +91,7 @@ def push_envs(ctx, git_push=False):
         dvc_repo.add(env.posix)
         ctx.run(f"git add {env.posix}.dvc **/.gitignore")
         try:
-            ctx.run(f'git commit -m "add data subset {env.name}"')
+            ctx.run(f'git commit -m "add data environment {env.name}"')
         except UnexpectedExit:  # pragma: no cover
             continue
         if git_push:
