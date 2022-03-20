@@ -46,6 +46,13 @@ class Registry:
         self.requires = [a.name + a.version for a in conf.imported_artifacts]
 
     def full_build(self):
+        try:
+            comm = ["git", "cat-file", "-e", f"origin/main:{self.paths.dist_gitpath}"]
+            check_call(comm, cwd=self.posix)
+            msg = f"can't package version {self.conf.version} - already in registry"
+            raise ArtifactSetupException(msg)
+        except CalledProcessError:
+            pass
         with self._index_server():
             self._install(self.requires)
             self._build_from_script()
@@ -79,8 +86,6 @@ class Registry:
         self._dump_meta()
 
     def _package(self):
-        # TODO: check not to overwrite previous releases
-        # package only if no dist in remote
         msg = f"build-{self.name}-{self.conf.version}"
         try:
             self._git_run(add=self.paths.flit_posixes, msg=msg)
@@ -90,7 +95,7 @@ class Registry:
         ns = main(
             self.paths.toml_path,
             formats={"sdist"},
-            gen_setup_py=True,
+            # gen_setup_py=True,
         )
         copy(ns.sdist.file, self.paths.dist_dir)
         return True
@@ -145,7 +150,7 @@ class Registry:
         fallback_ind = ["--extra-index-url", "https://pypi.org/simple"]
         extras = ["--no-cache", "--no-build-isolation"]
         if upgrade:
-            extras.append("-I")
+            extras += ["--upgrade", "--upgrade-strategy", "only-if-needed"]
         check_call(comm + self._parse_package_names(packages) + fallback_ind + extras)
 
     def _dump_meta(self):
