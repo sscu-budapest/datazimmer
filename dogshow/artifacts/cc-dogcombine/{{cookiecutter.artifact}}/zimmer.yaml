@@ -1,0 +1,13 @@
+name: dogcombine
+version: v0.0
+registry: {{ test_registry }}
+imported_artifacts:
+  dogshowbase: {}
+  dogsuccess: 
+    version: <1.0
+    # data_namespaces: [success, sex_matches] TODO
+envs:
+  prime:
+    import_envs:
+      dogshowbase: complete
+      # dogsuccess: prime

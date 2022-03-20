@@ -1,0 +1,16 @@
+name: dogshowbase
+version: v0.0
+default_env: complete  # is the default anyway
+validation_envs: [complete, top_comps, highest_comps]
+registry: {{ test_registry }}
+envs:
+  complete:
+    params:
+      data_root: {{ csv_path }}
+  top_comps:
+    params:
+      min_prize_pool: 8000
+  highest_comps:
+    remote: remote2
+    params:
+      min_prize_pool: 12000
