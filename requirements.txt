@@ -1,3 +1,5 @@
+flit
+twisted
 requests
 invoke
 dvc[s3]
