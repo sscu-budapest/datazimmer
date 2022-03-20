@@ -15,7 +15,7 @@ from black.report import NothingChanged
 from sqlalchemy.dialects.postgresql import dialect as postgres_dialect
 from yaml import safe_load
 
-from .naming import MAIN_MODULE_NAME, META_MODULE_NAME
+from .naming import MAIN_MODULE_NAME, META_MODULE_NAME, SANDBOX_DIR, template_repo
 
 LINE_LEN = 119
 PRIMITIVE_MODULES = ["builtins", "datetime"]
@@ -90,6 +90,14 @@ def cd_into(
     sys.path.pop(0)
     if needs_clone:
         tmp_dir.__exit__(None, None, None)
+
+
+@contextmanager
+def sandbox_artifact():
+    if not SANDBOX_DIR.exists():
+        check_output(["git", "clone", template_repo, SANDBOX_DIR.as_posix()])
+    with cd_into(SANDBOX_DIR):
+        yield
 
 
 def format_code(code_str):

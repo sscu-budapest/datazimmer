@@ -2,7 +2,6 @@ import re
 from subprocess import check_call
 from typing import TYPE_CHECKING
 
-from dvc.repo import Repo
 from structlog import get_logger
 
 from .config_loading import ArtifactEnv, Config, ImportedArtifact
@@ -10,11 +9,11 @@ from .exceptions import ArtifactSetupException
 from .get_runtime import get_runtime
 from .metadata.bedrock.atoms import NS_ATOM_TYPE
 from .metadata.datascript.to_bedrock import DatascriptToBedrockConverter
-from .naming import CONSTR, template_repo
+from .naming import CONSTR
 from .registry import Registry
 from .sql.draw import dump_graph
 from .sql.loader import SqlLoader
-from .utils import cd_into
+from .utils import sandbox_artifact
 
 if TYPE_CHECKING:
     from .artifact_context import ArtifactContext
@@ -95,8 +94,7 @@ def sql_validation(constr, env, draw=False, batch_size=2000):
 def validate_importable(actx: "ArtifactContext", envs):
     aname = actx.config.name
     testname = f"zimmertestimport{aname}"
-    with cd_into(template_repo, force_clone=True):
-        _repo = Repo()
+    with sandbox_artifact():
         test_conf = Config(
             name=testname,
             version="v0.0",
@@ -107,9 +105,7 @@ def validate_importable(actx: "ArtifactContext", envs):
         test_reg = Registry(test_conf, True)
         test_reg.full_build()
         test_conf.dump()
-        for data_env in type(actx)().data_to_load:
-            data_env.path.mkdir(parents=True)
-            data_env.load_data(_repo)
+        type(actx)().load_all_data()
         # TODO: assert this data matches local
         test_reg.purge()
     check_call(["pip", "uninstall", testname, "-y"])
