@@ -1,6 +1,0 @@
-v0.3.0
-------
-
-move to inv run for projects
-
-plus some minor fixes

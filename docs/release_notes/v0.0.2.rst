@@ -1,7 +1,0 @@
-v0.0.2
-------
-
-- fix typo in function name
-- add lint task
-- add flat trepo creation for intermediate steps
-- iterate towards intermediate step checkout

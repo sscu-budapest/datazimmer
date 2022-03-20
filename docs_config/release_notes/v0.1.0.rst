@@ -1,8 +1,0 @@
-v0.1.0
-------
-
-A large revamp based on use cases
-
-- refine and separate metadata and config
-- add dogshow standard
-- start project parsing logic
