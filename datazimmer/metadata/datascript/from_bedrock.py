@@ -4,6 +4,7 @@ from queue import Queue
 from typing import Dict, Iterable, List
 
 from ...metaprogramming import get_class_def
+from ...naming import PACKAGE_SHORTHAND
 from ...primitive_types import PrimitiveType
 from ...utils import format_code
 from ..bedrock.atoms import CompositeType, EntityClass, Table, get_index_cls_name
@@ -36,8 +37,7 @@ class ScriptWriter:
         for entity_class in ec_list:
             deps = []
             if len(entity_class.parents) == 0:
-                self.zimmer_imports.add(BaseEntity)
-                parent_names = [BaseEntity.__name__]
+                parent_names = [f"{PACKAGE_SHORTHAND}.{BaseEntity.__name__}"]
             else:
                 parent_names = []
                 for parent in entity_class.parents:
@@ -54,17 +54,15 @@ class ScriptWriter:
 
     def _add_tables(self, table_list: List[Table]):
 
-        self.zimmer_imports.add(ScruTable)
         for table in table_list:
             feats_cls_name = self._add_table_features(table)
             index_cls_name = self._add_table_index_cls(table)
             self._add_table(table, feats_cls_name, index_cls_name)
 
     def _write_to_file(self, import_strings):
-        import_names = ", ".join([c.__name__ for c in self.zimmer_imports])
         import_lines = [
             "from datetime import datetime  # noqa: F401",
-            f"from sscutils import {import_names}",
+            f"import datazimmer as {PACKAGE_SHORTHAND}",
             *import_strings,
         ]
 
@@ -103,10 +101,9 @@ class ScriptWriter:
         scrutable_kwargs_str = ", ".join(
             [f"{k}={v}" for k, v in scrutable_kwargs.items()]
         )
-        table_name = f"{table.name}_table"
-        self._table_assigns.append(
-            f"{table_name} = {ScruTable.__name__}({scrutable_kwargs_str})"
-        )
+        tab_cls = f"{PACKAGE_SHORTHAND}.{ScruTable.__name__}"
+        table_ass = f"{table.name}_table = {tab_cls}({scrutable_kwargs_str})"
+        self._table_assigns.append(table_ass)
 
     def _get_ordered_lo_defs(self):
         defined = set()
@@ -131,9 +128,9 @@ class ScriptWriter:
         return out
 
     def _add_feat_list_as_cls(self, feat_list, cls_name, parent_cls):
-        self.zimmer_imports.add(parent_cls)
         deps, att_dic = self._deps_and_att_dic_from_feats(feat_list)
-        self._add_cls_def(cls_name, [parent_cls.__name__], deps, att_dic)
+        cls_acc = f"{PACKAGE_SHORTHAND}.{parent_cls.__name__}"
+        self._add_cls_def(cls_name, [cls_acc], deps, att_dic)
 
     def _deps_and_att_dic_from_feats(self, feats: Iterable[ANY_FEATURE_TYPE]):
         deps = []
@@ -149,8 +146,8 @@ class ScriptWriter:
                 deps.append(full_id.datascript_obj_accessor)
             ds_obj_accessor = full_id.datascript_obj_accessor
             if isinstance(feat, PrimitiveFeature) and feat.nullable:
-                ds_obj_accessor = f"{Nullable.__name__}({ds_obj_accessor})"
-                self.zimmer_imports.add(Nullable)
+                null_cls = f"{PACKAGE_SHORTHAND}.{Nullable.__name__}"
+                ds_obj_accessor = f"{null_cls}({ds_obj_accessor})"
             att_dic[feat.prime_id] = ds_obj_accessor
 
         return deps, att_dic
