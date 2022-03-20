@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Optional, Union
 
 from ...primitive_types import PrimitiveType
 from ...utils import is_type_hint_origin
-from .namespaced_id import NamespacedId, NamespacedIdOf
+from .complete_id import CompleteId, CompleteIdOf
 
 if TYPE_CHECKING:
     from .atoms import CompositeType, Table  # pragma: no cover
@@ -18,8 +18,8 @@ class _FeatBase:
             parsed_v = getattr(self, attname)
             if not isinstance(parsed_v, str):
                 continue
-            if is_type_hint_origin(hint, NamespacedIdOf):
-                parsed_v = NamespacedId.from_serialized_id(parsed_v)
+            if is_type_hint_origin(hint, CompleteIdOf):
+                parsed_v = CompleteId.from_serialized_id(parsed_v)
             elif hint is PrimitiveType:
                 parsed_v = getattr(PrimitiveType, parsed_v).value
             setattr(self, attname, parsed_v)
@@ -30,7 +30,7 @@ class _FeatBase:
             parsed_v = getattr(self, attname)
             if not parsed_v:
                 continue
-            if isinstance(parsed_v, NamespacedId):
+            if isinstance(parsed_v, CompleteId):
                 parsed_v = parsed_v.serialized_id
             elif isinstance(parsed_v, type):
                 parsed_v = parsed_v.__name__
@@ -43,7 +43,7 @@ class _FeatBase:
         return getattr(self, self._id_key)
 
     @property
-    def val_id(self) -> NamespacedId:
+    def val_id(self) -> CompleteId:
         return getattr(self, self._content_key)
 
 
@@ -57,8 +57,8 @@ class PrimitiveFeature(_FeatBase):
     description: Optional[str] = None
 
     @property
-    def val_id(self) -> NamespacedId:
-        return NamespacedId(None, self.dtype.__name__)
+    def val_id(self) -> CompleteId:
+        return CompleteId(None, None, self.dtype.__name__)
 
 
 @dataclass
@@ -67,7 +67,7 @@ class ForeignKey(_FeatBase):
     _content_key = "table"
 
     prefix: str
-    table: NamespacedIdOf["Table"]
+    table: CompleteIdOf["Table"]
     description: Optional[str] = None
 
 
@@ -77,7 +77,7 @@ class CompositeFeature(_FeatBase):
     _content_key = "dtype"
 
     prefix: str
-    dtype: NamespacedIdOf["CompositeType"]
+    dtype: CompleteIdOf["CompositeType"]
     description: Optional[str] = None
 
 

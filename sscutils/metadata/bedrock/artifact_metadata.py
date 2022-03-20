@@ -1,75 +1,112 @@
-from dataclasses import asdict, dataclass
+import datetime as dt
+from collections import defaultdict
+from dataclasses import dataclass
+from functools import total_ordering
 from typing import Dict, List
 
-from yaml import safe_dump
+from yaml import safe_load
 
-from ...helpers import get_serialized_namespace_dirs
-from ...naming import IMPORTED_NAMESPACES_PATH, ROOT_NS_LOCAL_NAME
-from ...utils import get_dict_factory, load_named_dict_to_list
+from ...module_tree import InstalledPaths
+from ...naming import VERSION_SEPARATOR
 from .atoms import NS_ATOM_TYPE
-from .imported_namespace import ImportedNamespace
-from .importer import ImportedMetadata
+from .complete_id import CompleteId
 from .namespace_metadata import NamespaceMetadata
-from .namespaced_id import NamespacedId
-
-_NS_KEY = "prefix"
 
 
 @dataclass
 class ArtifactMetadata:
 
-    imported_namespaces: List[ImportedNamespace]
+    uri: str
+    tags: List[str]
     namespaces: Dict[str, NamespaceMetadata]
 
-    def get_atom(self, ns_id: NamespacedId) -> NS_ATOM_TYPE:
-        return self.namespaces[ns_id.ns_prefix or ROOT_NS_LOCAL_NAME].get(
-            ns_id.obj_id
-        )
+    def get_atom(self, id_: CompleteId) -> NS_ATOM_TYPE:
+        return self.namespaces[id_.namespace].get(id_.obj_id)
 
-    def dump(self):
-        serialized_str = safe_dump(
-            {
-                k: asdict(v, dict_factory=get_dict_factory(_NS_KEY))
-                for k, v in self.imported_dic.items()
-            },
-            sort_keys=False,
-        )
-        IMPORTED_NAMESPACES_PATH.write_text(serialized_str)
+    def latest_tag_of(self, env):
+        return sorted(self._tags_by_v.items())[-1][1][env]
+
+    def get_used_artifacts(self):
+        artids = set()
         for ns in self.namespaces.values():
-            ns.dump()
+            for table in ns.tables:
+                _add_feats(table.features + table.index, artids)
+            for ctype in ns.composite_types:
+                _add_feats(ctype.features, artids)
+            for enclass in ns.entity_classes:
+                for parent in enclass.parents:
+                    artids.add(parent.artifact)
+        return filter(None, artids)
 
-    def extend_from_import(self, nsi: ImportedNamespace, overwrite=True):
-        if nsi.prefix in self.namespaces.keys():
-            if overwrite:
-                self.namespaces.pop(nsi.prefix)
-            else:
-                return
-        imp_meta = ImportedMetadata(self, nsi)
-        self.add_ns(imp_meta.external_ns_meta)
-        for new_dep in imp_meta.new_dependencies:
-            self.extend_from_import(new_dep)
+    @property
+    def next_data_v(self):
+        try:
+            dv = sorted(self._tags_by_v.keys())[-1].bump()
+        except IndexError:
+            dv = DataVersion.new_today()
+        return dv.to_str()
 
-    def add_ns(self, ns_meta: NamespaceMetadata):
-        self.namespaces[ns_meta.local_name] = ns_meta
+    @property
+    def data_namespaces(self):
+        return [ns.name for ns in self.namespaces.values() if ns.tables]
 
     @classmethod
-    def load_serialized(cls) -> "ArtifactMetadata":
-        imp_nss = load_named_dict_to_list(
-            IMPORTED_NAMESPACES_PATH, ImportedNamespace, key_name=_NS_KEY
-        )
-
-        return cls(
-            imp_nss,
-            {
-                sd: NamespaceMetadata.load_serialized(sd)
-                for sd in get_serialized_namespace_dirs()
-            },
-        )
+    def load_installed(cls, name_to_load: str, name_loading_from: str = None):
+        paths = InstalledPaths(name_to_load, name_loading_from or name_to_load)
+        ns_dic = {d.name: NamespaceMetadata.load_serialized(d) for d in paths.ns_paths}
+        return cls(**safe_load(paths.info_yaml.read_text()), namespaces=ns_dic)
 
     @property
-    def imported_dic(self) -> Dict[str, ImportedNamespace]:
-        return {ns.prefix: ns for ns in self.imported_namespaces}
+    def _tags_by_v(self) -> Dict["DataVersion", Dict[str, str]]:
+        dv_tags = defaultdict(dict)
+        for tag in self.tags:
+            data_v, env = tag.split(VERSION_SEPARATOR)[2:]
+            dv_tags[DataVersion.from_str(data_v)][env] = tag
+        return dv_tags
+
+
+@dataclass
+@total_ordering
+class DataVersion:
+    year: int
+    month: int
+    day: int
+    num: int
+
+    def __hash__(self) -> int:
+        return self._args.__hash__()
+
+    def __eq__(self, o: "DataVersion") -> bool:
+        return self._args == o._args
+
+    def __gt__(self, o: "DataVersion") -> bool:
+        return self._args > o._args
+
+    def to_str(self):
+        return ".".join(map(str, self._args))
+
+    def bump(self):
+        today = dt.date.today()
+        targs = (today.year, today.month, today.day)
+        n = 1
+        if targs == self._args[:-1]:
+            n += self.num
+        return DataVersion(*targs, n)
+
+    @classmethod
+    def from_str(cls, s: str):
+        return cls(*map(int, s.split(".")))
+
+    @classmethod
+    def new_today(cls):
+        td = dt.date.today()
+        return cls(td.year, td.month, td.day, 1)
 
     @property
-    def root_ns(self) -> NamespaceMetadata:
-        return self.namespaces[ROOT_NS_LOCAL_NAME]
+    def _args(self):
+        return (self.year, self.month, self.day, self.num)
+
+
+def _add_feats(feats, a_set: set):
+    for feat in feats:
+        a_set.add(feat.val_id.artifact)

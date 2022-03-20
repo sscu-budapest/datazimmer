@@ -12,9 +12,7 @@ def class_def_from_cls(cls: Type):
     )
 
 
-def get_class_def(
-    cls_name: str, parent_names: List[str] = None, att_dict: dict = None
-):
+def get_class_def(cls_name: str, parent_names: List[str] = None, att_dict: dict = None):
     parent_str = ", ".join(parent_names)
 
     if att_dict:

@@ -4,8 +4,8 @@ from typing import List, Optional, Union
 from ...metaprogramming import snake_to_camel
 from ...naming import FEATURES_CLS_SUFFIX, INDEX_CLS_SUFFIX
 from ...utils import is_type_hint_origin
+from .complete_id import CompleteId, CompleteIdOf
 from .feature_types import ALL_FEATURE_TYPES, ANY_FEATURE_TYPE
-from .namespaced_id import NamespacedId, NamespacedIdOf
 
 ATOM_ID_KEY = "name"
 
@@ -17,10 +17,10 @@ class _AtomBase:
             parsed_v = getattr(self, attname)
             if (hint == Optional[fl_hint]) or (hint == fl_hint):
                 parsed_v = _parse_poss_feat_list(parsed_v)
-            elif is_type_hint_origin(hint, NamespacedIdOf):
-                parsed_v = NamespacedId.from_serialized_id(parsed_v)
+            elif is_type_hint_origin(hint, CompleteIdOf):
+                parsed_v = CompleteId.from_serialized_id(parsed_v)
             elif _is_ns_id_list(hint):
-                parsed_v = [*map(NamespacedId.from_serialized_id, parsed_v)]
+                parsed_v = [*map(CompleteId.from_serialized_id, parsed_v)]
 
             setattr(self, attname, parsed_v)
 
@@ -48,17 +48,17 @@ class CompositeType(_AtomBase):
 @dataclass
 class EntityClass(_AtomBase):
     name: str
-    parents: List[NamespacedIdOf["EntityClass"]] = field(default_factory=list)
+    parents: List[CompleteIdOf["EntityClass"]] = field(default_factory=list)
     description: Optional[str] = None
 
 
 @dataclass
 class Table(_AtomBase):
     name: str
-    subject_of_records: NamespacedIdOf[EntityClass]
+    subject_of_records: CompleteIdOf[EntityClass]
     features: List[ANY_FEATURE_TYPE] = field(default_factory=list)
-    index: Optional[List[ANY_FEATURE_TYPE]] = field(default_factory=list)
-    partitioning_cols: Optional[List[str]] = None  # TODO: not sure
+    index: List[ANY_FEATURE_TYPE] = field(default_factory=list)
+    partitioning_cols: Optional[List[str]] = None  # TODO: not semantic info
     partition_max_rows: Optional[int] = None
     description: Optional[str] = None
 
@@ -71,7 +71,7 @@ class Table(_AtomBase):
         return _add_suffix(self.name, FEATURES_CLS_SUFFIX)
 
     @property
-    def features_w_ind(self) -> list:
+    def features_w_ind(self) -> List[ANY_FEATURE_TYPE]:
         return self.features + self.index
 
 
@@ -83,7 +83,7 @@ NS_ATOM_TYPE = Union[EntityClass, CompositeType, Table]
 
 
 def _serialize(obj):
-    if isinstance(obj, NamespacedId):
+    if isinstance(obj, CompleteId):
         return obj.serialized_id
     if isinstance(obj, ALL_FEATURE_TYPES):
         return obj.to_dict()
@@ -115,7 +115,7 @@ def _try_feat(dic):
 
 def _is_ns_id_list(hint):
     try:
-        return is_type_hint_origin(hint.__args__[0], NamespacedIdOf)
+        return is_type_hint_origin(hint.__args__[0], CompleteIdOf)
     except AttributeError:
         return False
 

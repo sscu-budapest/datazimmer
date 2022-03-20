@@ -1,116 +1,73 @@
+import sys
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from shutil import rmtree
+from typing import Dict, List
 
-from parquetranger import TableRepo
+from dvc.repo import Repo
 
-from .config_loading import (
-    DatasetConfig,
-    ProjectConfig,
-    load_branch_remote_pairs,
-)
-from .exceptions import (
-    DatasetSetupException,
-    NotAnArtifactException,
-    ProjectSetupException,
-)
-from .helpers import get_all_top_modules
+from .config_loading import Config
+from .get_runtime import get_runtime
 from .metadata import ArtifactMetadata
-from .metadata.bedrock.namespace_metadata import NamespaceMetadata
-from .naming import DATA_PATH
+from .metadata.bedrock.complete_id import CompleteId
+from .module_tree import ModuleTree
+from .naming import get_data_path
+from .pipeline_registry import get_global_pipereg
+from .registry import Registry
 
 
 class ArtifactContext:
     def __init__(self) -> None:
+        self.config: Config = Config.load()
+        self.name = self.config.name
+        self.metadata: ArtifactMetadata = ArtifactMetadata.load_installed(self.name)
+        self.ext_metas: Dict[str, ArtifactMetadata] = {}
+        self._fill_ext_meta()
+        self.data_to_load: List[DataEnvironmentToLoad] = self._get_data_envs()
+        self.pipereg = get_global_pipereg(reset=True)
+        self.module_tree = ModuleTree()
+        self.registry = Registry(self.config)
 
-        self.config = _load_artifact_config()
-        self.is_dataset = isinstance(self.config, DatasetConfig)
-        self.metadata = ArtifactMetadata.load_serialized()
-        self.branch_remote_pairs = load_branch_remote_pairs()
-        self.data_envs: List[DataEnvironmentToLoad] = []
-
-        self._fill_data_envs()
-
-    def import_namespaces(self, overwrite=True):
-        for ns in self.metadata.imported_namespaces:
-            self.metadata.extend_from_import(ns, overwrite)
-        self.metadata.dump()
-
-    def serialize(self):
-        self.metadata.dump()
-        self.config.dump()
-
-    def create_trepo(
-        self,
-        name,
-        namespace: str,
-        partitioning_cols=None,
-        max_partition_size=None,
-    ):
-        if self.is_dataset:
-            parents_dict = {
-                env.name: env.path for env in self.config.created_environments
-            }
-            main_path = parents_dict[self.config.default_env.name] / name
+    def get_atom(self, id_: CompleteId):
+        if (id_.artifact is None) or (id_.artifact == self.name):
+            meta = self.metadata
         else:
-            parents_dict = {}
-            main_path = DATA_PATH / namespace / name
+            meta = self.ext_metas[id_.artifact]
+        return meta.get_atom(id_)
 
-        return TableRepo(
-            main_path,
-            group_cols=partitioning_cols,
-            max_records=max_partition_size or 0,
-            env_parents=parents_dict,
-        )
+    def load_all_data(self):
+        dvc_repo = Repo()
+        posixes = []
+        for data_env in self.data_to_load:
+            rmtree(data_env.path, ignore_errors=True)  # brave thing...
+            data_env.path.parent.mkdir(exist_ok=True, parents=True)
+            data_env.load_data(dvc_repo)
+            posixes.append(data_env.posix)
+        return posixes
 
-    def replace_data(self, df, structable, env_name=None, parse: bool = True):
-        if env_name is not None:
-            assert self.is_dataset
-            structable.trepo.set_env(env_name)
-        structable.replace_all(df, parse)
-        if self.is_dataset:
-            structable.trepo.set_env(self.config.default_env.name)
+    def _fill_ext_meta(self):
+        for a_imp in self.config.imported_artifacts:
+            self._add_a_meta(a_imp.name)
 
-    def has_data_env(self, ns_meta: NamespaceMetadata):
-        if ns_meta.local_name in get_all_top_modules():
-            return True
-        for env in self.data_envs:
-            if ns_meta.local_name == env.local_name:
-                return True
-        return False
+    def _get_data_envs(self):
+        arg_set = set()
+        for env in self.config.envs:
+            for artifact_name, data_env in env.import_envs.items():
+                a_imp = self.config.get_import(artifact_name)
+                meta = self.ext_metas[artifact_name]
+                tag = meta.latest_tag_of(data_env)
+                nss = a_imp.data_namespaces or meta.data_namespaces
+                for ns in nss:
+                    arg_set.add((artifact_name, meta.uri, ns, data_env, tag))
+        return [DataEnvironmentToLoad(*args) for args in arg_set]
 
-    @property
-    def ns_w_data(self):
-        for ns in self.metadata.namespaces.values():
-            if self.has_data_env(ns):
-                yield ns
-
-    @property
-    def imported_namespace_meta_list(self):
-        return [
-            self.metadata.namespaces[ns.prefix]
-            for ns in self.metadata.imported_namespaces
-        ]
-
-    def _fill_data_envs(self):
-        if self.is_dataset:
+    def _add_a_meta(self, a_meta_name):
+        if a_meta_name in self.ext_metas.keys():
             return
-        for env_spec in self.config.data_envs:
-            try:
-                ns = self.metadata.imported_dic[env_spec.prefix]
-            except KeyError:
-                raise ProjectSetupException(
-                    "No imported namespace corresponds to"
-                    f" prefix {env_spec.prefix}"
-                )
-            self.data_envs.append(
-                DataEnvironmentToLoad(
-                    repo=ns.uri_root,
-                    local_name=ns.prefix,
-                    env=env_spec.env,
-                    tag=env_spec.tag,
-                    output_of_step=ns.uri_slug,
-                )
-            )
+        a_meta = ArtifactMetadata.load_installed(a_meta_name, self.name)
+        self.ext_metas[a_meta_name] = a_meta
+        for sub_meta in a_meta.get_used_artifacts():
+            self._add_a_meta(sub_meta)
+        # TODO: do this for data importing as well
 
 
 @dataclass
@@ -120,52 +77,35 @@ class DataEnvironmentToLoad:
     importing from a project
     """
 
-    repo: str
-    local_name: str
+    artifact: str
+    uri: str
+    ns: str
     env: str
-    tag: Optional[str] = None
-    output_of_step: Optional[str] = None
+    tag: str
 
     @property
-    def src_posix(self):
-        return (DATA_PATH / (self.output_of_step or self.env)).as_posix()
+    def posix(self):
+        return self.path.as_posix()
 
     @property
-    def out_posix(self):
-        return self.out_path.as_posix()
-
-    @property
-    def out_path(self):
-        return DATA_PATH / self.local_name
+    def path(self):
+        return get_data_path(self.artifact, self.ns, self.env)
 
     def load_data(self, dvc_repo):
         dvc_repo.imp(
-            url=self.repo,
-            path=self.src_posix,
-            out=self.out_posix,
-            rev=self.tag or None,
+            url=self.uri,
+            path=self.posix,
+            out=self.posix,
+            rev=self.tag,
             fname=None,
         )
 
 
-def _load_artifact_config() -> Union[DatasetConfig, ProjectConfig]:
-    try:
-        return DatasetConfig()
-    except DatasetSetupException as e:
-        err1 = e
-
-    try:
-        return ProjectConfig()
-    except ProjectSetupException as e:
-        raise NotAnArtifactException(
-            "Neither dataset, nor project found in working directory.\n"
-            f"DatasetSetupError: {err1} \n"
-            f"ProjectSetupError: {e}"
-        )
-
-
-def dump_dfs_to_tables(env_name, df_structable_pairs, parse=True):
-    """helper function to fill an env of a dataset"""
-    context = ArtifactContext()
+def dump_dfs_to_tables(df_structable_pairs, parse=True, **kwargs):
+    """helper function to fill the detected env of a dataset"""
     for df, structable in df_structable_pairs:
-        context.replace_data(df, structable, env_name, parse)
+        structable.replace_all(df, parse, **kwargs)
+
+
+def run_step():
+    get_runtime().pipereg.get_step(sys.argv[1]).run()

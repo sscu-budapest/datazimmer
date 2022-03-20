@@ -1,2 +1,0 @@
-dogbase:
-  uri: {{ dataset_a_repo }}

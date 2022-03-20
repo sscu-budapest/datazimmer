@@ -1,3 +1,8 @@
+flit
+twisted
+wheel>=0.37.0
+pip>=22.0.0
+setuptools>=60.0.0
 requests
 invoke
 dvc[s3]
@@ -13,3 +18,4 @@ psycopg2
 toml
 pyinstrument
 pandas_profiling
+tqdm

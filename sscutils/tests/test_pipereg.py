@@ -1,60 +1,47 @@
+from importlib import import_module
 from pathlib import Path
 
 from pytest import raises
 
-import sscutils.pipeline_registry as pipereg_module
-from sscutils import PipelineRegistry
-from sscutils.naming import ProjectConfigPaths
-from sscutils.pipeline_registry import _type_or_fun_elem
-
-PARAMS_PATH = ProjectConfigPaths.PARAMS
+from sscutils.naming import DEFAULT_ENV_NAME
+from sscutils.pipeline_registry import PipelineRegistry
 
 
-def test_pipereg_basics():
+def test_pipereg_basics(running_template):
+
     pipereg = PipelineRegistry()
 
     def step1(a=5):
         return a * 2
 
     step1.__module__ = "src.step_one"
-    pipereg.register(step1)  # usually works with decorator @pipereg.register
+    pipereg.register(step1)  # usually works with decorator @register
     # but here module change is needed for the test
-    assert pipereg.get_step("step_one").runner(8) == 16
+    assert pipereg.get_step(f"{DEFAULT_ENV_NAME}-step_one").runner(8) == 16
 
-    def step2(b=3):
-        return b - 1
+    def step2():
+        return 10
 
     step2.__module__ = "src.step_two.deeper"
     pipereg.register(dependencies=["some_string"])(step2)
 
-    assert (
-        pipereg.get_step("step_two").run({"step_two": {"b": 10}}, False) == 9
-    )
-    assert pipereg.get_step("step_two").run({"b": 5}, False) == 4
+    assert pipereg.get_step(f"{DEFAULT_ENV_NAME}-step_two").run() == 10
 
 
-def test_pipereg_parse_elems(tmp_path):
+def test_pipereg_parse_elems(in_template):
 
+    mod = import_module("src.core")
+    _env = DEFAULT_ENV_NAME
     pipereg = PipelineRegistry()
+    _module_file_path = Path(mod.__file__).relative_to(Path.cwd()).as_posix()
 
-    def step1():
-        pass  # pragma: no cover
-
-    step1.__module__ = "src.step_one"
-    step1_pe = pipereg.register(outputs=["s1_out"])(step1)
-
-    _module_file_path = (
-        Path(pipereg_module.__file__).relative_to(Path.cwd()).as_posix()
-    )
-
-    assert pipereg._parse_elem("sss") == ["sss"]
-    assert pipereg._parse_elem(PARAMS_PATH) == [PARAMS_PATH.as_posix()]
-    assert pipereg._parse_elem(PipelineRegistry) == [_module_file_path]
-    assert pipereg._parse_elem(_type_or_fun_elem) == [_module_file_path]
-    assert pipereg._parse_elem(step1) == [
-        Path(__file__).relative_to(Path.cwd()).as_posix()
+    maps = [
+        (["sss", Path("sss")], "sss"),
+        ([mod, mod.template_proc], _module_file_path),
     ]
-    assert pipereg._parse_elem(step1_pe) == ["s1_out"]
+    for _ss, target in maps:
+        for _s in _ss:
+            assert pipereg._parse_elem(_s, _env) == [target]
 
     with raises(TypeError):
-        pipereg._parse_elem(20)
+        pipereg._parse_elem(20, _env)

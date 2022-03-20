@@ -1,0 +1,25 @@
+name: dogsuccess
+version: v0.0
+registry: {{ test_registry }}
+imported_artifacts:
+  dogshowbase:
+    version: ==0.0 # can use PEP-440 version specifiers https://www.python.org/dev/peps/pep-0440/#version-specifiers
+  dogracebase: {}
+envs:
+  prime:
+    params:
+      success:
+        top_status_multiplier: 10
+      top_report:
+        show_top: 3
+    import_envs:
+      dogshowbase: highest_comps
+      dogracebase: complete
+  bigger:
+    remote: remote2
+    parent: prime  # is default anyway
+    params:
+      top_report:
+        show_top: 5
+    import_envs:
+      dogshowbase: complete

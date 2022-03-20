@@ -1,8 +1,5 @@
 import pytest
 
-from sscutils.artifact_context import ArtifactContext
-from sscutils.exceptions import NotAnArtifactException
-from sscutils.utils import cd_into
 from sscutils.validation_functions import is_repo_name, is_step_name
 
 
@@ -42,12 +39,6 @@ def test_step_name_valid(step_name, is_valid):
     else:
         with pytest.raises(NameError):
             is_step_name(step_name)
-
-
-def test_failing_config(tmp_path):
-    with cd_into(tmp_path):
-        with pytest.raises(NotAnArtifactException):
-            ArtifactContext()
 
 
 def test_missing_fk(tmp_path):
