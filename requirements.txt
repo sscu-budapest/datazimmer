@@ -1,5 +1,7 @@
 flit
 twisted
+wheel
+pip>=22.0.0
 requests
 invoke
 dvc[s3]
