@@ -2,6 +2,7 @@ import os
 import sys
 from contextlib import contextmanager
 from functools import partial
+from inspect import ismodule
 from itertools import chain
 from pathlib import Path
 from subprocess import check_output
@@ -14,15 +15,15 @@ from black.report import NothingChanged
 from sqlalchemy.dialects.postgresql import dialect as postgres_dialect
 from yaml import safe_load
 
-from .naming import SRC_PATH
+from .naming import MAIN_MODULE_NAME, META_MODULE_NAME
 
 LINE_LEN = 119
 PRIMITIVE_MODULES = ["builtins", "datetime"]
 T = TypeVar("T")
+package_root = Path(__file__).parent.parent
 
 
 def get_cls_defined_in_module(module, parent):
-    # TODO: discard imported things
     out = {}
     for poss_cls_name in dir(module):
         cls = getattr(module, poss_cls_name)
@@ -39,6 +40,15 @@ def get_instances_from_module(module, cls):
     for obj_name in dir(module):
         obj = getattr(module, obj_name)
         if isinstance(obj, cls):
+            out[obj_name] = obj
+    return out
+
+
+def get_modules_from_module(module, root_name: str):
+    out = {}
+    for obj_name in dir(module):
+        obj = getattr(module, obj_name)
+        if ismodule(obj) and obj.__name__.startswith(root_name):
             out[obj_name] = obj
     return out
 
@@ -120,13 +130,17 @@ def get_dict_factory(key_name: str):
 
 
 def reset_src_module():
-    for m_id in [
-        *filter(
-            lambda k: k.startswith(f"{SRC_PATH}.") or (k == f"{SRC_PATH}"),
-            sys.modules.keys(),
-        )
-    ]:
+    for m_id in filter(
+        lambda k: k.startswith(f"{MAIN_MODULE_NAME}.") or (k == MAIN_MODULE_NAME),
+        [*sys.modules.keys()],
+    ):
         sys.modules.pop(m_id)
+
+
+def reset_meta_module():
+    for m_id in [*sys.modules.keys()]:
+        if m_id.startswith(f"{META_MODULE_NAME}."):
+            sys.modules.pop(m_id)
 
 
 def is_type_hint_origin(hint, cls):
