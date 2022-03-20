@@ -12,7 +12,7 @@ Some utility function to help with
 
 these are used in the [artifact-template](https://github.com/sscu-budapest/project-template)
 
-Make sure that `python` points to `python>=3.8` and you have `git`
+Make sure that `python` points to `python>=3.8` and you have `pip` and `git`
 
 ## Lookahead
 
@@ -24,10 +24,10 @@ Make sure that `python` points to `python>=3.8` and you have `git`
 - automatic filter for env creation based on foreign key metadata
 - add option to infer data type of assigned feature
   - can be problematic b/c pandas int/float/nan issue
-- metadata created dry, dynamically, but imported static, wet
 - sharing functions among projects
   - functions specific to processing certain composite / named types
   - e.g. function dealing with fitting into a limit in dogshow project 1
+- create similar sets of features in a dry way
 - detecting reliance of composite type given by assigner
   - can wait, as initial import is just the assigner transformed to accessor
 - overlapping in entities
