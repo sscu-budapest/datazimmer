@@ -1,16 +1,18 @@
-.. datazimmer documentation master file, created by
-   sphinx-quickstart on Sun Mar 20 20:50:27 2022.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
 
 Welcome to datazimmer's documentation!
-======================================
+=====================================================================================
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-
+   notebooks/doc-001-intro
+   notebooks/doc-002-glossary
+   notebooks/doc-003-mock-artifacts
+   notebooks/doc-004-rules-conventions
+   notebooks/doc-005-cli
+   autosumm
+   release_notes/main
 
 Indices and tables
 ==================
