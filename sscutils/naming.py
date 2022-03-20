@@ -1,82 +1,75 @@
 import os
+from functools import partial
 from pathlib import Path
 
-COMPLETE_ENV_NAME = "complete"
-DEFAULT_BRANCH_NAME = "main"
+PYV = ">=3.8"
+DEFAULT_ENV_NAME = "complete"
 
 FEATURES_CLS_SUFFIX = "features"
 INDEX_CLS_SUFFIX = "index"
 
-PIPELINE_STEP_SEPARATOR = "|>"
-NAMESPACE_PREFIX_SEPARATOR = ":"
-
-CONFIG_DIR = Path("conf")
-METADATA_DIR = Path("metadata")
-
-RUN_CONF_PATH = CONFIG_DIR / "_run_conf.yaml"
-
-ROOT_NS_LOCAL_NAME = ""
-TMP_CLS_MODULE = "__tmp_cls_module__"
+VERSION_PREFIX = "zimmer-v0"
+VERSION_SEPARATOR = "/"
+NS_ID_SEPARATOR = ":"
 
 
-class NamespaceMetadataPaths:
-    def __init__(
-        self, local_name: str = ROOT_NS_LOCAL_NAME, mkdir=False
-    ) -> None:
-        _parent = METADATA_DIR / local_name
-        if mkdir:
-            _parent.mkdir(exist_ok=True)
-
-        def _p(s) -> Path:
-            return _parent / s
-
-        self.composite_types = _p("composite-types.yaml")
-        self.entity_classes = _p("entity-classes.yaml")
-        self.table_schemas = _p("tables.yaml")
-
-
-DATASET_METADATA_PATHS = NamespaceMetadataPaths()
-IMPORTED_NAMESPACES_PATH = METADATA_DIR / "imported-namespaces.yaml"
-DEFAULT_REMOTES_PATH = CONFIG_DIR / "default-remotes.yaml"
-
-
-class DatasetConfigPaths:
-
-    CREATED_ENVS = CONFIG_DIR / "created-envs.yaml"
-
-
-class ProjectConfigPaths:
-
-    CURRENT_ENV = CONFIG_DIR / "project-env.yaml"
-    PARAMS = Path("params.yaml")
-
+RUN_CONF_PATH = Path("__run_conf.yaml")
+BASE_CONF_PATH = Path("zimmer.yaml")
 
 DATA_PATH = Path("data")
 PROFILES_PATH = Path("run-profiles")
-SRC_PATH = Path("src")
-IMPORTED_NAMESPACES_MODULE_NAME = "imported_namespaces"
-NAMESPACE_METADATA_MODULE_NAME = "namespace_metadata"
-UPDATE_DATA_MODULE_NAME = "update_data"
-UPDATE_DATA_FUNCTION_NAME = "update_data"
-ENV_CREATION_MODULE_NAME = "create_environments"
-ENV_CREATION_FUNCTION_NAME = "create_environments"
-PIPEREG_MODULE_NAME = "pipereg"
-PIPEREG_INSTANCE_NAME = "pipereg"
+REGISTRY_ROOT_DIR = Path.home() / "zimmer-registries"
+MAIN_MODULE_NAME = "src"
+META_MODULE_NAME = "metazimmer"
+PACKAGE_NAME = "metazimmer"
+PACKAGE_SHORTHAND = "dz"
 
-
-IMPORTED_NAMESPACES_SCRIPTS_PATH = SRC_PATH / IMPORTED_NAMESPACES_MODULE_NAME
-
-imported_namespaces_abs_module = (
-    f"{SRC_PATH}.{IMPORTED_NAMESPACES_MODULE_NAME}"
+template_repo = os.environ.get(
+    "SSC_LOCAL_TEMPLATE", "https://github.com/sscu-budapest/project-template"
 )
-ns_metadata_abs_module = f"{SRC_PATH}.{NAMESPACE_METADATA_MODULE_NAME}"
-ns_metadata_file = SRC_PATH / (NAMESPACE_METADATA_MODULE_NAME + ".py")
 
-_tfstr = "https://github.com/sscu-budapest/{}-template"
+CONSTR = "sqlite:///:memory:"
+SSCUB_REGISTRY = "https://github.com/sscu-budapest/artifact-registry"
 
-dataset_template_repo = os.environ.get(
-    "SSC_LOCAL_DS_TEMPLATE", _tfstr.format("dataset")
-)
-project_template_repo = os.environ.get(
-    "SSC_LOCAL_PROJECT_TEMPLATE", _tfstr.format("project")
-)
+
+class SDistPaths:
+    def __init__(self, parent: Path) -> None:
+        parent.mkdir(exist_ok=True, parents=True)
+        _p = partial(Path, parent)
+        self.composite_types = _p("composite-types.yaml")
+        self.entity_classes = _p("entity-classes.yaml")
+        self.table_schemas = _p("tables.yaml")
+        self.datascript = _p("__init__.py")
+
+
+class RegistryPaths:
+    def __init__(self, name: str, version: str) -> None:
+        self.dir = REGISTRY_ROOT_DIR / name
+        _dev_dir = self.dir / "dev" / name
+        _meta_root = _dev_dir / META_MODULE_NAME
+        self._info_dir = self.dir / "info"
+
+        self.index_dir = self.dir / "index"
+        self.toml_path = _dev_dir / "pyproject.toml"
+        self.meta_init_py = _meta_root / "__init__.py"
+        self.artifact_meta = _meta_root / name
+        self.artifact_init_py = self.artifact_meta / "__init__.py"
+        self.dist_dir = self.index_dir / name
+        self.info_yaml = self.info_yaml_of(name, version)
+
+        self.flit_posixes = self._relpos([_meta_root, self.toml_path])
+        self.publish_paths = self._relpos([self.dist_dir, self.info_yaml])
+
+    def info_yaml_of(self, name, version):
+        return self._info_dir / f"{name}-{version}.yaml"
+
+    def ensure(self):
+        for d in [self.dist_dir, self.artifact_meta, self._info_dir]:
+            d.mkdir(exist_ok=True, parents=True)
+
+    def _relpos(self, dirlist):
+        return [d.relative_to(self.dir).as_posix() for d in dirlist]
+
+
+def get_data_path(artifact_name, namespace, env_name):
+    return DATA_PATH / artifact_name / namespace / env_name
