@@ -16,7 +16,9 @@ dogshow_root = package_root / "dogshow"
 artifact_src_root = dogshow_root / "artifacts"
 csv_path = Path(artifact_src_root, "data").absolute().as_posix()
 
-_VERSIONS = {"dogshowbase": [0.0, 0.1]}
+dog_artifacts = ["dogshowbase", "dogracebase", "dogsuccess", "dogcombine"]
+
+_VERSIONS = {"dogshowbase": ["0.0", "0.1"]}
 
 
 class DogshowContextCreator:
@@ -45,7 +47,7 @@ class DogshowContextCreator:
         }
         self.all_contexts = map(
             self.artifact_ctx,
-            ["dogshowbase", "dogracebase", "dogsuccess", "dogcombine"],
+            dog_artifacts,
         )
 
     def get_git_remote(self, name):

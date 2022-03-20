@@ -1,9 +1,11 @@
 import os
 from pathlib import Path
 
+import pytest
 from invoke import Context
 
 from sscutils.config_loading import Config
+from sscutils.exceptions import ArtifactSetupException
 from sscutils.invoke_commands import build_meta, lint, load_external_data, release
 from sscutils.utils import reset_meta_module
 
@@ -36,11 +38,12 @@ def run_artifact_test(dog_context, c, constr):
         load_external_data(c, git_commit=True)
         release(c, constr)
         for testv in versions:
-            modified = modify_to_version(testv)
+            modify_to_version(testv)
+            if testv == init_version:
+                with pytest.raises(ArtifactSetupException):
+                    build_meta(c)
+                continue
             lint(c)
             build_meta(c)
-            if modified and testv == init_version:
-                # TODO: don't allow publishing with same version
-                pass
             release(c, constr)
         # release(c)  # TODO: some should work with sqlite
