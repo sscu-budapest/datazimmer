@@ -12,9 +12,7 @@ def setup_dogshow(mode, tmp_path: Path) -> DogshowContextCreator:
         conf_root.mkdir()
         return DogshowContextCreator(conf_root)
     else:  # pragma: no cover
-        conf_dic = safe_load((dogshow_root / "confs-live.yaml").read_text())[
-            mode
-        ]
+        conf_dic = safe_load((dogshow_root / "confs-live.yaml").read_text())[mode]
         conf_root = Path(conf_dic.pop("local_output_root"))
         rmtree(conf_root, ignore_errors=True)
         conf_root.mkdir()
