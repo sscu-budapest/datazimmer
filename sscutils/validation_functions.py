@@ -1,146 +1,118 @@
 import re
-from functools import partial
-from pathlib import Path
+from subprocess import check_call
+from typing import TYPE_CHECKING
 
 from dvc.repo import Repo
 from structlog import get_logger
 
-from .artifact_context import ArtifactContext
-from .config_loading import DataEnvSpecification, DatasetConfig, ProjectConfig
-from .exceptions import DatasetSetupException
-from .helpers import import_env_creator_function, import_update_data_function
-from .metadata import ArtifactMetadata
+from .config_loading import ArtifactEnv, Config, ImportedArtifact
+from .exceptions import ArtifactSetupException
+from .get_runtime import get_runtime
 from .metadata.bedrock.atoms import NS_ATOM_TYPE
-from .metadata.bedrock.imported_namespace import ImportedNamespace
-from .metadata.datascript.conversion import imported_bedrock_to_datascript
 from .metadata.datascript.to_bedrock import DatascriptToBedrockConverter
-from .naming import (
-    COMPLETE_ENV_NAME,
-    ns_metadata_abs_module,
-    project_template_repo,
-)
+from .naming import CONSTR, template_repo
+from .registry import Registry
 from .sql.draw import dump_graph
 from .sql.loader import SqlLoader
 from .utils import cd_into
 
+if TYPE_CHECKING:
+    from .artifact_context import ArtifactContext
+
+
 logger = get_logger(ctx="validation")
 
 
-def sql_validation(constr, env=None, draw=False, batch_size=2000):
-    loader = SqlLoader(constr, echo=False, batch_size=batch_size)
-    _log = partial(
-        logger.info, step="sql", constr=constr, batch_size=batch_size
-    )
-    _log("schema setup")
-    loader.setup_schema()
-    if draw:
-        _log("drawing")
-        dump_graph(loader.sql_meta, loader.engine)
-    try:
-        _log("loading to db")
-        loader.load_data(env)
-        _log("validating")
-        loader.validate_data(env)
-    finally:
-        loader.purge()
-
-
-def validate_project():
-    """asserts a few things about a dataset
-
-    - all prefixes in envs have imported namespaces
-    - configuration files are present
-    - metadata is same across all branches
-    - metadata fits what is in the data files
-    - one step per module
-
-    Raises
-    ------
-    ProjectSetupException
-        explains what is wrong
-    """
-    _ = ProjectConfig()
-
-
-def validate_dataset(
-    constr="sqlite:///:memory:", env=None, draw=False, batch_size=2000
-):
+def validate_artifact(constr=CONSTR, draw=False, batch_size=2000):
     """asserts a few things about a dataset
 
     - configuration files are present
-    - standard functions can be imported
     - metadata is properly exported from datascript
     - metadata fits what is in the data files
     - is properly uploaded -> can be imported to a project
 
     Raises
     ------
-    DatasetSetupException
+    ArtifactSetupException
         explains what is wrong
     """
 
-    _log = partial(logger.info, env=env)
-
-    _log("full context")
-    ctx = ArtifactContext()
-
+    _log = logger.info
+    _log("getting runtime ctx")
+    ctx = get_runtime()
     _log("config files and naming")
-    conf = DatasetConfig()
-    ctx.branch_remote_pairs
-    for _env in [*conf.created_environments, conf.default_env]:
+    env_names = set()
+    for _env in ctx.config.envs:
         is_underscored_name(_env.name)
-        is_dashed_name(_env.branch)
+        env_names.add(_env.name)
+    if _env in ctx.config.envs:
+        if _env.parent:
+            assert _env.parent in env_names
 
-    _log("function imports")
-    import_env_creator_function()
-    import_update_data_function()
+    _log("packed metadata fits conventions")
+    serialized_meta = ctx.metadata
+    converter = DatascriptToBedrockConverter(ctx.name)
+    for ns_from_datascript in converter.get_namespaces():
+        ns_meta = serialized_meta.namespaces[ns_from_datascript.name]
+        for table in ns_meta.tables:
+            is_underscored_name(table.name)
+            for feat in table.features_w_ind:
+                is_underscored_name(feat.prime_id)
+        _log("packed metadata matching datascript")
+        ds_atom_n = 0
+        for ds_atom in ns_from_datascript.atoms:
+            try:
+                ser_atom = ns_meta.get(ds_atom.name)
+            except KeyError as e:
+                raise ArtifactSetupException(f"{ds_atom} not packed: {e}")
+            _nondesc_eq(ser_atom, ds_atom)
+            ds_atom_n += 1
+        assert ds_atom_n == len(ns_meta.atoms)
 
-    _log("serialized metadata fits conventions")
-    root_serialized_ns = ArtifactMetadata.load_serialized().root_ns
-    for table in root_serialized_ns.tables:
-        is_underscored_name(table.name)
-        for feat in table.features_w_ind:
-            is_underscored_name(feat.prime_id)
+    for env in ctx.config.validation_envs:
+        _log("reading data to sql db", env=env)
+        sql_validation(constr, env, draw, batch_size=batch_size)
 
-    _log("serialized metadata matching datascript")
-    root_datascript_ns = DatascriptToBedrockConverter(
-        ns_metadata_abs_module
-    ).to_ns_metadata()
-    ds_atom_n = 0
-    for ds_atom in root_datascript_ns.atoms:
-        try:
-            ser_atom = root_serialized_ns.get(ds_atom.name)
-        except KeyError as e:
-            raise DatasetSetupException(f"{ds_atom} not serialized: {e}")
-
-        _nondesc_eq(ser_atom, ds_atom)
-        ds_atom_n += 1
-    assert ds_atom_n == len(root_serialized_ns.atoms)
-
-    _log("data can be read to sql db")
-    sql_validation(constr, env, draw, batch_size=batch_size)
-
-    _log("data can be imported to a project via dvc")
-    validate_ds_importable(env or COMPLETE_ENV_NAME)
+    _log("importing data to a project via dvc")
+    validate_importable(ctx, ctx.config.validation_envs)
 
 
-def validate_ds_importable(env):
-    artifact_dir = Path.cwd().as_posix()
-    test_prefix = "test_dataset"
+def sql_validation(constr, env, draw=False, batch_size=2000):
+    loader = SqlLoader(constr, env, echo=False, batch_size=batch_size)
+    _log = logger.new(step="sql", constr=constr, batch_size=batch_size).info
+    try:
+        _log("schema setup")
+        loader.setup_schema()
+        draw and dump_graph(loader.sql_meta, loader.engine)
+        _log("loading to db")
+        loader.load_data()
+        _log("validating")
+        loader.validate_data()
+    finally:
+        loader.purge()
 
-    with cd_into(project_template_repo, force_clone=True):
-        ctx = ArtifactContext()
-        ctx.config.data_envs.append(DataEnvSpecification(test_prefix, env))
-        ctx.metadata.imported_namespaces.append(
-            ImportedNamespace(test_prefix, artifact_dir)
+
+def validate_importable(actx: "ArtifactContext", envs):
+    aname = actx.config.name
+    testname = f"zimmertestimport{aname}"
+    with cd_into(template_repo, force_clone=True):
+        _repo = Repo()
+        test_conf = Config(
+            name=testname,
+            version="v0.0",
+            registry=actx.registry.posix,
+            imported_artifacts=[ImportedArtifact(aname)],
+            envs=[ArtifactEnv(f"test_{env}", import_envs={aname: env}) for env in envs],
         )
-        ctx.serialize()
-        ctx.import_namespaces()
-        imported_bedrock_to_datascript()
-        _denv = ArtifactContext().data_envs[0]
-        _denv.out_path.parent.mkdir(exist_ok=True)
-        _denv.load_data(Repo())
+        test_reg = Registry(test_conf, True)
+        test_reg.full_build()
+        test_conf.dump()
+        for data_env in type(actx)().data_to_load:
+            data_env.path.mkdir(parents=True)
+            data_env.load_data(_repo)
         # TODO: assert this data matches local
+        test_reg.purge()
+    check_call(["pip", "uninstall", testname, "-y"])
 
 
 def is_underscored_name(s):
@@ -161,9 +133,7 @@ def is_step_name(s):
 
 def _check_match(bc, s, nums_ok=True):
     ok_chr = "a-z|0-9" if nums_ok else "a-z"
-    rex = r"[a-z]+((?!{bc}{bc})[{okc}|\{bc}])*[{okc}]+".format(
-        bc=bc, okc=ok_chr
-    )
+    rex = r"[a-z]+((?!{bc}{bc})[{okc}|\{bc}])*[{okc}]+".format(bc=bc, okc=ok_chr)
     if re.compile(rex).fullmatch(s) is None:
         raise NameError(
             f"{s} does not fit the expected format of "
@@ -173,9 +143,9 @@ def _check_match(bc, s, nums_ok=True):
 
 def _nondesc_eq(serialized: NS_ATOM_TYPE, datascript: NS_ATOM_TYPE):
     if _dropdesc(serialized) != _dropdesc(datascript):
-        raise DatasetSetupException(
+        raise ArtifactSetupException(
             "inconsistent metadata: "
-            f"serialized: {serialized} datascript: {datascript}"
+            f"serialized: {serialized}\ndatascript: {datascript}"
         )
 
 
