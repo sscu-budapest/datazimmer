@@ -2,18 +2,18 @@ import metazimmer.dogracebase.core as doglast
 import metazimmer.dogshowbase.core as dogfirst
 from colassigner import ChildColAssigner, Col, ColAssigner
 
-from sscutils import BaseEntity, IndexBase  # ScruTable, register
+import datazimmer as dz
 
 from .success import StatusIndex
 
 # TODO: complex examples in this namespace
 
 
-class DogPair(BaseEntity):
+class DogPair(dz.BaseEntity):
     pass
 
 
-class DominationIndex(IndexBase):
+class DominationIndex(dz.IndexBase):
     dominator = dogfirst.DogIndex
     dominated = dogfirst.DogIndex
 
@@ -77,7 +77,7 @@ class SuccessType(ChildColAssigner):
         pass
 
 
-class PersonByDogsizeIndex(IndexBase):
+class PersonByDogsizeIndex(dz.IndexBase):
     person = dogfirst.PersonIndex
     size = doglast.DogSizeIndex
 

@@ -1,12 +1,12 @@
-from sscutils import ReportFile, register
+import datazimmer as dz
 
 from .counts.meta import SizeCountFeatures, size_count_table
 from .sex_matches import SexMatchFeatures, sex_match_table
 
-top_tables_report = ReportFile("tops.md")
+top_tables_report = dz.ReportFile("tops.md")
 
 
-@register(
+@dz.register(
     dependencies=[
         sex_match_table,
         size_count_table,

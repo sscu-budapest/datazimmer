@@ -7,8 +7,8 @@ from typing import Optional
 from cookiecutter.main import generate_files
 from structlog import get_logger
 
-from sscutils.naming import BASE_CONF_PATH, MAIN_MODULE_NAME, template_repo
-from sscutils.utils import cd_into, package_root
+from datazimmer.naming import BASE_CONF_PATH, MAIN_MODULE_NAME, template_repo
+from datazimmer.utils import cd_into, package_root
 
 logger = get_logger()
 

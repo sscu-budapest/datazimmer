@@ -1,4 +1,4 @@
-from sscutils.utils import format_code
+from datazimmer.utils import format_code
 
 
 def test_lint():

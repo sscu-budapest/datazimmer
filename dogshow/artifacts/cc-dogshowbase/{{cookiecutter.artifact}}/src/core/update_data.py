@@ -1,11 +1,11 @@
 import pandas as pd
 
-from sscutils import dump_dfs_to_tables, register_data_loader
+import datazimmer as dz
 
 from . import ns_meta as ns
 
 
-@register_data_loader(extra_deps=[ns])
+@dz.register_data_loader(extra_deps=[ns])
 def update_data(data_root):
 
     persons_df = pd.read_csv(f"{data_root}/people.csv")
@@ -28,4 +28,4 @@ def update_data(data_root):
         (spots_df, ns.spot_table),
         (photo_df, ns.photo_table),
     ]
-    dump_dfs_to_tables(pairs)
+    dz.dump_dfs_to_tables(pairs)

@@ -1,4 +1,4 @@
-from sscutils import run_step
+import datazimmer as dz
 
 if __name__ == "__main__":
-    run_step()
+    dz.run_step()

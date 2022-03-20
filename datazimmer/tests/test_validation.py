@@ -1,6 +1,6 @@
 import pytest
 
-from sscutils.validation_functions import is_repo_name, is_step_name
+from datazimmer.validation_functions import is_repo_name, is_step_name
 
 
 @pytest.mark.parametrize(

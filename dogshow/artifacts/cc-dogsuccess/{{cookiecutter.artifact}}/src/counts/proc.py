@@ -1,13 +1,13 @@
 from colassigner import get_all_cols
 
-from sscutils import register
+import datazimmer as dz
 
 from .. import success  # module import is encouraged
 from ..success import sized_dog_table  # should work both ways
 from .meta import CountBase, size_count_table, status_count_table
 
 
-@register(
+@dz.register(
     dependencies=[sized_dog_table, success.status_table],
     outputs=[size_count_table, status_count_table],
 )

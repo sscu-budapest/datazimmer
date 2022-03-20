@@ -8,10 +8,9 @@ from typing import Iterable, Optional
 from pyinstrument import Profiler
 from structlog import get_logger
 
-from sscutils.metadata.bedrock.complete_id import CompleteIdBase
-
 from .config_loading import Config, RunConfig
 from .exceptions import ArtifactSetupException
+from .metadata.bedrock.complete_id import CompleteIdBase
 from .metadata.datascript.scrutable import ScruTable
 from .naming import BASE_CONF_PATH, PROFILES_PATH, get_data_path
 from .reporting import ReportFile

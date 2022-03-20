@@ -2,7 +2,7 @@ import metazimmer.dogshowbase.core as dogfirst
 from colassigner import Col, ColAssigner
 from colassigner.meta_base import get_all_cols
 
-from sscutils import ScruTable, TableFeaturesBase, register
+import datazimmer as dz
 
 
 class SexMatchIndex(ColAssigner):
@@ -23,14 +23,14 @@ class SexMatchIndex(ColAssigner):
         )
 
 
-class SexMatchFeatures(TableFeaturesBase):
+class SexMatchFeatures(dz.TableFeaturesBase):
     count = int
 
 
-sex_match_table = ScruTable(SexMatchFeatures, SexMatchIndex)
+sex_match_table = dz.ScruTable(SexMatchFeatures, SexMatchIndex)
 
 
-@register(
+@dz.register(
     dependencies=[
         dogfirst.spot_table,
         dogfirst.dog_table,

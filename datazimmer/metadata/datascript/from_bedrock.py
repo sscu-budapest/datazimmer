@@ -3,12 +3,11 @@ from pathlib import Path
 from queue import Queue
 from typing import Dict, Iterable, List
 
-from sscutils.metadata.bedrock.complete_id import CompleteId
-
 from ...metaprogramming import get_class_def
 from ...primitive_types import PrimitiveType
 from ...utils import format_code
 from ..bedrock.atoms import CompositeType, EntityClass, Table, get_index_cls_name
+from ..bedrock.complete_id import CompleteId
 from ..bedrock.feature_types import ANY_FEATURE_TYPE, ForeignKey, PrimitiveFeature
 from ..bedrock.namespace_metadata import NamespaceMetadata
 from .bases import BaseEntity, CompositeTypeBase, IndexBase, Nullable, TableFeaturesBase

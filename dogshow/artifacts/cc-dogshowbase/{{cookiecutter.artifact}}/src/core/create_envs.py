@@ -2,12 +2,12 @@ from functools import reduce
 from itertools import chain
 from operator import and_
 
-from sscutils import dump_dfs_to_tables, register_env_creator
+import datazimmer as dz
 
 from . import ns_meta as ns
 
 
-@register_env_creator(extra_deps=[ns])
+@dz.register_env_creator(extra_deps=[ns])
 def create_environments(min_prize_pool):
     """create environments that are described in the config of the repo"""
     comps_df = ns.competition_table.get_full_df().loc[
@@ -53,7 +53,7 @@ def create_environments(min_prize_pool):
         (rels_df, ns.relationship_table),
         (photo_df, ns.photo_table),
     ]
-    dump_dfs_to_tables(pairs)
+    dz.dump_dfs_to_tables(pairs)
 
 
 def _uelems(df, cols):

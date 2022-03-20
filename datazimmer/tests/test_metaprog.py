@@ -1,4 +1,4 @@
-from sscutils.metaprogramming import (
+from datazimmer.metaprogramming import (
     camel_to_snake,
     class_def_from_cls,
     get_simplified_mro,

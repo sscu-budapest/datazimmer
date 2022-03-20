@@ -1,9 +1,9 @@
 import pytest
 
-from sscutils.metadata import ArtifactMetadata
-from sscutils.metadata.bedrock.atoms import Table
-from sscutils.metadata.bedrock.complete_id import CompleteId
-from sscutils.metadata.bedrock.namespace_metadata import NamespaceMetadata
+from datazimmer.metadata import ArtifactMetadata
+from datazimmer.metadata.bedrock.atoms import Table
+from datazimmer.metadata.bedrock.complete_id import CompleteId
+from datazimmer.metadata.bedrock.namespace_metadata import NamespaceMetadata
 
 
 def test_base_lookup():

@@ -1,6 +1,6 @@
 import datetime as dt
 
-import sscutils as dz
+import datazimmer as dz
 
 
 class TableFeatures(dz.TableFeaturesBase):

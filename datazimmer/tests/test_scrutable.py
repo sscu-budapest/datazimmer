@@ -1,9 +1,9 @@
 import pandas as pd
 import pytest
 
-from sscutils import IndexBase, ScruTable, TableFeaturesBase
-from sscutils.exceptions import ArtifactRuntimeException
-from sscutils.naming import MAIN_MODULE_NAME, META_MODULE_NAME
+from datazimmer import IndexBase, ScruTable, TableFeaturesBase
+from datazimmer.exceptions import ArtifactRuntimeException
+from datazimmer.naming import MAIN_MODULE_NAME, META_MODULE_NAME
 
 _IN_MODULE = f"{MAIN_MODULE_NAME}.core"
 _EXT_MODULE = f"{META_MODULE_NAME}.ext.core"

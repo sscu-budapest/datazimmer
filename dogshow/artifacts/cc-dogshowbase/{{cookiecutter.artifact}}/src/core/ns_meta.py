@@ -1,20 +1,13 @@
 import datetime as dt
 
-from sscutils import (
-    BaseEntity,
-    CompositeTypeBase,
-    IndexBase,
-    Nullable,
-    ScruTable,
-    TableFeaturesBase,
-)
+import datazimmer as dz
 
 
-class Creature(BaseEntity):
+class Creature(dz.BaseEntity):
     pass
 
 
-class Pet(BaseEntity):
+class Pet(dz.BaseEntity):
     """most likely owned by pet owners, but not necessarily a creature"""
 
     # ^ this goes to description
@@ -29,39 +22,39 @@ class Person(Creature):
     pass
 
 
-class DogIndex(IndexBase):
+class DogIndex(dz.IndexBase):
     dog_id = str
 
 
-class PersonIndex(IndexBase):
+class PersonIndex(dz.IndexBase):
     person_id = str
 
 
-class CompetitionIndex(IndexBase):
+class CompetitionIndex(dz.IndexBase):
     competition_id = str
 
 
-class RelationshipIndex(IndexBase):
+class RelationshipIndex(dz.IndexBase):
     owner = PersonIndex
     dog = DogIndex
 
 
-class PhotoIndex(IndexBase):
+class PhotoIndex(dz.IndexBase):
     photo_id = str
 
 
-class ResultType(CompositeTypeBase):
+class ResultType(dz.CompositeTypeBase):
     owner = PersonIndex
     pet = DogIndex
     prize = int
 
 
-class BuildingInfoType(CompositeTypeBase):
+class BuildingInfoType(dz.CompositeTypeBase):
     floor = int
     door = int
 
 
-class AddressType(CompositeTypeBase):
+class AddressType(dz.CompositeTypeBase):
     city = str
     street_address = str
     building = BuildingInfoType
@@ -70,48 +63,48 @@ class AddressType(CompositeTypeBase):
 # add in v0.0:     zip = str
 
 
-class PersonFeatures(TableFeaturesBase):
+class PersonFeatures(dz.TableFeaturesBase):
     name = str
-    date_of_birth = Nullable(dt.datetime)
+    date_of_birth = dz.Nullable(dt.datetime)
 
 
-class DogFeatures(TableFeaturesBase):
+class DogFeatures(dz.TableFeaturesBase):
     name = str
     date_of_birth = dt.datetime
-    waist = Nullable(float)
+    waist = dz.Nullable(float)
     sex = str
 
 
-class RelationshipFeatures(TableFeaturesBase):
+class RelationshipFeatures(dz.TableFeaturesBase):
     since_birth = bool
 
 
-class CompetitionFeatures(TableFeaturesBase):
+class CompetitionFeatures(dz.TableFeaturesBase):
     prize_pool = int
     winner = ResultType
     runner_up = ResultType
     special_mention = ResultType
 
 
-class SpotFeatures(TableFeaturesBase):
+class SpotFeatures(dz.TableFeaturesBase):
     dog_1 = DogIndex
     dog_2 = DogIndex
     place = AddressType
 
 
-class PhotoFeatures(TableFeaturesBase):
+class PhotoFeatures(dz.TableFeaturesBase):
     cuteness = float
     rel = RelationshipIndex
 
 
-person_table = ScruTable(PersonFeatures, PersonIndex, subject_of_records=Person)
-dog_table = ScruTable(
+person_table = dz.ScruTable(PersonFeatures, PersonIndex, subject_of_records=Person)
+dog_table = dz.ScruTable(
     DogFeatures,
     DogIndex,
     subject_of_records=Dog,
     partitioning_cols=[DogFeatures.sex],
 )
-relationship_table = ScruTable(RelationshipFeatures, RelationshipIndex)
-competition_table = ScruTable(CompetitionFeatures, CompetitionIndex)
-spot_table = ScruTable(SpotFeatures)
-photo_table = ScruTable(PhotoFeatures, index=PhotoIndex)
+relationship_table = dz.ScruTable(RelationshipFeatures, RelationshipIndex)
+competition_table = dz.ScruTable(CompetitionFeatures, CompetitionIndex)
+spot_table = dz.ScruTable(SpotFeatures)
+photo_table = dz.ScruTable(PhotoFeatures, index=PhotoIndex)

@@ -3,9 +3,8 @@ from typing import List, Optional, Type
 
 from structlog import get_logger
 
-from sscutils.exceptions import ArtifactRuntimeException
-
 from ...config_loading import Config, RunConfig, UnavailableTrepo
+from ...exceptions import ArtifactRuntimeException
 from ...get_runtime import get_runtime
 from ...metaprogramming import camel_to_snake, snake_to_camel
 from ...naming import FEATURES_CLS_SUFFIX, INDEX_CLS_SUFFIX

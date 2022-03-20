@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from colassigner import Col
 
-from sscutils import IndexBase, ReportFile, ScruTable, TableFeaturesBase, register
+import datazimmer as dz
 
 
 def fit_to_limit(
@@ -24,15 +24,15 @@ def fit_to_limit(
     return out
 
 
-class StatusIndex(IndexBase):
+class StatusIndex(dz.IndexBase):
     status_name = str
 
 
-class StatusFeatures(TableFeaturesBase):
+class StatusFeatures(dz.TableFeaturesBase):
     wins = doglast.IntLimitType
 
 
-class SizedDogFeatures(TableFeaturesBase):
+class SizedDogFeatures(dz.TableFeaturesBase):
     def __init__(self) -> None:
         self.limit_df = doglast.dog_size_table.get_full_df()
 
@@ -44,17 +44,17 @@ class SizedDogFeatures(TableFeaturesBase):
         )
 
 
-status_table = ScruTable(StatusFeatures, StatusIndex)
-sized_dog_table = ScruTable(
+status_table = dz.ScruTable(StatusFeatures, StatusIndex)
+sized_dog_table = dz.ScruTable(
     SizedDogFeatures,
     index=dogfirst.DogIndex,
     subject_of_records=dogfirst.Dog,
 )
 
-status_md = ReportFile("status_table.md")
+status_md = dz.ReportFile("status_table.md")
 
 
-@register(
+@dz.register(
     dependencies=[
         dogfirst.competition_table,
         dogfirst.dog_table,

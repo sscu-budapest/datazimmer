@@ -4,10 +4,10 @@ from pathlib import Path
 import pytest
 from invoke import Context
 
-from sscutils.config_loading import Config
-from sscutils.exceptions import ArtifactSetupException
-from sscutils.invoke_commands import build_meta, lint, load_external_data, release
-from sscutils.utils import reset_meta_module
+from datazimmer.config_loading import Config
+from datazimmer.exceptions import ArtifactSetupException
+from datazimmer.invoke_commands import build_meta, lint, load_external_data, release
+from datazimmer.utils import reset_meta_module
 
 from .create_dogshow import modify_to_version
 from .init_dogshow import setup_dogshow

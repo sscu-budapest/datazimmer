@@ -3,8 +3,8 @@ from pathlib import Path
 
 from pytest import raises
 
-from sscutils.naming import DEFAULT_ENV_NAME
-from sscutils.pipeline_registry import PipelineRegistry
+from datazimmer.naming import DEFAULT_ENV_NAME
+from datazimmer.pipeline_registry import PipelineRegistry
 
 
 def test_pipereg_basics(running_template):

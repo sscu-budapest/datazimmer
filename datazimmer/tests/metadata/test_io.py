@@ -1,6 +1,6 @@
 import pytest
 
-from sscutils.metadata.bedrock.atoms import CompositeType
+from datazimmer.metadata.bedrock.atoms import CompositeType
 
 
 def test_feature_parse():

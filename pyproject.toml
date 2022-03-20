@@ -1,5 +1,5 @@
 [project]
-name = "sscutils"
+name = "datazimmer"
 description = "sscu-budapest utilities for scientific data engineering"
 authors = [
     "Social Science Computing Unit Budapest"
@@ -7,7 +7,7 @@ authors = [
 license = "MIT"
 readme = "README.md"
 python = ">=3.8"
-url = "https://github.com/sscu-budapest/sscutils"
+url = "https://github.com/sscu-budapest/datazimmer"
 [build-system]
 requires = [
     "toml >= 0.10.0",
