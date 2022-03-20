@@ -1,6 +1,9 @@
 import sys
 from dataclasses import dataclass
+from shutil import rmtree
 from typing import Dict, List
+
+from dvc.repo import Repo
 
 from .config_loading import Config
 from .get_runtime import get_runtime
@@ -30,6 +33,16 @@ class ArtifactContext:
         else:
             meta = self.ext_metas[id_.artifact]
         return meta.get_atom(id_)
+
+    def load_all_data(self):
+        dvc_repo = Repo()
+        posixes = []
+        for data_env in self.data_to_load:
+            rmtree(data_env.path, ignore_errors=True)  # brave thing...
+            data_env.path.parent.mkdir(exist_ok=True, parents=True)
+            data_env.load_data(dvc_repo)
+            posixes.append(data_env.posix)
+        return posixes
 
     def _fill_ext_meta(self):
         for a_imp in self.config.imported_artifacts:

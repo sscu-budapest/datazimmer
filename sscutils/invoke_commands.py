@@ -1,5 +1,4 @@
 from dataclasses import asdict
-from shutil import rmtree
 
 from dvc.repo import Repo
 from invoke import Collection, UnexpectedExit, task
@@ -67,18 +66,12 @@ def load_external_data(ctx, git_commit=False):
     but dvc handles quite a lot of caching
     """
     runtime = get_runtime(True)
-    dvc_repo = Repo()
     logger.info("loading external data", envs=runtime.data_to_load)
-    for data_env in runtime.data_to_load:
-        rmtree(data_env.path, ignore_errors=True)  # brave thing...
-        data_env.path.parent.mkdir(exist_ok=True, parents=True)
-        data_env.load_data(dvc_repo)
-        if git_commit:
-            ctx.run(f"git add *.gitignore {data_env.posix}.dvc")
-            ctx.run(
-                'git commit -m "add imported dataset'
-                f' {data_env.posix}: {data_env.env}"'
-            )
+    posixes = runtime.load_all_data()
+    if git_commit and posixes:
+        dvc_paths = " ".join([f"{p}.dvc" for p in posixes])
+        ctx.run(f"git add *.gitignore {dvc_paths}")
+        ctx.run('git commit -m "add imported datases"')
 
 
 @task
