@@ -1,10 +1,6 @@
-class NotAnArtifactException(Exception):
+class ArtifactSetupException(Exception):
     pass
 
 
-class DatasetSetupException(Exception):
-    pass
-
-
-class ProjectSetupException(Exception):
+class ArtifactRuntimeException(Exception):
     pass
