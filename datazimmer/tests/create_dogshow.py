@@ -34,6 +34,7 @@ class DogshowContextCreator:
         self.local_root = local_output_root
         self.git_user = git_user
         self.git_email = git_email
+        self.ran_dirs = []
 
         self.git_remote_root = Path(git_remote_root or self.local_root / "git-remotes")
         self.csv_path = csv_path
@@ -126,6 +127,7 @@ class DogshowContextCreator:
             self.local_root,
             overwrite_if_exists=True,
         )
+        self.ran_dirs.append(root_dir)
         with cd_into(root_dir):
             _add_readme(template_repo)
             _commit_changes(root_dir)

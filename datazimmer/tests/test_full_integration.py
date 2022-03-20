@@ -6,8 +6,14 @@ from invoke import Context
 
 from datazimmer.config_loading import Config
 from datazimmer.exceptions import ArtifactSetupException
-from datazimmer.invoke_commands import build_meta, lint, load_external_data, release
-from datazimmer.utils import reset_meta_module
+from datazimmer.invoke_commands import (
+    build_meta,
+    cleanup,
+    lint,
+    load_external_data,
+    release,
+)
+from datazimmer.utils import cd_into, reset_meta_module
 
 from .create_dogshow import modify_to_version
 from .init_dogshow import setup_dogshow
@@ -22,11 +28,15 @@ def test_full_dogshow(tmp_path: Path, pytestconfig):
     pg_host = os.environ.get("POSTGRES_HOST", "localhost")
     constr = f"postgresql://postgres:postgres@{pg_host}:5432/postgres"
     c = Context()
-    for ds in ds_cc.all_contexts:
-        run_artifact_test(ds, c, constr)
+    try:
+        for ds in ds_cc.all_contexts:
+            run_artifact_test(ds, c, constr)
 
-    ds_cc.check_sdist_checksums()
-    # TODO: cleanup
+        ds_cc.check_sdist_checksums()
+    finally:
+        for ran_dir in ds_cc.ran_dirs:
+            with cd_into(ran_dir):
+                cleanup(c)
 
 
 def run_artifact_test(dog_context, c, constr):
