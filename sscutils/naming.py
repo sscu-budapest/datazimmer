@@ -19,6 +19,7 @@ BASE_CONF_PATH = Path("zimmer.yaml")
 DATA_PATH = Path("data")
 PROFILES_PATH = Path("run-profiles")
 REGISTRY_ROOT_DIR = Path.home() / "zimmer-registries"
+SANDBOX_DIR = Path.home() / "zimmer-sandbox"
 MAIN_MODULE_NAME = "src"
 META_MODULE_NAME = "metazimmer"
 PACKAGE_NAME = "metazimmer"
@@ -59,6 +60,7 @@ class RegistryPaths:
 
         self.flit_posixes = self._relpos([_meta_root, self.toml_path])
         self.publish_paths = self._relpos([self.dist_dir, self.info_yaml])
+        self.dist_gitpath = f"index/{name}/{name}-{version}.tar.gz"
 
     def info_yaml_of(self, name, version):
         return self._info_dir / f"{name}-{version}.yaml"
