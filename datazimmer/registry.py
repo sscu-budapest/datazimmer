@@ -49,7 +49,7 @@ class Registry:
         try:
             comm = ["git", "cat-file", "-e", f"origin/main:{self.paths.dist_gitpath}"]
             check_call(comm, cwd=self.posix)
-            msg = f"can't package version {self.conf.version} - already in registry"
+            msg = f"can't package {self.name}-{self.conf.version} - already released"
             raise ArtifactSetupException(msg)
         except CalledProcessError:
             pass
