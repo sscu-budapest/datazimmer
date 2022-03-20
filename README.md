@@ -14,6 +14,15 @@ these are used in the [artifact-template](https://github.com/sscu-budapest/proje
 
 Make sure that `python` points to `python>=3.8` and you have `pip` and `git`
 
+## Functions
+
+### Tinker
+
+> check out a table or few, with a notebook and some basic analysis to help
+
+### Engineer Research
+
+
 ## Lookahead
 
 - overlapping names convention
