@@ -1,4 +1,5 @@
 import re
+from contextlib import contextmanager
 from subprocess import check_call
 from typing import TYPE_CHECKING
 
@@ -9,11 +10,11 @@ from .exceptions import ArtifactSetupException
 from .get_runtime import get_runtime
 from .metadata.bedrock.atoms import NS_ATOM_TYPE
 from .metadata.datascript.to_bedrock import DatascriptToBedrockConverter
-from .naming import CONSTR
+from .naming import CONSTR, SANDBOX_DIR, SANDBOX_NAME, template_repo
 from .registry import Registry
 from .sql.draw import dump_graph
 from .sql.loader import SqlLoader
-from .utils import sandbox_artifact
+from .utils import cd_into
 
 if TYPE_CHECKING:
     from .artifact_context import ArtifactContext
@@ -93,22 +94,19 @@ def sql_validation(constr, env, draw=False, batch_size=2000):
 
 def validate_importable(actx: "ArtifactContext", envs):
     aname = actx.config.name
-    testname = f"zimmertestimport{aname}"
     with sandbox_artifact():
         test_conf = Config(
-            name=testname,
+            name=SANDBOX_NAME,
             version="v0.0",
-            registry=actx.registry.posix,
             imported_artifacts=[ImportedArtifact(aname)],
             envs=[ArtifactEnv(f"test_{env}", import_envs={aname: env}) for env in envs],
         )
-        test_reg = Registry(test_conf, True)
-        test_reg.full_build()
+        test_reg = Registry(test_conf)
+        infp = test_reg.paths.info_yaml_of(aname, actx.config.version)
+        infp.write_text(actx.registry.paths.info_yaml.read_text())
         test_conf.dump()
         type(actx)().load_all_data()
         # TODO: assert this data matches local
-        test_reg.purge()
-    check_call(["pip", "uninstall", testname, "-y"])
 
 
 def is_underscored_name(s):
@@ -125,6 +123,18 @@ def is_repo_name(s):
 
 def is_step_name(s):
     _check_match("_", s, False)
+
+
+@contextmanager
+def sandbox_artifact():
+    if not SANDBOX_DIR.exists():
+        check_call(["git", "clone", template_repo, SANDBOX_DIR.as_posix()])
+        with cd_into(SANDBOX_DIR):
+            conf = Config(SANDBOX_NAME, "v0.0")
+            conf.dump()
+            Registry(conf, reset=True).full_build()
+    with cd_into(SANDBOX_DIR):
+        yield
 
 
 def _check_match(bc, s, nums_ok=True):

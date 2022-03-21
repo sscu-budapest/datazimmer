@@ -20,6 +20,7 @@ DATA_PATH = Path("data")
 PROFILES_PATH = Path("run-profiles")
 REGISTRY_ROOT_DIR = Path.home() / "zimmer-registries"
 SANDBOX_DIR = Path.home() / "zimmer-sandbox"
+SANDBOX_NAME = "zimmersandboxartifact"
 MAIN_MODULE_NAME = "src"
 META_MODULE_NAME = "metazimmer"
 PACKAGE_NAME = "metazimmer"

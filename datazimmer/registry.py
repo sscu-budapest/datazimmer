@@ -147,7 +147,7 @@ class Registry:
             return
         # TODO: make sure dependency resolution works
         comm = [sys.executable, "-m", "pip", "install", "-i", self._index_addr]
-        fallback_ind = ["--extra-index-url", "https://pypi.org/simple"]
+        fallback_ind = [] # "--extra-index-url", "https://pypi.org/simple"]
         extras = ["--no-cache", "--no-build-isolation"]
         if upgrade:
             extras += ["--upgrade", "--upgrade-strategy", "only-if-needed"]

@@ -1,4 +1,5 @@
 from dataclasses import asdict
+from shutil import rmtree
 
 from dvc.repo import Repo
 from invoke import Collection, UnexpectedExit, task
@@ -6,7 +7,7 @@ from structlog import get_logger
 
 from .config_loading import Config, RunConfig, get_tag
 from .get_runtime import get_runtime
-from .naming import CONSTR, MAIN_MODULE_NAME
+from .naming import CONSTR, MAIN_MODULE_NAME, SANDBOX_DIR, SANDBOX_NAME
 from .pipeline_registry import get_global_pipereg
 from .registry import Registry
 from .utils import LINE_LEN
@@ -86,6 +87,9 @@ def cleanup(ctx):
     reg = Registry(conf, True)
     ctx.run(f"pip uninstall {aname} -y")
     reg.purge()
+    if SANDBOX_DIR.exists():
+        ctx.run(f"pip uninstall {SANDBOX_NAME} -y")
+        rmtree(SANDBOX_DIR.as_posix())
 
 
 @task
@@ -123,7 +127,8 @@ def run(_, stage=True, profile=False, force=False, env=None):
             dvc_repo.reproduce(force=force, targets=env_stages)
 
 
-ns = Collection(*[lint, release, build_meta, validate, load_external_data, run])
+all_tasks = [lint, release, build_meta, validate, load_external_data, run, cleanup]
+ns = Collection(*all_tasks)
 
 
 def _commit_dvc_default(ctx, remote):
