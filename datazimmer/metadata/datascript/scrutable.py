@@ -93,9 +93,8 @@ class ScruTable:
         if missing_cols:
             logger.warn(f"missing from columns {missing_cols}")
         out = df.astype(full_dic)
-        if set_ind:
-            return out.set_index([*ind_dic.keys()])
-        return out.loc[:, [*feat_dic.keys()]]
+        inds = [*ind_dic.keys()]
+        return (out.set_index(inds) if set_ind else out).loc[:, [*feat_dic.keys()]]
 
     def _infer_id(self, features_cls, index_cls) -> str:
         if features_cls is not None:
