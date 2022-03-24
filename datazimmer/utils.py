@@ -57,6 +57,14 @@ def is_repo(s):
     return any(map(str(s).startswith, ["git@", "http://", "https://"]))
 
 
+def get_git_diffs(staged=False):
+    comm = ["git", "diff", "--name-only"]
+    if staged:
+        comm.append("--cached")
+    diffs = check_output(comm)
+    return [*filter(None, diffs.decode("utf-8").strip().split("\n"))]
+
+
 @contextmanager
 def cd_into(
     dirpath: Union[str, Path],
