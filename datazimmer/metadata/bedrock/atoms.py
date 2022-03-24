@@ -15,7 +15,7 @@ class _AtomBase:
         fl_hint = List[ANY_FEATURE_TYPE]
         for attname, hint in self.__annotations__.items():
             parsed_v = getattr(self, attname)
-            if (hint == Optional[fl_hint]) or (hint == fl_hint):
+            if hint == fl_hint:
                 parsed_v = _parse_poss_feat_list(parsed_v)
             elif is_type_hint_origin(hint, CompleteIdOf):
                 parsed_v = CompleteId.from_serialized_id(parsed_v)
@@ -91,8 +91,6 @@ def _serialize(obj):
 
 
 def _parse_poss_feat_list(feat_list):
-    if feat_list is None:
-        return
     new_atts = []
     for poss_feat in feat_list:
         if type(poss_feat) in ALL_FEATURE_TYPES:
