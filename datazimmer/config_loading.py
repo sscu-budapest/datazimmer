@@ -60,6 +60,7 @@ class Config:
     validation_envs: list = None
     envs: List[ArtifactEnv] = None
     imported_artifacts: List[ImportedArtifact] = field(default_factory=list)
+    cron_bumps: dict = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.envs:
@@ -133,6 +134,17 @@ class Config:
         if env is not None:
             trepo.set_env(self.resolve_ns_env(id_base.artifact, env))
         return trepo
+
+    def init_cron_bump(self, pipe_elem_name):
+        if self.cron_bumps.get(pipe_elem_name) is None:
+            self.cron_bumps[pipe_elem_name] = -1
+            self.bump_cron(pipe_elem_name)
+
+    def bump_cron(self, pipe_elem_name):
+        self.cron_bumps[pipe_elem_name] += 1
+        c_dic = yaml.safe_load(BASE_CONF_PATH.read_text())
+        new_conf = {**c_dic, "cron_bumps": self.cron_bumps}
+        BASE_CONF_PATH.write_text(yaml.dump(new_conf, sort_keys=False))
 
     def dump(self):
         d = asdict(self)
