@@ -32,7 +32,7 @@ template_repo = os.environ.get(
 )
 
 CONSTR = "sqlite:///:memory:"
-SSCUB_REGISTRY = "https://github.com/sscu-budapest/artifact-registry"
+SSCUB_REGISTRY = "git@github.com:sscu-budapest/artifact-registry.git"
 
 
 class SDistPaths:

@@ -11,6 +11,7 @@ from datazimmer.exceptions import ArtifactSetupException
 
 from .config_loading import Config, RunConfig, get_tag
 from .get_runtime import get_runtime
+from .gh_actions import write_actions
 from .naming import (
     BASE_CONF_PATH,
     CONSTR,
@@ -65,6 +66,11 @@ def publish_data(ctx, validate=False):
 def build_meta(_):
     get_global_pipereg(reset=True)  # used when building meta from script
     Registry(Config.load()).full_build()
+    runtime = get_runtime(True)
+    crons = set(filter(None, [s.cron for s in runtime.pipereg.steps]))
+    if crons:
+        logger.info("writing github actions files for crons", crons=crons)
+        write_actions(crons)
 
 
 @task
@@ -107,7 +113,7 @@ def run_cronjobs(ctx, cronexpr=None):
     for step in runtime.pipereg.steps:
         if step.cron == (cronexpr or os.environ.get(CRON_ENV_VAR)):
             runtime.config.bump_cron(step.name)
-            run(ctx, commit=True)
+    run(ctx, commit=True)
 
 
 @task
@@ -134,7 +140,7 @@ def run(ctx, stage=True, profile=False, force=False, env=None, commit=False):
     with rconf:
         logger.info("running repro", targets=targets, **asdict(rconf))
         runs = dvc_repo.reproduce(force=force, targets=targets)
-    ctx.run("git add dvc.yaml dvc.lock")
+    ctx.run(f"git add dvc.yaml dvc.lock {BASE_CONF_PATH}")
     if commit and get_git_diffs(True):
         ctx.run(f'git commit -m "run {dt.datetime.now().isoformat()} {runs}"')
     return runs
@@ -143,6 +149,7 @@ def run(ctx, stage=True, profile=False, force=False, env=None, commit=False):
 all_tasks = [
     lint,
     publish_data,
+    publish_meta,
     build_meta,
     validate,
     load_external_data,
