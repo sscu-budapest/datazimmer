@@ -18,7 +18,8 @@ csv_path = Path(artifact_src_root, "data").absolute().as_posix()
 
 dog_artifacts = ["dogshowbase", "dogracebase", "dogsuccess", "dogcombine"]
 
-_VERSIONS = {"dogshowbase": ["0.0", "0.1"]}
+_VERSIONS = {"dogshowbase": ["0.0", "0.1"], "dogsuccess": ["1.0"]}
+_CRONS = {"dogshowbase": ["0 0 1 * *"]}
 
 
 class DogshowContextCreator:
@@ -56,39 +57,22 @@ class DogshowContextCreator:
         self._init_if_local(remote)
         return remote
 
-    def init_git_repo(
-        self,
-        dirpath: str,
-        allow_push=False,
-        remote="",
-        template_repo="",
-    ):
+    def init_git_repo(self, dirpath: str, remote="", template_repo=""):
 
         if template_repo:
-            commands = [["git", "clone", template_repo, "."]]
-            commands.append(["rm", "src/core.py"])
+            commands = [["git", "clone", template_repo, "."], ["rm", "src/core.py"]]
         else:
             commands = [["git", "init"]]
 
-        commands += [
-            ["git", "config", "--local", "user.name", self.git_user],
-            ["git", "config", "--local", "user.email", self.git_email],
+        gconfs = [
+            ("user.name", self.git_user),
+            ("user.email", self.git_email),
+            ("receive.denyCurrentBranch", "updateInstead"),
         ]
+        commands += [["git", "config", "--local", *gconf] for gconf in gconfs]
         if remote:
-            commands.append(
-                [
-                    "git",
-                    "remote",
-                    "set-url" if template_repo else "add",
-                    "origin",
-                    remote,
-                ]
-            )
-        if allow_push:
-            # useful if you intend to push to a local repo
-            commands.append(
-                ["git", "config", "receive.denyCurrentBranch", "updateInstead"]
-            )
+            _rcomm = "set-url" if template_repo else "add"
+            commands.append(["git", "remote", _rcomm, "origin", remote])
 
         for comm in commands:
             check_call(comm, cwd=dirpath)
@@ -104,10 +88,7 @@ class DogshowContextCreator:
     def _init_if_local(self, repo_path):
         if not str(repo_path).startswith("git@"):
             repo_path.mkdir(parents=True, exist_ok=True)
-            self.init_git_repo(
-                repo_path,
-                allow_push=True,
-            )
+            self.init_git_repo(repo_path)
 
     @contextmanager
     def artifact_ctx(self, name):
@@ -115,11 +96,7 @@ class DogshowContextCreator:
         root_dir.mkdir()
         template_path = artifact_src_root / f"cc-{name}"
         git_remote = self.get_git_remote(name)
-        self.init_git_repo(
-            root_dir,
-            remote=git_remote,
-            template_repo=template_repo,
-        )
+        self.init_git_repo(root_dir, git_remote, template_repo)
         add_dvc_remotes(root_dir, self.dvc_remotes)
         generate_files(
             template_path,
@@ -131,7 +108,7 @@ class DogshowContextCreator:
         with cd_into(root_dir):
             _add_readme(template_repo)
             _commit_changes(root_dir)
-            yield _VERSIONS.get(name, [])
+            yield _VERSIONS.get(name, []), _CRONS.get(name, [])
 
     def check_sdist_checksums(self):
         pass  # TODO check builds
@@ -158,8 +135,7 @@ def add_dvc_remotes(dirpath, remotes):
 
 def modify_to_version(version: str):
     # TODO
-    # add one output/dependency for something
-    # delete one of either"
+    # add one output/dependency for something + delete one of either"
     # {"sex_match": "sex_pairing"}
 
     del_str = f"# remove in v{version}"
