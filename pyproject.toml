@@ -1,9 +1,7 @@
 [project]
 name = "datazimmer"
 description = "sscu-budapest utilities for scientific data engineering"
-authors = [
-    "Social Science Computing Unit Budapest"
-]
+authors = [{name = "Social Science Computing Unit Budapest"}]
 license = {file = "LICENSE"}
 readme = "README.md"
 python = ">=3.8"
