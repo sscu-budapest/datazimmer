@@ -4,7 +4,7 @@ description = "sscu-budapest utilities for scientific data engineering"
 authors = [
     "Social Science Computing Unit Budapest"
 ]
-license = "MIT"
+license = {file = "LICENSE"}
 readme = "README.md"
 python = ">=3.8"
 url = "https://github.com/sscu-budapest/datazimmer"
