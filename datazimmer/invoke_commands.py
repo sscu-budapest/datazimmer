@@ -1,17 +1,28 @@
+import datetime as dt
+import os
 from dataclasses import asdict
 from shutil import rmtree
 
 from dvc.repo import Repo
-from invoke import Collection, UnexpectedExit, task
+from invoke import Collection, task
 from structlog import get_logger
+
+from datazimmer.exceptions import ArtifactSetupException
 
 from .config_loading import Config, RunConfig, get_tag
 from .get_runtime import get_runtime
-from .naming import CONSTR, MAIN_MODULE_NAME, SANDBOX_DIR, SANDBOX_NAME
+from .naming import (
+    BASE_CONF_PATH,
+    CONSTR,
+    CRON_ENV_VAR,
+    MAIN_MODULE_NAME,
+    SANDBOX_DIR,
+    SANDBOX_NAME,
+)
 from .pipeline_registry import get_global_pipereg
 from .registry import Registry
-from .utils import LINE_LEN
-from .validation_functions import validate_artifact
+from .utils import LINE_LEN, get_git_diffs
+from .validation_functions import validate_artifact, validate_importable
 
 logger = get_logger(ctx="invoke task")
 
@@ -24,21 +35,17 @@ def lint(ctx, line_length=LINE_LEN):
 
 
 @task
-def release(ctx, constr=CONSTR):
-    # TODO
-    # check if version tag is already present in remote registry
-    # check dvc remotes from created-envs are present
-    # validate dataset
-    # tag first
-    # try it all, push tags if good, remove tags if bad
-    # need to push to dvc though!
-    # for the switching of dvc repos, prep work needs to be done
+def publish_meta(_):
+    _validate_empty_vc("publishing meta", [MAIN_MODULE_NAME])
+    get_runtime(True).registry.publish()
 
+
+@task
+def publish_data(ctx, validate=False):
+    # TODO: current meta should be built and published
+    _validate_empty_vc("publishing data")
     runtime = get_runtime(True)
-    assert runtime.config.validation_envs
     dvc_repo = Repo()
-    run(ctx)  # TODO: nothing should run (?)
-    # avoid tagging the same data differently
     data_version = runtime.metadata.next_data_v
     for env in runtime.config.sorted_envs:
         targets = runtime.pipereg.step_names_of_env(env.name)
@@ -50,12 +57,13 @@ def release(ctx, constr=CONSTR):
         ctx.run(f"git push origin {vtag}")
     ctx.run("git push")
     runtime.registry.publish()
-    validate(ctx, con=constr)
+    if validate:
+        validate_importable(runtime)
 
 
 @task(aliases=("build",))
 def build_meta(_):
-    get_global_pipereg(reset=True)
+    get_global_pipereg(reset=True)  # used when building meta from script
     Registry(Config.load()).full_build()
 
 
@@ -72,7 +80,8 @@ def load_external_data(ctx, git_commit=False):
     if git_commit and posixes:
         dvc_paths = " ".join([f"{p}.dvc" for p in posixes])
         ctx.run(f"git add *.gitignore {dvc_paths}")
-        ctx.run('git commit -m "add imported datases"')
+        if get_git_diffs(True):
+            ctx.run('git commit -m "add imported datases"')
 
 
 @task
@@ -93,14 +102,18 @@ def cleanup(ctx):
 
 
 @task
-def run(_, stage=True, profile=False, force=False, env=None):
-    conf = {}
-    if stage:
-        conf["core"] = {"autostage": True}
-    dvc_repo = Repo(config=conf)
-
+def run_cronjobs(ctx, cronexpr=None):
     runtime = get_runtime()
+    for step in runtime.pipereg.steps:
+        if step.cron == (cronexpr or os.environ.get(CRON_ENV_VAR)):
+            runtime.config.bump_cron(step.name)
+            run(ctx, commit=True)
 
+
+@task
+def run(ctx, stage=True, profile=False, force=False, env=None, commit=False):
+    dvc_repo = Repo(config={"core": {"autostage": stage}})
+    runtime = get_runtime()
     stage_names = []
     for step in runtime.pipereg.steps:
         logger.info("adding step", step=step)
@@ -108,33 +121,47 @@ def run(_, stage=True, profile=False, force=False, env=None):
         stage_names.append(step.name)
 
     for stage in dvc_repo.stages:
-        if stage.is_data_source or stage.is_import:
+        if stage.is_data_source or stage.is_import or (stage.name in stage_names):
             continue
-        if stage.name in stage_names:
-            continue
-
         logger.info("removing step", step=step)
         dvc_repo.remove(stage.name)
         dvc_repo.lock.lock()
         stage.remove_outs(force=True)
         dvc_repo.lock.unlock()
 
-    for env in runtime.config.envs:
-        rconf = RunConfig(write_env=env.name, profile=profile)
-        with rconf:
-            env_stages = runtime.pipereg.step_names_of_env(env.name)
-            logger.info("running repro", stages=env_stages, **asdict(rconf))
-            dvc_repo.reproduce(force=force, targets=env_stages)
+    targets = runtime.pipereg.step_names_of_env(env.name) if env else None
+    rconf = RunConfig(profile=profile)
+    with rconf:
+        logger.info("running repro", targets=targets, **asdict(rconf))
+        runs = dvc_repo.reproduce(force=force, targets=targets)
+    ctx.run("git add dvc.yaml dvc.lock")
+    if commit and get_git_diffs(True):
+        ctx.run(f'git commit -m "run {dt.datetime.now().isoformat()} {runs}"')
+    return runs
 
 
-all_tasks = [lint, release, build_meta, validate, load_external_data, run, cleanup]
+all_tasks = [
+    lint,
+    publish_data,
+    build_meta,
+    validate,
+    load_external_data,
+    run,
+    cleanup,
+    run_cronjobs,
+]
 ns = Collection(*all_tasks)
 
 
 def _commit_dvc_default(ctx, remote):
     ctx.run(f"dvc remote default {remote}")
     ctx.run("git add .dvc")
-    try:
+    if get_git_diffs(True):
         ctx.run(f'git commit -m "update dvc default remote to {remote}"')
-    except UnexpectedExit:
-        pass
+
+
+def _validate_empty_vc(attempt, prefs=("dvc.", MAIN_MODULE_NAME)):
+    for fp in get_git_diffs() + get_git_diffs(True):
+        if any([*[fp.startswith(pref) for pref in prefs], fp == BASE_CONF_PATH]):
+            msg = f"{fp} should be committed to git before {attempt}"
+            raise ArtifactSetupException(msg)

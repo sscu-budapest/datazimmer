@@ -82,7 +82,7 @@ class PipelineRegistry:
                 read_env=self._conf.default_env,
                 outputs=self._get_data_dirs(fun, _env.name),
                 dependencies=deps,
-                cron=cron
+                cron=cron,
             )(fun)
         return fun
 
@@ -152,7 +152,9 @@ class PipelineElement:
 
     def run(self):
         conf = RunConfig.load()
-        conf.set_read_env(self.read_env)
+        conf.read_env = self.read_env
+        conf.write_env = self.env
+        conf.dump()
         _, kwargs = self._get_params()
         with _profile(conf.profile, self.name):
             return self.runner(**kwargs)

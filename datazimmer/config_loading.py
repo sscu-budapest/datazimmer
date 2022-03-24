@@ -171,26 +171,22 @@ class Config:
 
 @dataclass
 class RunConfig:
-    write_env: str
     profile: bool = False
+    write_env: Optional[str] = None
     read_env: Optional[str] = None
 
     def __enter__(self):
-        self._dump()
+        self.dump()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         RUN_CONF_PATH.unlink()
 
-    def set_read_env(self, env):
-        self.read_env = env
-        self._dump()
+    def dump(self):
+        RUN_CONF_PATH.write_text(yaml.safe_dump(asdict(self)))
 
     @classmethod
     def load(cls):
         return cls(**_yaml_or_err(RUN_CONF_PATH, "run config"))
-
-    def _dump(self):
-        RUN_CONF_PATH.write_text(yaml.safe_dump(asdict(self)))
 
 
 class UnavailableTrepo(TableRepo):

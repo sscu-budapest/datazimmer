@@ -63,7 +63,6 @@ class Registry:
         self._git_run(pull=True)
 
     def publish(self):
-        # TODO: separate data release vs metadata release
         self._dump_meta()
         msg = f"push {self.name}-{self.conf.version}"
         self._git_run(add=self.paths.publish_paths, msg=msg, push=True)
@@ -128,7 +127,6 @@ class Registry:
                 continue
             if resp.ok or (resp.status_code == 404):
                 break
-            sleep(0.05)
         else:
             server_popen.kill()
             raise ArtifactSetupException("can't start index server")
@@ -145,13 +143,11 @@ class Registry:
     def _install(self, packages: list, upgrade=False):
         if not packages:
             return
-        # TODO: make sure dependency resolution works
         comm = [sys.executable, "-m", "pip", "install", "-i", self._index_addr]
-        fallback_ind = [] # "--extra-index-url", "https://pypi.org/simple"]
         extras = ["--no-cache", "--no-build-isolation"]
         if upgrade:
-            extras += ["--upgrade", "--upgrade-strategy", "only-if-needed"]
-        check_call(comm + self._parse_package_names(packages) + fallback_ind + extras)
+            extras += ["--upgrade"]
+        check_call(comm + extras + self._parse_package_names(packages))
 
     def _dump_meta(self):
         self.paths.meta_init_py.write_text("")
@@ -179,4 +175,3 @@ class Registry:
 
     def _parse_package_names(self, package_names):
         return package_names
-        return [s.replace("_", "-") for s in package_names]
