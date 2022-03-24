@@ -35,6 +35,7 @@ class PipelineRegistry:
         outputs_nocache: Optional[list] = None,
         write_env: Optional[str] = None,
         read_env: Optional[str] = None,
+        cron="",
     ):
         """registers a function to the pipeline
 
@@ -57,9 +58,12 @@ class PipelineRegistry:
                     dependencies=[relpath] + parsed_deps,
                     out_nocache=_parser(outputs_nocache),
                     lineno=lineno,
+                    cron=cron,
                 )
                 if write_env or (pe.name not in self._steps.keys()):
                     self._steps[pe.name] = pe
+                if cron:
+                    self._conf.init_cron_bump(pe.name)
 
             return fun
 
@@ -67,7 +71,7 @@ class PipelineRegistry:
             return f
         return f(procfun)
 
-    def register_env_creator(self, fun, extras=None):
+    def register_env_creator(self, fun, extras=None, cron=""):
         """Convenience functions to use register with typical parameters"""
         for _env in self._conf.envs:
             if _env.name == self._conf.default_env:
@@ -78,15 +82,17 @@ class PipelineRegistry:
                 read_env=self._conf.default_env,
                 outputs=self._get_data_dirs(fun, _env.name),
                 dependencies=deps,
+                cron=cron
             )(fun)
         return fun
 
-    def register_data_loader(self, fun, extras=None):
+    def register_data_loader(self, fun, extras=None, cron=""):
         """Convenience functions to use register with typical parameters"""
         return self.register(
             write_env=self._conf.default_env,
             outputs=self._get_data_dirs(fun, self._conf.default_env),
             dependencies=extras or [],
+            cron=cron,
         )(fun)
 
     def get_step(self, name: str) -> "PipelineElement":
@@ -142,6 +148,7 @@ class PipelineElement:
     dependencies: list
     out_nocache: list
     lineno: int
+    cron: str
 
     def run(self):
         conf = RunConfig.load()
@@ -151,8 +158,9 @@ class PipelineElement:
             return self.runner(**kwargs)
 
     def add_as_stage(self, dvc_repo):
-
         param_ids, _ = self._get_params()
+        if self.cron:
+            param_ids.append(f"cron_bumps.{self.name}")
         dvc_repo.stage.add(
             cmd=f"python -m src {self.name}",
             name=self.name,
@@ -208,19 +216,19 @@ def register(*args, **kwargs):
     return get_global_pipereg().register(*args, **kwargs)
 
 
-def register_env_creator(fun=None, *, extra_deps=None):
-    return _wrap(get_global_pipereg().register_env_creator, fun, extra_deps)
+def register_env_creator(fun=None, *, extra_deps=None, cron=""):
+    return _wrap(get_global_pipereg().register_env_creator, fun, extra_deps, cron)
 
 
-def register_data_loader(fun=None, *, extra_deps=None):
-    return _wrap(get_global_pipereg().register_data_loader, fun, extra_deps)
+def register_data_loader(fun=None, *, extra_deps=None, cron=""):
+    return _wrap(get_global_pipereg().register_data_loader, fun, extra_deps, cron)
 
 
-def _wrap(base, decorated, extras):
+def _wrap(base, decorated, *args):
     if decorated is None:
 
         def f(_fun):
-            return base(_fun, extras)
+            return base(_fun, *args)
 
         return f
     return base(decorated)
