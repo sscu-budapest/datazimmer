@@ -4,8 +4,9 @@ description = "sscu-budapest utilities for scientific data engineering"
 authors = [{name = "Social Science Computing Unit Budapest"}]
 license = {file = "LICENSE"}
 readme = "README.md"
-python = ">=3.8"
-url = "https://github.com/sscu-budapest/datazimmer"
+requires-python = ">=3.8"
+[project.urls]
+Home = "https://github.com/sscu-budapest/datazimmer"
 [build-system]
 requires = [
     "toml >= 0.10.0",
