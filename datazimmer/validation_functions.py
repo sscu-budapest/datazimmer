@@ -73,11 +73,9 @@ def validate_artifact(constr=CONSTR, draw=False, batch_size=2000):
         _log("reading data to sql db", env=env)
         sql_validation(constr, env, draw, batch_size=batch_size)
 
-    _log("importing data to a project via dvc")
-    validate_importable(ctx, ctx.config.validation_envs)
-
 
 def sql_validation(constr, env, draw=False, batch_size=2000):
+    # TODO: check if postgres validates FKs, but sqlite does not
     loader = SqlLoader(constr, env, echo=False, batch_size=batch_size)
     _log = logger.new(step="sql", constr=constr, batch_size=batch_size).info
     try:
@@ -92,8 +90,9 @@ def sql_validation(constr, env, draw=False, batch_size=2000):
         loader.purge()
 
 
-def validate_importable(actx: "ArtifactContext", envs):
+def validate_importable(actx: "ArtifactContext"):
     aname = actx.config.name
+    envs = actx.config.validation_envs
     with sandbox_artifact():
         test_conf = Config(
             name=SANDBOX_NAME,
