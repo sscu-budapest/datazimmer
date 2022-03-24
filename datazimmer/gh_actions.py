@@ -9,7 +9,8 @@ _GHA_PATH = Path(".github", "workflows", "zimmer_crons.yml")
 
 def write_actions(cron_exprs):
     _GHA_PATH.parent.mkdir(exist_ok=True, parents=True)
-    _GHA_PATH.write_text(yaml.safe_dump(_get_dic(cron_exprs)).replace("'on':", "on:"))
+    _s = yaml.safe_dump(_get_dic(cron_exprs), sort_keys=False).replace("'on':", "on:")
+    _GHA_PATH.write_text(_s)
 
 
 def _get_dic(cron_exprs):
