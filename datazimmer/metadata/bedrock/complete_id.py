@@ -97,11 +97,6 @@ class CompleteIdBase:
     def ext_module_name(self):
         return ".".join([META_MODULE_NAME, self.artifact, self.namespace])
 
-    @property
-    def schema_id(self):
-        # TODO: once verified no errors here due to None, can be prettier
-        return "__".join([self.artifact, self.namespace])
-
 
 class CompleteIdOf(Generic[T], CompleteId):
     pass

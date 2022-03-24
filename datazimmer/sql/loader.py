@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, List
 import pandas as pd
 import sqlalchemy as sa
 from colassigner.constants import PREFIX_SEP
-from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import sessionmaker
 from structlog import get_logger
 from tqdm import tqdm
@@ -19,7 +18,7 @@ from ..metadata.bedrock.namespace_metadata import NamespaceMetadata
 from ..utils import is_postgres
 
 if TYPE_CHECKING:
-    from ..artifact_context import ArtifactContext
+    from ..artifact_context import ArtifactContext  # pragma: no cover
 
 
 logger = get_logger(ctx="sql loader")
@@ -39,7 +38,7 @@ class SqlLoader:
         ----------
         constr : str, optional
             constring where database is found, by default "sqlite:///:memory:"
-            but needs to be postgres if multiple namespaces are present
+            but needs to be postgres for foreign keys to be validated
         """
 
         self.env = env
@@ -51,7 +50,6 @@ class SqlLoader:
 
     def setup_schema(self):
         for nsm in self._ns_mappers:
-            self.engine.execute(sa.schema.CreateSchema(nsm.schema_id))
             nsm.create_schema()
         self.sql_meta.create_all(self.engine)
 
@@ -67,11 +65,6 @@ class SqlLoader:
 
     def purge(self):
         self.sql_meta.drop_all(self.engine)
-        for nsm in self._ns_mappers:
-            try:
-                self.engine.execute(sa.schema.DropSchema(nsm.schema_id))
-            except ProgrammingError:
-                logger.warn(f"couldn't drop {nsm.schema_id}")
 
     @property
     def _ns_mappers(self):
@@ -115,10 +108,6 @@ class NamespaceMapper:
     @property
     def id_base(self):
         return CompleteIdBase(self.artifact_name, self.ns_meta.name)
-
-    @property
-    def schema_id(self):
-        return self.id_base.schema_id
 
     def _load_table(self, table: Table, session, env):
         trepo = self.runtime.config.table_to_trepo(table, self.id_base, env)
@@ -172,7 +161,6 @@ class SqlTableConverter:
     def __init__(self, bedrock_table: Table, parent_mapper: NamespaceMapper):
         self._table = bedrock_table
         self._mapper = parent_mapper
-        self._is_postgres = is_postgres(parent_mapper.engine)
         self.fk_constraints = []
         col_conversion_fun = FeatConverter(
             self._mapper.runtime, self._mapper.id_base, to_sql_col, self._add_fk
@@ -182,10 +170,9 @@ class SqlTableConverter:
 
     def create(self):
         sa.Table(
-            self._table.name,
+            self._sql_id,
             self._mapper.sql_meta,
             *self._schema_items,
-            schema=self._mapper.schema_id,
         )
 
     @property
@@ -201,7 +188,7 @@ class SqlTableConverter:
         matching_cols = [c.name.replace(pref_str, tab_id_str) for c in sql_cols]
 
         defer_kws = {}
-        if self._is_postgres:
+        if is_postgres(self._mapper.engine):
             defer_kws["initially"] = "DEFERRED"
 
         fk = sa.ForeignKeyConstraint(
@@ -227,7 +214,7 @@ class SqlTableConverter:
 
 
 def _get_sql_id(table_name, id_base: CompleteIdBase):
-    return f"{id_base.schema_id}.{table_name}"
+    return "__".join([id_base.artifact, id_base.namespace, table_name])
 
 
 def _parse_d(d):
