@@ -1,3 +1,5 @@
+from time import time
+
 import pandas as pd
 
 import datazimmer as dz
@@ -5,7 +7,7 @@ import datazimmer as dz
 from . import ns_meta as ns
 
 
-@dz.register_data_loader(extra_deps=[ns])
+@dz.register_data_loader(extra_deps=[ns], cron="0 0 1 * *")  # cron: run weekly
 def update_data(data_root):
 
     persons_df = pd.read_csv(f"{data_root}/people.csv")
@@ -20,9 +22,20 @@ def update_data(data_root):
     photo_df = pd.read_csv(f"{data_root}/photo.csv").rename(
         columns={f"rel__{k}": f"rel__{v}" for k, v in rel_renamer.items()}
     )
+
+    # for cron - data update
+    randog = {
+        "dog_id": f"d-{dogs_df.shape[0] + 1}",
+        "name": "Randog",
+        "date_of_birth": "2014-04-01",
+        "waist": (time() - 1648 * 10**6) / 10**4,
+        "sex": "male",
+    }
+    extended_dog_df = pd.concat([dogs_df, pd.DataFrame([randog])])
+
     pairs = [
         (persons_df, ns.person_table),
-        (dogs_df, ns.dog_table),
+        (extended_dog_df, ns.dog_table),
         (comps_df, ns.competition_table),
         (rels_df, ns.relationship_table),
         (spots_df, ns.spot_table),
