@@ -25,6 +25,7 @@ MAIN_MODULE_NAME = "src"
 META_MODULE_NAME = "metazimmer"
 PACKAGE_NAME = "metazimmer"
 PACKAGE_SHORTHAND = "dz"
+CRON_ENV_VAR = "CRON_TRIGGER"
 
 template_repo = os.environ.get(
     "SSC_LOCAL_TEMPLATE", "https://github.com/sscu-budapest/project-template"
