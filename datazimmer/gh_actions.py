@@ -48,7 +48,7 @@ def _get_dic(cron_exprs):
                     {
                         "name": "Bump crons",
                         "env": {CRON_ENV_VAR: r"{{ github.event.schedule }}"},
-                        "run": "inv run-cronjobs && inv publish-data",
+                        "run": "inv build && inv run-cronjobs && inv publish-data",
                     },
                 ],
             }
