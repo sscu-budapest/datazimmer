@@ -18,7 +18,7 @@ def _get_dic(cron_exprs):
         "name": "Scheduled Run",
         "on": {"schedule": [{"cron": cexspr} for cexspr in cron_exprs]},
         "jobs": {
-            "test_schedule": {
+            "cron_run": {
                 "runs-on": "ubuntu-latest",
                 "steps": [
                     {"uses": "actions/checkout@v2"},
@@ -43,12 +43,15 @@ def _get_dic(cron_exprs):
                     },
                     {
                         "name": "Setup Auth",
-                        "env": {"DVC_LOCAL_CONF": r"{{ secrets.DVC_LOCAL }}"},
+                        "env": {"DVC_LOCAL_CONF": r"${{ secrets.DVC_LOCAL }}"},
                         "run": ('echo "$DVC_LOCAL_CONF" > .dvc/config.local'),
                     },
                     {
                         "name": "Bump crons",
-                        "env": {CRON_ENV_VAR: r"{{ github.event.schedule }}"},
+                        "env": {
+                            CRON_ENV_VAR: r"${{ github.event.schedule }}",
+                            "ZIMMER_REGISTRY": r"${{ secrets.ZIMMER_REGISTRY }}",
+                        },
                         "run": "inv build && inv run-cronjobs && inv publish-data",
                     },
                 ],
