@@ -51,7 +51,9 @@ class Registry:
             check_call(comm, cwd=self.posix)
             msg = f"can't package {self.name}-{self.conf.version} - already released"
             logger.warning(msg)
-            self._install([self.name], upgrade=True)
+            # FIXME: check if already installed
+            with self._index_server():
+                self._install([self.name], upgrade=True)
             return
         except CalledProcessError:
             pass
