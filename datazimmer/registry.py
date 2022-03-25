@@ -50,7 +50,9 @@ class Registry:
             comm = ["git", "cat-file", "-e", f"origin/main:{self.paths.dist_gitpath}"]
             check_call(comm, cwd=self.posix)
             msg = f"can't package {self.name}-{self.conf.version} - already released"
-            raise ArtifactSetupException(msg)
+            logger.warning(msg)
+            self._install([self.name], upgrade=True)
+            return
         except CalledProcessError:
             pass
         with self._index_server():

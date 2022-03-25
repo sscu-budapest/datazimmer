@@ -51,8 +51,8 @@ def run_artifact_test(dog_context, c, constr):
         for testv in versions:
             modify_to_version(testv)
             if testv == init_version:
-                with pytest.raises(ArtifactSetupException):
-                    build_meta(c)
+                # should warn and just try install
+                build_meta(c)
                 continue
             _complete(c, constr)
         for cronexpr in crons:
