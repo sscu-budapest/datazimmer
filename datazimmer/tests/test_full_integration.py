@@ -1,11 +1,9 @@
 import os
 from pathlib import Path
 
-import pytest
 from invoke import Context
 
 from datazimmer.config_loading import Config
-from datazimmer.exceptions import ArtifactSetupException
 from datazimmer.invoke_commands import (
     build_meta,
     cleanup,
