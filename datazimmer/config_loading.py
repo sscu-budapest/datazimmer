@@ -12,8 +12,8 @@ from .metadata.bedrock.complete_id import CompleteId, CompleteIdBase
 from .naming import (
     BASE_CONF_PATH,
     DEFAULT_ENV_NAME,
+    DEFAULT_REGISTRY,
     RUN_CONF_PATH,
-    SSCUB_REGISTRY,
     VERSION_PREFIX,
     VERSION_SEPARATOR,
     get_data_path,
@@ -56,7 +56,7 @@ class Config:
     name: str
     version: str
     default_env: str = None
-    registry: str = SSCUB_REGISTRY
+    registry: str = DEFAULT_REGISTRY
     validation_envs: list = None
     envs: List[ArtifactEnv] = None
     imported_artifacts: List[ImportedArtifact] = field(default_factory=list)

@@ -10,7 +10,7 @@ from .exceptions import ArtifactSetupException
 from .get_runtime import get_runtime
 from .metadata.bedrock.atoms import NS_ATOM_TYPE
 from .metadata.datascript.to_bedrock import DatascriptToBedrockConverter
-from .naming import CONSTR, SANDBOX_DIR, SANDBOX_NAME, template_repo
+from .naming import CONSTR, SANDBOX_DIR, SANDBOX_NAME, TEMPLATE_REPO
 from .registry import Registry
 from .sql.draw import dump_graph
 from .sql.loader import SqlLoader
@@ -127,7 +127,7 @@ def is_step_name(s):
 @contextmanager
 def sandbox_artifact():
     if not SANDBOX_DIR.exists():
-        check_call(["git", "clone", template_repo, SANDBOX_DIR.as_posix()])
+        check_call(["git", "clone", TEMPLATE_REPO, SANDBOX_DIR.as_posix()])
         with cd_into(SANDBOX_DIR):
             conf = Config(SANDBOX_NAME, "v0.0")
             conf.dump()

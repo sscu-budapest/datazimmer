@@ -8,7 +8,7 @@ from invoke import Context
 import datazimmer.tests as testmod
 from datazimmer.config_loading import RunConfig
 from datazimmer.invoke_commands import build_meta, cleanup
-from datazimmer.naming import DEFAULT_ENV_NAME, MAIN_MODULE_NAME, template_repo
+from datazimmer.naming import DEFAULT_ENV_NAME, MAIN_MODULE_NAME, TEMPLATE_REPO
 from datazimmer.utils import cd_into, reset_meta_module
 from datazimmer.get_runtime import get_runtime
 
@@ -24,7 +24,7 @@ def pytest_addoption(parser):
 def empty_template():
     ctx = Context()
     with TemporaryDirectory() as tmpdir:
-        check_call(["git", "clone", template_repo, tmpdir])
+        check_call(["git", "clone", TEMPLATE_REPO, tmpdir])
         with cd_into(tmpdir):
             check_call(["dvc", "remote", "add", f"testrem", "/nothing"])
             check_call(["dvc", "remote", "default", "testrem"])

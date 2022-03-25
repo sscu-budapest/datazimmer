@@ -7,7 +7,7 @@ from typing import Optional
 from cookiecutter.main import generate_files
 from structlog import get_logger
 
-from datazimmer.naming import BASE_CONF_PATH, MAIN_MODULE_NAME, template_repo
+from datazimmer.naming import BASE_CONF_PATH, MAIN_MODULE_NAME, TEMPLATE_REPO
 from datazimmer.utils import cd_into, package_root
 
 logger = get_logger()
@@ -96,7 +96,7 @@ class DogshowContextCreator:
         root_dir.mkdir()
         template_path = artifact_src_root / f"cc-{name}"
         git_remote = self.get_git_remote(name)
-        self.init_git_repo(root_dir, git_remote, template_repo)
+        self.init_git_repo(root_dir, git_remote, TEMPLATE_REPO)
         add_dvc_remotes(root_dir, self.dvc_remotes)
         generate_files(
             template_path,
@@ -106,7 +106,7 @@ class DogshowContextCreator:
         )
         self.ran_dirs.append(root_dir)
         with cd_into(root_dir):
-            _add_readme(template_repo)
+            _add_readme(TEMPLATE_REPO)
             _commit_changes(root_dir)
             yield _VERSIONS.get(name, []), _CRONS.get(name, [])
 

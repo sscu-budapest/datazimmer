@@ -27,12 +27,13 @@ PACKAGE_NAME = "metazimmer"
 PACKAGE_SHORTHAND = "dz"
 CRON_ENV_VAR = "CRON_TRIGGER"
 
-template_repo = os.environ.get(
-    "SSC_LOCAL_TEMPLATE", "https://github.com/sscu-budapest/project-template"
+TEMPLATE_REPO = os.environ.get(
+    "ZIMMER_TEMPLATE", "https://github.com/sscu-budapest/project-template"
 )
-
-CONSTR = "sqlite:///:memory:"
-SSCUB_REGISTRY = "git@github.com:sscu-budapest/artifact-registry.git"
+DEFAULT_REGISTRY = os.environ.get(
+    "ZIMMER_REGISTRY", "https://github.com/sscu-budapest/artifact-registry"
+)
+CONSTR = os.environ.get("ZIMMER_CONSTR", "sqlite:///:memory:")
 
 
 class SDistPaths:
