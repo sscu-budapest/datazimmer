@@ -33,6 +33,7 @@ class PipelineRegistry:
         dependencies: Optional[list] = None,
         outputs: Optional[list] = None,
         outputs_nocache: Optional[list] = None,
+        outputs_persist: Optional[list] = None,
         write_env: Optional[str] = None,
         read_env: Optional[str] = None,
         cron="",
@@ -57,6 +58,7 @@ class PipelineRegistry:
                     outputs=_parser(outputs),
                     dependencies=[relpath] + parsed_deps,
                     out_nocache=_parser(outputs_nocache),
+                    out_persist=_parser(outputs_persist),
                     lineno=lineno,
                     cron=cron,
                 )
@@ -90,7 +92,7 @@ class PipelineRegistry:
         """Convenience functions to use register with typical parameters"""
         return self.register(
             write_env=self._conf.default_env,
-            outputs=self._get_data_dirs(fun, self._conf.default_env),
+            outputs_persist=self._get_data_dirs(fun, self._conf.default_env),
             dependencies=extras or [],
             cron=cron,
         )(fun)
@@ -147,6 +149,7 @@ class PipelineElement:
     outputs: list
     dependencies: list
     out_nocache: list
+    out_persist: list
     lineno: int
     cron: str
 
@@ -168,6 +171,7 @@ class PipelineElement:
             name=self.name,
             outs_no_cache=self.out_nocache,
             outs=self.outputs,
+            outs_persist=self.out_persist,
             deps=self.dependencies,
             params=[{BASE_CONF_PATH.as_posix(): param_ids}],
             force=True,
