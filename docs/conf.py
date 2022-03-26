@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.abspath(".."))
 pytom = toml.load("../pyproject.toml")
 
 project = pytom["project"]["name"]
-author = " - ".join(pytom["project"]["authors"])
+author = " - ".join([a["name"] for a in pytom["project"]["authors"]])
 copyright = "{}, {}".format(datetime.datetime.now().year, author)
 
 
