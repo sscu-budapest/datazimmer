@@ -123,11 +123,11 @@ class Registry:
         comm = ["twistd", "--pidfile=", "-n", "web"]
         opts = ["--path", index_root, "--listen", f"tcp:{self._port}"]
         server_popen = Popen(comm + opts)
-        for _ in range(20):
+        for attempt in range(20):
+            sleep(0.01 * attempt)
             try:
                 resp = requests.get(self._index_addr)
             except ConnectionError:
-                sleep(0.05)
                 continue
             if resp.ok or (resp.status_code == 404):
                 break
