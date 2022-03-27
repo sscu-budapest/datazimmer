@@ -1,16 +1,15 @@
 [project]
 name = "datazimmer"
 description = "sscu-budapest utilities for scientific data engineering"
-authors = [{name = "Social Science Computing Unit Budapest"}]
-license = {file = "LICENSE"}
+authors = ["Social Science Computing Unit Budapest"]
+license = "MIT"
 readme = "README.md"
-requires-python = ">=3.8"
-[project.urls]
-Home = "https://github.com/sscu-budapest/datazimmer"
+python = ">=3.8"
+url = "https://github.com/sscu-budapest/datazimmer"
 [build-system]
 requires = [
     "toml >= 0.10.0",
-    "setuptools >= 38.6.0",
+    "setuptools >= 38.6.0, <61.0.0",
     "wheel >= 0.31.0",
     "setuptools_scm >= 2.0.0, <3"
 ]

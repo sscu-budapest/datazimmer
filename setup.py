@@ -7,7 +7,7 @@ from setuptools import find_packages, setup
 
 pytom = toml.load("pyproject.toml")
 package_name = pytom["project"]["name"]
-author_name = " - ".join([a["name"] for a in pytom["project"]["authors"]])
+author_name = " - ".join(pytom["project"]["authors"])
 
 __version__ = ...
 with open(os.path.join(package_name, "_version.py")) as fp:
@@ -36,12 +36,12 @@ if __name__ == "__main__":
         long_description_content_type="text/markdown",
         license="MIT",
         classifiers=["License :: OSI Approved :: MIT License"],
-        url=pytom["project"]["urls"]["Home"],
+        url=pytom["project"]["url"],
         keywords=pytom["project"].get("keywords", []),
         author=author_name,
         packages=find_packages(),
         include_package_data=True,
-        python_requires=pytom["project"]["requires-python"],
+        python_requires=pytom["project"]["python"],
         platforms="any",
         install_requires=requirements,
         extras_require=extras_dict,
