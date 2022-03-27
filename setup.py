@@ -17,13 +17,13 @@ with open("README.md") as fp:
     long_description = fp.read()
 
 with open("requirements.txt") as fp:
-    requirements = fp.read().strip().split()
+    requirements = fp.read().strip().split("\n")
 
 extras_dict = {}
 for extra_req_path in glob("requirements-*.txt"):
     extra_id = re.findall("requirements-(.*)\.txt", extra_req_path)[0]
     with open(extra_req_path) as fp:
-        extras_dict[extra_id] = fp.read().strip().split()
+        extras_dict[extra_id] = fp.read().strip().split("\n")
 
 extras_dict["complete"] = sum(extras_dict.values(), [])
 
