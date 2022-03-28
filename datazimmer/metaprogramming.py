@@ -19,13 +19,8 @@ def get_class_def(cls_name: str, parent_names: List[str] = None, att_dict: dict 
         att_strs = [f"   {k} = {v}" for k, v in att_dict.items()]
     else:
         att_strs = ["    pass"]
-
-    return "\n".join(
-        [
-            f"class {cls_name}({parent_str}):",
-            *att_strs,
-        ]
-    )
+    lines = [f"class {cls_name}({parent_str}):", *att_strs]
+    return "\n".join(lines)
 
 
 def snake_to_camel(snake_str: str):
