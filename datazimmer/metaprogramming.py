@@ -3,6 +3,10 @@ from typing import List, Type
 from colassigner.util import camel_to_snake  # noqa: F401
 
 
+def table_var_name(table_name):
+    return f"{table_name}_table"
+
+
 def class_def_from_cls(cls: Type):
 
     return get_class_def(

@@ -3,6 +3,7 @@ from pathlib import Path
 from pkgutil import walk_packages
 
 from .exceptions import ArtifactSetupException
+from .metaprogramming import table_var_name
 from .naming import MAIN_MODULE_NAME, META_MODULE_NAME, RegistryPaths
 from .utils import reset_src_module
 
@@ -30,3 +31,8 @@ class InstalledPaths:
         self.ns_paths = [p for p in meta_path.iterdir() if not p.name.startswith("__")]
         rpaths = RegistryPaths(loading_from, "")
         self.info_yaml = rpaths.info_yaml_of(to_load, mod.__version__)
+
+
+def load_scrutable(artifact, ns_name, table_name):
+    mod = import_module(f"{META_MODULE_NAME}.{artifact}.{ns_name}")
+    return getattr(mod, table_var_name(table_name))

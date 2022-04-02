@@ -3,7 +3,7 @@ from pathlib import Path
 from queue import Queue
 from typing import Dict, Iterable, List
 
-from ...metaprogramming import get_class_def
+from ...metaprogramming import get_class_def, table_var_name
 from ...naming import PACKAGE_SHORTHAND
 from ...primitive_types import PrimitiveType
 from ...utils import format_code
@@ -102,7 +102,7 @@ class ScriptWriter:
             [f"{k}={v}" for k, v in scrutable_kwargs.items()]
         )
         tab_cls = f"{PACKAGE_SHORTHAND}.{ScruTable.__name__}"
-        table_ass = f"{table.name}_table = {tab_cls}({scrutable_kwargs_str})"
+        table_ass = f"{table_var_name(table.name)} = {tab_cls}({scrutable_kwargs_str})"
         self._table_assigns.append(table_ass)
 
     def _get_ordered_lo_defs(self):
