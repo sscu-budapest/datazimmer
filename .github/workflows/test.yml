@@ -3,11 +3,9 @@ name: Python Test
 on:
   pull_request:
     branches: 
-      - master
       - main
   push:
     branches:
-      - master
       - main
 
 jobs:
@@ -27,8 +25,7 @@ jobs:
           - 5432:5432
     steps:
     - uses: actions/checkout@v1
-    - name: Setup Graphviz
-      uses: ts-graphviz/setup-graphviz@v1
+    - uses: ts-graphviz/setup-graphviz@v1
     - name: Set up Python
       uses: actions/setup-python@v1
       with:
@@ -36,7 +33,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e .[complete]
+        pip install -e .[test]
     - name: Setup Git
       run: |
         git config --global init.defaultBranch main
@@ -46,8 +43,8 @@ jobs:
       env:
         POSTGRES_HOST: localhost
       run: |
-        inv test
+        branb test
     - name: "Upload coverage to Codecov"
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v2
       with:
         fail_ci_if_error: true

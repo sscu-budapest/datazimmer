@@ -1,4 +1,0 @@
-include LICENSE
-include pyproject.toml
-include README.md
-include requirements.txt

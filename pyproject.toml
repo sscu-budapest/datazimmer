@@ -1,19 +1,58 @@
 [project]
 name = "datazimmer"
-description = "sscu-budapest utilities for scientific data engineering"
-authors = ["Social Science Computing Unit Budapest"]
-license = "MIT"
+dynamic = ["version", "description"]
+authors = [{name = "Social Science Computing Unit Budapest", email = "borza.endre@krtk.hu"}]
+license = {file = "LICENSE"}
 readme = "README.md"
-python = ">=3.8"
-url = "https://github.com/sscu-budapest/datazimmer"
-[build-system]
-requires = [
-    "toml >= 0.10.0",
-    "setuptools >= 38.6.0, <61.0.0",
-    "wheel >= 0.31.0",
-    "setuptools_scm >= 2.0.0, <3"
+requires-python = ">=3.8"
+dependencies = [
+    "flit",
+    "twisted",
+    "wheel>=0.37.0",
+    "pip>=22.0.0",
+    "setuptools >=60.0.0",
+    "requests",
+    "invoke",
+    "dvc[s3]",
+    "parquetranger>=0.1.0",
+    "colassigner>=0.2.2",
+    "pyyaml",
+    "structlog",
+    "black>=21.5b0",
+    "isort",
+    "flake8",
+    "sqlalchemy",
+    "psycopg2",
+    "toml",
+    "pyinstrument",
+    "pandas_profiling",
+    "tqdm",
+    "typer",
+    "pandas<1.4.0",
 ]
-[tool.bran]
+
+[project.optional-dependencies]
+test = ["branthebuilder", "faker"]
+doc = [
+    "sphinx",
+    "pandoc",
+    "graphviz",
+    "sphinx-automodapi",
+    "sphinx-rtd-theme",
+    "myst-parser",
+    "pygments",
+    "jupyter",
+    "toml"
+]
+
+[project.urls]
+Homepage = "https://github.com/sscu-budapest/datazimmer"
+
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.branb]
 line-length = 88
 [tool.pytest.ini_options]
 addopts = "-s"

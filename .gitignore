@@ -126,10 +126,6 @@ dmypy.json
 
 .idea
 .vscode
-.scannerwork
-.sonar
-sonar-project.properties
-
 dask-worker-space/
-draft-*.ipynb
+draft*.ipynb
 dogshow/confs-live.yaml

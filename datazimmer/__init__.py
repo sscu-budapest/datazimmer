@@ -1,3 +1,4 @@
+"""sscu-budapest utilities for scientific data engineering"""
 # flake8: noqa
 from ._version import __version__
 from .artifact_context import dump_dfs_to_tables, run_step
@@ -12,3 +13,5 @@ from .metadata.datascript import (
 from .metadata.datascript.scrutable import ScruTable
 from .pipeline_registry import register, register_data_loader, register_env_creator
 from .reporting import ReportFile
+
+__version__ = "0.2.0"

@@ -1,16 +1,12 @@
-
-Welcome to datazimmer's documentation!
-=====================================================================================
+.. include:: ../README.md
+   :parser: myst_parser.sphinx_
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
+   :glob:
 
-   notebooks/doc-001-intro
-   notebooks/doc-002-glossary
-   notebooks/doc-003-mock-artifacts
-   notebooks/doc-004-rules-conventions
-   notebooks/doc-005-cli
+   notebooks/*
    autosumm
    release_notes/main
 
