@@ -5,14 +5,15 @@ from tempfile import TemporaryDirectory
 import pytest
 from invoke import Context
 
-import datazimmer.tests as testmod
+from datazimmer.tests.create_dogshow import dogshow_root
 from datazimmer.config_loading import RunConfig
 from datazimmer.invoke_commands import build_meta, cleanup
 from datazimmer.naming import DEFAULT_ENV_NAME, MAIN_MODULE_NAME, TEMPLATE_REPO
 from datazimmer.utils import cd_into, reset_meta_module
 from datazimmer.get_runtime import get_runtime
 
-CORE_PY = Path(testmod.__file__).parent / "core_of_test_artifact.py"
+
+CORE_PY = dogshow_root / "minimal.py"
 
 
 def pytest_addoption(parser):
