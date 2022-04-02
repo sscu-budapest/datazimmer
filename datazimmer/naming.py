@@ -15,6 +15,7 @@ NS_ID_SEPARATOR = ":"
 
 RUN_CONF_PATH = Path("__run_conf.yaml")
 BASE_CONF_PATH = Path("zimmer.yaml")
+EXPLORE_CONF_PATH = Path("explore.yaml")
 
 DATA_PATH = Path("data")
 PROFILES_PATH = Path("run-profiles")

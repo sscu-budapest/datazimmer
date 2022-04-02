@@ -1,0 +1,35 @@
+registry: {{registry}}
+tables:
+  - name: Dog One
+    artifact: dogshowbase
+    namespace: core
+    table: dog
+    env: top_comps
+  - name: Owner One
+    artifact: dogshowbase
+    namespace: core
+    env: top_comps
+    table: person
+    description: People who own dogs
+  - name: Dog Two
+    artifact: dogracebase
+    namespace: core
+    env: complete
+    table: dog
+  - name: Matching Dogs
+    artifact: dogsuccess
+    namespace: sex_matches
+    env: prime
+    table: sex_match
+  - name: Spots One
+    artifact: dogshowbase
+    namespace: core
+    env: complete
+    table: spot
+    version: v0.0
+  - name: Spots Two
+    artifact: dogshowbase
+    namespace: core
+    env: complete
+    table: spot
+    version: v0.1

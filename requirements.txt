@@ -19,3 +19,5 @@ toml
 pyinstrument
 pandas_profiling
 tqdm
+typer
+pandas<1.4.0
