@@ -67,7 +67,7 @@ class ArtifactContext:
         self.ext_metas[a_meta_name] = a_meta
         for sub_meta in a_meta.get_used_artifacts():
             self._add_a_meta(sub_meta)
-        # TODO: do this for data importing as well
+        # TODO: do this (optionally) for data importing as well
 
 
 @dataclass

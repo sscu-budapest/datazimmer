@@ -7,6 +7,7 @@ from datazimmer.metadata.bedrock.namespace_metadata import NamespaceMetadata
 
 
 def test_base_lookup():
+    # TODO: name clashing of different types
 
     tab1 = Table("t1", "EC", [])
     t1_id = CompleteId("a1", "ns2", "t1")

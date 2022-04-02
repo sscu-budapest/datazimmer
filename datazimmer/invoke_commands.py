@@ -27,6 +27,8 @@ from .validation_functions import validate_artifact, validate_importable
 
 logger = get_logger(ctx="invoke task")
 
+# TODO: move all this to typer
+
 
 @task
 def lint(ctx, line_length=LINE_LEN):

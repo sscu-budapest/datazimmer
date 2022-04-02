@@ -17,6 +17,7 @@ class NamespaceMetadata:
     name: str
 
     def get(self, obj_id: str) -> NS_ATOM_TYPE:
+        # TODO: entity class and table might share the same name
         for atom in self.atoms:
             if atom.name == obj_id:
                 return atom
