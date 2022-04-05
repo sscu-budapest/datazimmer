@@ -1,4 +1,4 @@
-registry: {{registry}}
+registry: {{test_registry}}
 tables:
   - name: Dog One
     artifact: dogshowbase
