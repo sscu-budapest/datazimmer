@@ -2,7 +2,7 @@ from pathlib import Path
 
 import yaml
 
-from .naming import CRON_ENV_VAR
+from .naming import CLI, CRON_ENV_VAR
 
 _GHA_PATH = Path(".github", "workflows", "zimmer_crons.yml")
 
@@ -11,6 +11,9 @@ def write_actions(cron_exprs):
     _GHA_PATH.parent.mkdir(exist_ok=True, parents=True)
     _s = yaml.safe_dump(_get_dic(cron_exprs), sort_keys=False).replace("'on':", "on:")
     _GHA_PATH.write_text(_s)
+
+
+run_comm = f"{CLI} build-meta && {CLI} run-cronjobs && {CLI} publish-data"
 
 
 def _get_dic(cron_exprs):
@@ -52,7 +55,7 @@ def _get_dic(cron_exprs):
                             CRON_ENV_VAR: r"${{ github.event.schedule }}",
                             "ZIMMER_REGISTRY": r"${{ secrets.ZIMMER_REGISTRY }}",
                         },
-                        "run": "inv build && inv run-cronjobs && inv publish-data",
+                        "run": run_comm,
                     },
                 ],
             }

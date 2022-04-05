@@ -2,19 +2,19 @@ import datetime as dt
 import os
 from dataclasses import asdict
 from shutil import rmtree
+from subprocess import check_call
 
+import typer
 from dvc.repo import Repo
-from invoke import Collection, task
 from structlog import get_logger
 
-from datazimmer.exceptions import ArtifactSetupException
-
 from .config_loading import Config, RunConfig, get_tag
+from .exceptions import ArtifactSetupException
+from .explorer import build_explorer
 from .get_runtime import get_runtime
 from .gh_actions import write_actions
 from .naming import (
     BASE_CONF_PATH,
-    CONSTR,
     CRON_ENV_VAR,
     MAIN_MODULE_NAME,
     SANDBOX_DIR,
@@ -22,29 +22,29 @@ from .naming import (
 )
 from .pipeline_registry import get_global_pipereg
 from .registry import Registry
-from .utils import LINE_LEN, get_git_diffs
-from .validation_functions import validate_artifact, validate_importable
+from .utils import get_git_diffs, git_run
+from .validation_functions import validate, validate_importable
 
-logger = get_logger(ctx="invoke task")
+logger = get_logger(ctx="CLI command")
+app = typer.Typer()
 
-# TODO: move all this to typer
-
-
-@task
-def lint(ctx, line_length=LINE_LEN):
-    ctx.run(f"black {MAIN_MODULE_NAME} -l {line_length}")
-    ctx.run(f"isort {MAIN_MODULE_NAME} --profile black")
-    ctx.run(f"flake8 {MAIN_MODULE_NAME} --max-line-length={line_length}")
+app.command()(validate)
+app.command()(build_explorer)
 
 
-@task
-def publish_meta(_):
+@app.command()
+def run_step(name: str):
+    get_runtime().pipereg.get_step(name).run()
+
+
+@app.command()
+def publish_meta():
     _validate_empty_vc("publishing meta", [MAIN_MODULE_NAME])
     get_runtime(True).registry.publish()
 
 
-@task
-def publish_data(ctx, validate=False):
+@app.command()
+def publish_data(validate: bool = False):
     # TODO: current meta should be built and published
     _validate_empty_vc("publishing data")
     runtime = get_runtime(True)
@@ -55,17 +55,17 @@ def publish_data(ctx, validate=False):
         logger.info("pushing targets", targets=targets, env=env.name)
         dvc_repo.push(targets=targets, remote=env.remote)
         vtag = get_tag(runtime.config.version, data_version, env.name)
-        _commit_dvc_default(ctx, env.remote)
-        ctx.run(f"git tag {vtag}")
-        ctx.run(f"git push origin {vtag}")
-    ctx.run("git push")
+        _commit_dvc_default(env.remote)
+        check_call(["git", "tag", vtag])
+        check_call(["git", "push", "origin", vtag])
+    git_run(push=True)
     runtime.registry.publish()
     if validate:
         validate_importable(runtime)
 
 
-@task(aliases=("build",))
-def build_meta(_):
+@app.command()
+def build_meta():
     get_global_pipereg(reset=True)  # used when building meta from script
     Registry(Config.load()).full_build()
     runtime = get_runtime(True)
@@ -75,8 +75,8 @@ def build_meta(_):
         write_actions(crons)
 
 
-@task
-def load_external_data(ctx, git_commit=False):
+@app.command()
+def load_external_data(git_commit: bool = False):
     """watch out, this deletes everything
 
     should probably be a bit more clever,
@@ -86,40 +86,36 @@ def load_external_data(ctx, git_commit=False):
     logger.info("loading external data", envs=runtime.data_to_load)
     posixes = runtime.load_all_data()
     if git_commit and posixes:
-        dvc_paths = " ".join([f"{p}.dvc" for p in posixes])
-        ctx.run(f"git add *.gitignore {dvc_paths}")
+        git_run(add=["*.gitignore", *[f"{p}.dvc" for p in posixes]])
         if get_git_diffs(True):
-            ctx.run('git commit -m "add imported datases"')
+            git_run(msg="add imported datases")
 
 
-@task
-def validate(_, con=CONSTR, draw=False, batch=20000):
-    validate_artifact(con, draw, batch)
-
-
-@task
-def cleanup(ctx):
+@app.command()
+def cleanup():
     conf = Config.load()
     aname = conf.name
     reg = Registry(conf, True)
-    ctx.run(f"pip uninstall {aname} -y")
+    check_call(["pip", "uninstall", aname, "-y"])
     reg.purge()
     if SANDBOX_DIR.exists():
-        ctx.run(f"pip uninstall {SANDBOX_NAME} -y")
+        check_call(["pip", "uninstall", SANDBOX_NAME, "-y"])
         rmtree(SANDBOX_DIR.as_posix())
 
 
-@task
-def run_cronjobs(ctx, cronexpr=None):
+@app.command()
+def run_cronjobs(cronexpr: str = None):
     runtime = get_runtime()
     for step in runtime.pipereg.steps:
         if step.cron == (cronexpr or os.environ.get(CRON_ENV_VAR)):
             runtime.config.bump_cron(step.name)
-    run(ctx, commit=True)
+    run(commit=True)
 
 
-@task
-def run(ctx, stage=True, profile=False, force=False, env=None, commit=False):
+@app.command()
+def run(
+    stage: bool = True, profile: bool = False, env: bool = None, commit: bool = False
+):
     dvc_repo = Repo(config={"core": {"autostage": stage}})
     runtime = get_runtime()
     stage_names = []
@@ -141,32 +137,19 @@ def run(ctx, stage=True, profile=False, force=False, env=None, commit=False):
     rconf = RunConfig(profile=profile)
     with rconf:
         logger.info("running repro", targets=targets, **asdict(rconf))
-        runs = dvc_repo.reproduce(force=force, targets=targets)
-    ctx.run(f"git add dvc.yaml dvc.lock {BASE_CONF_PATH}")
+        runs = dvc_repo.reproduce(targets=targets)
+    git_run(add=["dvc.yaml", "dvc.lock", BASE_CONF_PATH])
     if commit and get_git_diffs(True):
-        ctx.run(f'git commit -m "run {dt.datetime.now().isoformat()} {runs}"')
+        now = dt.datetime.now().isoformat(" ", "minutes")
+        git_run(msg=f"at {now} ran: {runs}")
     return runs
 
 
-all_tasks = [
-    lint,
-    publish_data,
-    publish_meta,
-    build_meta,
-    validate,
-    load_external_data,
-    run,
-    cleanup,
-    run_cronjobs,
-]
-ns = Collection(*all_tasks)
-
-
-def _commit_dvc_default(ctx, remote):
-    ctx.run(f"dvc remote default {remote}")
-    ctx.run("git add .dvc")
+def _commit_dvc_default(remote):
+    check_call(["dvc", "remote", "default", remote])
+    git_run(add=[".dvc"])
     if get_git_diffs(True):
-        ctx.run(f'git commit -m "update dvc default remote to {remote}"')
+        git_run(msg=f"update dvc default remote to {remote}")
 
 
 def _validate_empty_vc(attempt, prefs=("dvc.", MAIN_MODULE_NAME)):

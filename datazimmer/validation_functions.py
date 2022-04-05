@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 logger = get_logger(ctx="validation")
 
 
-def validate_artifact(constr=CONSTR, draw=False, batch_size=2000):
+def validate(con: str = CONSTR, draw: bool = False, batch: int = 20000):
     """asserts a few things about a dataset
 
     - configuration files are present
@@ -71,7 +71,7 @@ def validate_artifact(constr=CONSTR, draw=False, batch_size=2000):
 
     for env in ctx.config.validation_envs:
         _log("reading data to sql db", env=env)
-        sql_validation(constr, env, draw, batch_size=batch_size)
+        sql_validation(con, env, draw, batch_size=batch)
 
 
 def sql_validation(constr, env, draw=False, batch_size=2000):
