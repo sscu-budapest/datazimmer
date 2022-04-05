@@ -5,7 +5,7 @@ from functools import partial
 from inspect import ismodule
 from itertools import chain
 from pathlib import Path
-from subprocess import check_output
+from subprocess import check_call, check_output
 from tempfile import TemporaryDirectory
 from typing import List, Type, TypeVar, Union
 
@@ -57,6 +57,17 @@ def is_repo(s):
     return any(map(str(s).startswith, ["git@", "http://", "https://"]))
 
 
+def git_run(add=(), msg=None, pull=False, push=False, wd=None):
+    for k, git_cmd in [
+        (add, ["add", *add]),
+        (msg, ["commit", "-m", msg]),
+        (pull, ["pull"]),
+        (push, ["push"]),
+    ]:
+        if k:
+            check_call(["git", *git_cmd], cwd=wd)
+
+
 def get_git_diffs(staged=False):
     comm = ["git", "diff", "--name-only"]
     if staged:
@@ -88,16 +99,17 @@ def cd_into(
         _run(["git", "checkout", checkout], cwd=cd_path)
 
     os.chdir(cd_path)
-    sys.path.insert(0, str(cd_path))
+    # sys.path.insert(0, str(cd_path))
 
     if reset_src:
         reset_src_module()
-    yield
-
-    os.chdir(wd)
-    sys.path.pop(0)
-    if needs_clone:
-        tmp_dir.__exit__(None, None, None)
+    try:
+        yield
+    finally:
+        os.chdir(wd)
+        # sys.path.pop(0)
+        if needs_clone:
+            tmp_dir.__exit__(None, None, None)
 
 
 def format_code(code_str):

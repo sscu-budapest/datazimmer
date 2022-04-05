@@ -1,6 +1,7 @@
 import shutil
 import sys
 from contextlib import contextmanager
+from functools import partial
 from shutil import copy, rmtree
 from subprocess import CalledProcessError, Popen, check_call, check_output
 from time import sleep
@@ -23,6 +24,7 @@ from .naming import (
     VERSION_SEPARATOR,
     RegistryPaths,
 )
+from .utils import git_run
 
 if TYPE_CHECKING:
     from .config_loading import Config  # pragma: no cover
@@ -44,6 +46,7 @@ class Registry:
             self.paths.ensure()
         self._port = 8087
         self.requires = [a.name + a.version for a in conf.imported_artifacts]
+        self._git_run = partial(git_run, wd=self.posix)
 
     def full_build(self):
         try:
@@ -102,20 +105,6 @@ class Registry:
         )
         copy(ns.sdist.file, self.paths.dist_dir)
         return True
-
-    def _git_run(self, *, add=None, msg=None, pull=False, push=False):
-        comm_ends = []
-        if add:
-            comm_ends.append(["add", *add])
-        if msg:
-            comm_ends.append(["commit", "-m", msg])
-        if pull:
-            comm_ends.append(["pull"])
-        if push:
-            comm_ends.append(["push"])
-
-        for cmend in comm_ends:
-            check_call(["git", *cmend], cwd=self.posix)
 
     @contextmanager
     def _index_server(self):
