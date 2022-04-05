@@ -15,7 +15,7 @@ NS_ID_SEPARATOR = ":"
 
 RUN_CONF_PATH = Path("__run_conf.yaml")
 BASE_CONF_PATH = Path("zimmer.yaml")
-EXPLORE_CONF_PATH = Path("explore.yaml")
+EXPLORE_CONF_PATH = Path("dec.yaml")
 
 DATA_PATH = Path("data")
 PROFILES_PATH = Path("run-profiles")
@@ -27,13 +27,13 @@ META_MODULE_NAME = "metazimmer"
 PACKAGE_NAME = "metazimmer"
 PACKAGE_SHORTHAND = "dz"
 CRON_ENV_VAR = "CRON_TRIGGER"
+CLI = "datazimmer"
 
-TEMPLATE_REPO = os.environ.get(
-    "ZIMMER_TEMPLATE", "https://github.com/sscu-budapest/project-template"
-)
-DEFAULT_REGISTRY = os.environ.get(
-    "ZIMMER_REGISTRY", "https://github.com/sscu-budapest/artifact-registry"
-)
+def repo_link(slug):
+    return f"https://github.com/sscu-budapest/{slug}"
+
+TEMPLATE_REPO = os.environ.get("ZIMMER_TEMPLATE", repo_link("project-template"))
+DEFAULT_REGISTRY = os.environ.get("ZIMMER_REGISTRY", repo_link("artifact-registry"))
 CONSTR = os.environ.get("ZIMMER_CONSTR", "sqlite:///:memory:")
 
 
