@@ -7,7 +7,7 @@
 
 Some utility function to help with
 
-- setting up data environments with invoke
+- setting up data environments
 - simplified dvc pipeline registry
 
 these are used in the [artifact-template](https://github.com/sscu-budapest/project-template)
