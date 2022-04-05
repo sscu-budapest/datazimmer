@@ -1,4 +1,3 @@
-import sys
 from dataclasses import dataclass
 from shutil import rmtree
 from typing import Dict, List
@@ -6,7 +5,6 @@ from typing import Dict, List
 from dvc.repo import Repo
 
 from .config_loading import Config
-from .get_runtime import get_runtime
 from .metadata import ArtifactMetadata
 from .metadata.bedrock.complete_id import CompleteId
 from .module_tree import ModuleTree
@@ -105,7 +103,3 @@ def dump_dfs_to_tables(df_structable_pairs, parse=True, **kwargs):
     """helper function to fill the detected env of a dataset"""
     for df, structable in df_structable_pairs:
         structable.replace_all(df, parse, **kwargs)
-
-
-def run_step():
-    get_runtime().pipereg.get_step(sys.argv[1]).run()
