@@ -5,6 +5,7 @@ authors = [{name = "Social Science Computing Unit Budapest", email = "borza.endr
 license = {file = "LICENSE"}
 readme = "README.md"
 requires-python = ">=3.8"
+scripts = {datazimmer = "datazimmer:app", dz = "datazimmer:app"}
 dependencies = [
     "flit",
     "twisted",
@@ -12,7 +13,6 @@ dependencies = [
     "pip>=22.0.0",
     "setuptools >=60.0.0",
     "requests",
-    "invoke",
     "dvc[s3]",
     "parquetranger>=0.1.0",
     "colassigner>=0.2.2",
@@ -32,7 +32,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["branthebuilder", "faker"]
+test = ["branthebuilder"]
 doc = [
     "sphinx",
     "pandoc",
