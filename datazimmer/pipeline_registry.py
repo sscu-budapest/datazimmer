@@ -12,7 +12,7 @@ from .config_loading import Config, RunConfig
 from .exceptions import ArtifactSetupException
 from .metadata.bedrock.complete_id import CompleteIdBase
 from .metadata.datascript.scrutable import ScruTable
-from .naming import BASE_CONF_PATH, PROFILES_PATH, get_data_path
+from .naming import BASE_CONF_PATH, CLI, PROFILES_PATH, get_data_path
 from .reporting import ReportFile
 
 logger = get_logger()
@@ -167,7 +167,7 @@ class PipelineElement:
         if self.cron:
             param_ids.append(f"cron_bumps.{self.name}")
         dvc_repo.stage.add(
-            cmd=f"python -m src {self.name}",
+            cmd=f"{CLI} run-step {self.name}",
             name=self.name,
             outs_no_cache=self.out_nocache,
             outs=self.outputs,

@@ -189,7 +189,7 @@ class ExplorerContext:
             reset_meta_module()
 
 
-def build(minimal=False):
+def build_explorer(minimal: bool = False):
     ctx = ExplorerContext.load()
     ctx.set_dfs()
     cc_context = {"tables": ctx.table_slugs}
