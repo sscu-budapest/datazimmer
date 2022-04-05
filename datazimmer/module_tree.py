@@ -1,3 +1,4 @@
+import sys
 from importlib import import_module
 from pathlib import Path
 from pkgutil import walk_packages
@@ -13,6 +14,7 @@ class ModuleTree:
         reset_src_module()
         self.all_modules = []
         self.local_namespaces = set()
+        sys.path.insert(0, Path.cwd().as_posix())
         try:
             src = import_module(MAIN_MODULE_NAME)
         except ModuleNotFoundError:
@@ -22,6 +24,7 @@ class ModuleTree:
             _m = import_module(_info.name)
             self.all_modules.append(_m)
             self.local_namespaces.add(_info.name.split(".")[1])
+        sys.path.pop(0)
 
 
 class InstalledPaths:
