@@ -29,6 +29,7 @@ dependencies = [
     "tqdm",
     "typer",
     "pandas<1.4.0",
+    "cookiecutter"
 ]
 
 [project.optional-dependencies]
