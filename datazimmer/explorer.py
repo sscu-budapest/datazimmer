@@ -12,7 +12,7 @@ import pandas as pd
 import yaml
 from botocore.exceptions import ClientError
 from bs4 import BeautifulSoup, Tag
-from cookiecutter.main import generate_files
+from cookiecutter.main import cookiecutter
 from jinja2 import Template
 
 from .config_loading import ProjectEnv, Config, ImportedProject, RunConfig
@@ -193,10 +193,11 @@ class ExplorerContext:
 def build_explorer(minimal: bool = False):
     ctx = ExplorerContext.load()
     ctx.set_dfs()
-    cc_context = {"tables": ctx.table_slugs}
-    generate_files(
+    cc_context = {"tables": {"tables": ctx.table_slugs}}
+    cookiecutter(
         CC_DIR,
-        {"cookiecutter": {"slug": BOOK_DIR.as_posix()}, **cc_context},
+        no_input=True,
+        extra_context={"cookiecutter": {"slug": BOOK_DIR.as_posix()}, **cc_context},
         overwrite_if_exists=False,
         skip_if_file_exists=True,
     )
