@@ -33,7 +33,7 @@ def _get_base(req_file):
         {"uses": "actions/checkout@v2"},
         {"uses": "actions/setup-python@v1", "with": {"python-version": "3.x"}},
         {"name": "Install dependencies", "run": instr},
-        {"name": "Setup Git", "run": git_comm}
+        {"name": "Setup Git", "run": git_comm},
     ]
 
 

@@ -45,12 +45,8 @@ class Registry:
             self.paths.dir.mkdir(parents=True)
             try:
                 check_call(["git", "clone", conf.registry, self.posix])
-            except CalledProcessError as e:  # pragma: no cover
-                r_out = re.compile("(.*)@(.*):(.*)").findall(conf.registry)
-                if not r_out:
-                    raise e
-                no_auth_url = f"https://{r_out[0][1]}/{r_out[0][2]}"
-                check_call(["git", "clone", no_auth_url, self.posix])
+            except CalledProcessError:  # pragma: no cover
+                check_call(["git", "clone", _de_auth(conf.registry), self.posix])
 
             self.paths.ensure()
         self._port = 8087
@@ -165,7 +161,7 @@ class Registry:
 
         remote_comm = ["git", "config", "--get", "remote.origin.url"]
         uri = check_output(remote_comm).decode("utf-8").strip()
-        meta_dic = {"uri": uri, "tags": self._get_tags()}
+        meta_dic = {"uri": _de_auth(uri), "tags": self._get_tags()}
         self.paths.info_yaml.write_text(yaml.safe_dump(meta_dic))
 
     def _get_tags(self):
@@ -180,3 +176,10 @@ class Registry:
 
     def _parse_package_names(self, package_names):
         return package_names
+
+
+def _de_auth(url):
+    r_out = re.compile("(.*)@(.*):(.*)").findall(url)
+    if not r_out:
+        return url
+    return f"https://{r_out[0][1]}/{r_out[0][2]}"
