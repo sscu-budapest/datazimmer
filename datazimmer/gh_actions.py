@@ -13,7 +13,7 @@ def write_action(dic, path: Path):
 
 
 def write_cron_actions(cron_exprs):
-    write_action(_get_cron_dic(cron_exprs, _GHA_PATH / "zimmer_crons.yml"))
+    write_action(_get_cron_dic(cron_exprs), _GHA_PATH / "zimmer_crons.yml")
 
 
 def write_book_actions():
