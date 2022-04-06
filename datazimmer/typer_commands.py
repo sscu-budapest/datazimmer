@@ -12,7 +12,7 @@ from .config_loading import Config, RunConfig, get_tag
 from .exceptions import ProjectSetupException
 from .explorer import build_explorer, load_explorer_data
 from .get_runtime import get_runtime
-from .gh_actions import write_actions
+from .gh_actions import write_cron_actions
 from .naming import (
     BASE_CONF_PATH,
     CRON_ENV_VAR,
@@ -73,7 +73,7 @@ def build_meta():
     crons = set(filter(None, [s.cron for s in runtime.pipereg.steps]))
     if crons:
         logger.info("writing github actions files for crons", crons=crons)
-        write_actions(crons)
+        write_cron_actions(crons)
 
 
 @app.command()

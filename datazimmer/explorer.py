@@ -4,7 +4,6 @@ from datetime import date
 from hashlib import md5
 from itertools import groupby
 from pathlib import Path
-from shutil import move
 from tempfile import TemporaryDirectory
 from typing import List, Optional, Union
 
@@ -18,8 +17,16 @@ from jinja2 import Template
 
 from .config_loading import Config, ImportedProject, ProjectEnv, RunConfig
 from .get_runtime import get_runtime
+from .gh_actions import write_book_actions
 from .module_tree import load_scrutable
-from .naming import DEFAULT_REGISTRY, EXPLORE_CONF_PATH, SANDBOX_NAME, repo_link
+from .naming import (
+    DEFAULT_REGISTRY,
+    EXPLORE_AK_ENV,
+    EXPLORE_CONF_PATH,
+    EXPLORE_SECRET_ENV,
+    SANDBOX_NAME,
+    repo_link,
+)
 from .registry import Registry
 from .utils import reset_meta_module
 from .validation_functions import sandbox_project
@@ -29,8 +36,6 @@ BOOK_DIR = Path("book")
 HOME_JINJA = BOOK_DIR / "home.md.jinja"
 NB_JINJA = BOOK_DIR / "sneak-peek.ipynb.jinja"
 HOMES, TABLES = [BOOK_DIR / sd for sd in ["homes", "tables"]]
-EXPLORE_AK_ENV = "ZIMMER_EXPLORE_KEY"
-EXPLORE_SECRET_ENV = "ZIMMER_EXPLORE_SECRET"
 
 
 @dataclass
@@ -207,7 +212,7 @@ def build_explorer(minimal: bool = False):
     for sd in [HOMES, TABLES]:
         sd.mkdir(exist_ok=True, parents=True)
     ctx.dump_tables(minimal)
-    move(BOOK_DIR / ".github", ".github")
+    write_book_actions()
     HOME_JINJA.unlink()
     NB_JINJA.unlink()
 
