@@ -1,4 +1,5 @@
 registry: {{test_registry}}
+remote: {{explore_remote}}
 tables:
   - name: Dog One
     project: dogshowbase

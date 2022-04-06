@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass, field
 from datetime import date
 from hashlib import md5
@@ -15,7 +16,7 @@ from bs4 import BeautifulSoup, Tag
 from cookiecutter.main import cookiecutter
 from jinja2 import Template
 
-from .config_loading import ProjectEnv, Config, ImportedProject, RunConfig
+from .config_loading import Config, ImportedProject, ProjectEnv, RunConfig
 from .get_runtime import get_runtime
 from .module_tree import load_scrutable
 from .naming import DEFAULT_REGISTRY, EXPLORE_CONF_PATH, SANDBOX_NAME, repo_link
@@ -28,20 +29,22 @@ BOOK_DIR = Path("book")
 HOME_JINJA = BOOK_DIR / "home.md.jinja"
 NB_JINJA = BOOK_DIR / "sneak-peek.ipynb.jinja"
 HOMES, TABLES = [BOOK_DIR / sd for sd in ["homes", "tables"]]
+EXPLORE_AK_ENV = "ZIMMER_EXPLORE_KEY"
+EXPLORE_SECRET_ENV = "ZIMMER_EXPLORE_SECRET"
 
 
 @dataclass
 class S3Remote:
     bucket: str
-    endpoint: str
+    endpoint: Optional[str] = None
     access_key: str = field(init=False)
     secret_key: str = field(init=False)
     s3: boto3.resources.factory.ServiceResource = field(init=False)
 
     def __post_init__(self):
 
-        self.access_key = ...  # FIXME
-        self.secret_key = ...
+        self.access_key = os.environ.get(EXPLORE_AK_ENV)
+        self.secret_key = os.environ.get(EXPLORE_SECRET_ENV)
 
         self.s3 = boto3.resource(
             "s3",
@@ -207,6 +210,12 @@ def build_explorer(minimal: bool = False):
     move(BOOK_DIR / ".github", ".github")
     HOME_JINJA.unlink()
     NB_JINJA.unlink()
+
+
+def load_explorer_data(minimal: bool = False):
+    ctx = ExplorerContext.load()
+    ctx.set_dfs()
+    ctx.dump_tables(minimal)
 
 
 def _shorten(profile):

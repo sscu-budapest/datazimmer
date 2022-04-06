@@ -1,3 +1,4 @@
+import json
 import os
 from contextlib import contextmanager
 from pathlib import Path
@@ -29,16 +30,24 @@ _CRONS = {"dogshowbase": ["0 0 1 * *"]}
 
 
 class DogshowContextCreator:
-    def __init__(self, local_root, csv_path, remote_root=None, dvc_remotes=None):
+    def __init__(
+        self,
+        local_root,
+        csv_path,
+        remote_root=None,
+        dvc_remotes=None,
+        explore_remote=None,
+    ):
         self.local_root = Path(local_root)
         rmtree(self.local_root, ignore_errors=True)
         self.local_root.mkdir()
         self.ran_dirs = []
-        self.remote_root = remote_root or self.local_root / "remotes"
+        self.remote_root = Path(remote_root or self.local_root / "remotes")
         self.dvc_remotes = dvc_remotes or [*self._get_dvc_remotes(2)]
         self.cc_context = {
             "csv_path": csv_path,
-            "test_registry": self._init_if_local(self.remote_root / "test-registry"),
+            "test_registry": self._init_if_local(self.remote_root / "dogshow-registry"),
+            "explore_remote": json.dumps(explore_remote),
         }
         self.all_contexts = map(self.project_ctx, _PROJECTS)
 
@@ -76,7 +85,7 @@ class DogshowContextCreator:
         with cd_into(root_dir):
             EXPLORE_CONF_PATH.write_text(conf_str)
             yield
-            remote = self._init_if_local(self.remote_root / "dogshow-dec")
+            remote = self._init_if_local(self.remote_root / "dogshow-explorer")
             check_call(["git", "init"])
             check_call(["git", "remote", "add", "origin", remote])
             git_run(add=["*"], msg="setup-dec")

@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from structlog import get_logger
 
-from .config_loading import ProjectEnv, Config, ImportedProject
+from .config_loading import Config, ImportedProject, ProjectEnv
 from .exceptions import ProjectSetupException
 from .get_runtime import get_runtime
 from .metadata.bedrock.atoms import NS_ATOM_TYPE
