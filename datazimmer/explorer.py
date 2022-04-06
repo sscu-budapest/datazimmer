@@ -18,12 +18,12 @@ from jinja2 import Template
 from .config_loading import ProjectEnv, Config, ImportedProject, RunConfig
 from .get_runtime import get_runtime
 from .module_tree import load_scrutable
-from .naming import DEFAULT_REGISTRY, EXPLORE_CONF_PATH, SANDBOX_NAME
+from .naming import DEFAULT_REGISTRY, EXPLORE_CONF_PATH, SANDBOX_NAME, repo_link
 from .registry import Registry
 from .utils import reset_meta_module
 from .validation_functions import sandbox_project
 
-CC_DIR = "/home/borza/mega/hacking/tools/data-explorer-template"
+CC_DIR = repo_link("explorer-template")
 BOOK_DIR = Path("book")
 HOME_JINJA = BOOK_DIR / "home.md.jinja"
 NB_JINJA = BOOK_DIR / "sneak-peek.ipynb.jinja"
