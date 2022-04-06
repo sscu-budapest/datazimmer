@@ -1,6 +1,6 @@
-class ArtifactSetupException(Exception):
+class ProjectSetupException(Exception):
     pass
 
 
-class ArtifactRuntimeException(Exception):
+class ProjectRuntimeException(Exception):
     pass

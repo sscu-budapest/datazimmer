@@ -21,7 +21,7 @@ DATA_PATH = Path("data")
 PROFILES_PATH = Path("run-profiles")
 REGISTRY_ROOT_DIR = Path.home() / "zimmer-registries"
 SANDBOX_DIR = Path.home() / "zimmer-sandbox"
-SANDBOX_NAME = "zimmersandboxartifact"
+SANDBOX_NAME = "zimmersandboxproject"
 MAIN_MODULE_NAME = "src"
 META_MODULE_NAME = "metazimmer"
 PACKAGE_NAME = "metazimmer"
@@ -29,11 +29,13 @@ PACKAGE_SHORTHAND = "dz"
 CRON_ENV_VAR = "CRON_TRIGGER"
 CLI = "datazimmer"
 
+
 def repo_link(slug):
     return f"https://github.com/sscu-budapest/{slug}"
 
+
 TEMPLATE_REPO = os.environ.get("ZIMMER_TEMPLATE", repo_link("project-template"))
-DEFAULT_REGISTRY = os.environ.get("ZIMMER_REGISTRY", repo_link("artifact-registry"))
+DEFAULT_REGISTRY = os.environ.get("ZIMMER_REGISTRY", repo_link("main-registry"))
 CONSTR = os.environ.get("ZIMMER_CONSTR", "sqlite:///:memory:")
 
 
@@ -57,8 +59,8 @@ class RegistryPaths:
         self.index_dir = self.dir / "index"
         self.toml_path = _dev_dir / "pyproject.toml"
         self.meta_init_py = _meta_root / "__init__.py"
-        self.artifact_meta = _meta_root / name
-        self.artifact_init_py = self.artifact_meta / "__init__.py"
+        self.project_meta = _meta_root / name
+        self.project_init_py = self.project_meta / "__init__.py"
         self.dist_dir = self.index_dir / name
         self.info_yaml = self.info_yaml_of(name, version)
 
@@ -70,12 +72,12 @@ class RegistryPaths:
         return self._info_dir / f"{name}-{version}.yaml"
 
     def ensure(self):
-        for d in [self.dist_dir, self.artifact_meta, self._info_dir]:
+        for d in [self.dist_dir, self.project_meta, self._info_dir]:
             d.mkdir(exist_ok=True, parents=True)
 
     def _relpos(self, dirlist):
         return [d.relative_to(self.dir).as_posix() for d in dirlist]
 
 
-def get_data_path(artifact_name, namespace, env_name):
-    return DATA_PATH / artifact_name / namespace / env_name
+def get_data_path(project_name, namespace, env_name):
+    return DATA_PATH / project_name / namespace / env_name

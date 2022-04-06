@@ -2,26 +2,26 @@ from typing import TYPE_CHECKING
 
 from structlog import get_logger
 
-from .exceptions import ArtifactRuntimeException
+from .exceptions import ProjectRuntimeException
 
 if TYPE_CHECKING:
-    from .artifact_context import ArtifactContext  # pragma: no cover
+    from .project_runtime import ProjectRuntime  # pragma: no cover
 
 logger = get_logger()
 
-_GLOBAL_ARTIFACT_RUNTIME = None
+_GLOBAL_RUNTIME = None
 
 
-def get_runtime(reset=False) -> "ArtifactContext":
-    global _GLOBAL_ARTIFACT_RUNTIME
+def get_runtime(reset=False) -> "ProjectRuntime":
+    global _GLOBAL_RUNTIME
     if reset:
-        _GLOBAL_ARTIFACT_RUNTIME = None
-    if _GLOBAL_ARTIFACT_RUNTIME is None:
-        from .artifact_context import ArtifactContext
+        _GLOBAL_RUNTIME = None
+    if _GLOBAL_RUNTIME is None:
+        from .project_runtime import ProjectRuntime
 
         try:
-            _GLOBAL_ARTIFACT_RUNTIME = ArtifactContext()
+            _GLOBAL_RUNTIME = ProjectRuntime()
         except Exception as e:
             logger.exception(e)
-            raise ArtifactRuntimeException("can't start runtime")
-    return _GLOBAL_ARTIFACT_RUNTIME
+            raise ProjectRuntimeException("can't start runtime")
+    return _GLOBAL_RUNTIME

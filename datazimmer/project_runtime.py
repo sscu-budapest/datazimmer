@@ -5,7 +5,7 @@ from typing import Dict, List
 from dvc.repo import Repo
 
 from .config_loading import Config
-from .metadata import ArtifactMetadata
+from .metadata import ProjectMetadata
 from .metadata.bedrock.complete_id import CompleteId
 from .module_tree import ModuleTree
 from .naming import get_data_path
@@ -13,12 +13,12 @@ from .pipeline_registry import get_global_pipereg
 from .registry import Registry
 
 
-class ArtifactContext:
+class ProjectRuntime:
     def __init__(self) -> None:
         self.config: Config = Config.load()
         self.name = self.config.name
-        self.metadata: ArtifactMetadata = ArtifactMetadata.load_installed(self.name)
-        self.ext_metas: Dict[str, ArtifactMetadata] = {}
+        self.metadata: ProjectMetadata = ProjectMetadata.load_installed(self.name)
+        self.ext_metas: Dict[str, ProjectMetadata] = {}
         self._fill_ext_meta()
         self.data_to_load: List[DataEnvironmentToLoad] = self._get_data_envs()
         self.pipereg = get_global_pipereg(reset=True)
@@ -26,10 +26,10 @@ class ArtifactContext:
         self.registry = Registry(self.config)
 
     def get_atom(self, id_: CompleteId):
-        if (id_.artifact is None) or (id_.artifact == self.name):
+        if (id_.project is None) or (id_.project == self.name):
             meta = self.metadata
         else:
-            meta = self.ext_metas[id_.artifact]
+            meta = self.ext_metas[id_.project]
         return meta.get_atom(id_)
 
     def load_all_data(self):
@@ -43,27 +43,27 @@ class ArtifactContext:
         return posixes
 
     def _fill_ext_meta(self):
-        for a_imp in self.config.imported_artifacts:
+        for a_imp in self.config.imported_projects:
             self._add_a_meta(a_imp.name)
 
     def _get_data_envs(self):
         arg_set = set()
         for env in self.config.envs:
-            for artifact_name, data_env in env.import_envs.items():
-                a_imp = self.config.get_import(artifact_name)
-                meta = self.ext_metas[artifact_name]
+            for project_name, data_env in env.import_envs.items():
+                a_imp = self.config.get_import(project_name)
+                meta = self.ext_metas[project_name]
                 tag = meta.latest_tag_of(data_env)
                 nss = a_imp.data_namespaces or meta.data_namespaces
                 for ns in nss:
-                    arg_set.add((artifact_name, meta.uri, ns, data_env, tag))
+                    arg_set.add((project_name, meta.uri, ns, data_env, tag))
         return [DataEnvironmentToLoad(*args) for args in arg_set]
 
     def _add_a_meta(self, a_meta_name):
         if a_meta_name in self.ext_metas.keys():
             return
-        a_meta = ArtifactMetadata.load_installed(a_meta_name, self.name)
+        a_meta = ProjectMetadata.load_installed(a_meta_name, self.name)
         self.ext_metas[a_meta_name] = a_meta
-        for sub_meta in a_meta.get_used_artifacts():
+        for sub_meta in a_meta.get_used_projects():
             self._add_a_meta(sub_meta)
         # TODO: do this (optionally) for data importing as well
 
@@ -75,7 +75,7 @@ class DataEnvironmentToLoad:
     importing from a project
     """
 
-    artifact: str
+    project: str
     uri: str
     ns: str
     env: str
@@ -87,7 +87,7 @@ class DataEnvironmentToLoad:
 
     @property
     def path(self):
-        return get_data_path(self.artifact, self.ns, self.env)
+        return get_data_path(self.project, self.ns, self.env)
 
     def load_data(self, dvc_repo):
         dvc_repo.imp(

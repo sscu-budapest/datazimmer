@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 
 from structlog import get_logger
 
-from .config_loading import ArtifactEnv, Config, ImportedArtifact
-from .exceptions import ArtifactSetupException
+from .config_loading import ProjectEnv, Config, ImportedProject
+from .exceptions import ProjectSetupException
 from .get_runtime import get_runtime
 from .metadata.bedrock.atoms import NS_ATOM_TYPE
 from .metadata.datascript.to_bedrock import DatascriptToBedrockConverter
@@ -17,7 +17,7 @@ from .sql.loader import SqlLoader
 from .utils import cd_into
 
 if TYPE_CHECKING:
-    from .artifact_context import ArtifactContext
+    from .project_runtime import ProjectRuntime
 
 
 logger = get_logger(ctx="validation")
@@ -33,7 +33,7 @@ def validate(con: str = CONSTR, draw: bool = False, batch: int = 20000):
 
     Raises
     ------
-    ArtifactSetupException
+    ProjectSetupException
         explains what is wrong
     """
 
@@ -64,7 +64,7 @@ def validate(con: str = CONSTR, draw: bool = False, batch: int = 20000):
             try:
                 ser_atom = ns_meta.get(ds_atom.name)
             except KeyError as e:
-                raise ArtifactSetupException(f"{ds_atom} not packed: {e}")
+                raise ProjectSetupException(f"{ds_atom} not packed: {e}")
             _nondesc_eq(ser_atom, ds_atom)
             ds_atom_n += 1
         assert ds_atom_n == len(ns_meta.atoms)
@@ -90,15 +90,15 @@ def sql_validation(constr, env, draw=False, batch_size=2000):
         loader.purge()
 
 
-def validate_importable(actx: "ArtifactContext"):
+def validate_importable(actx: "ProjectRuntime"):
     aname = actx.config.name
     envs = actx.config.validation_envs
-    with sandbox_artifact():
+    with sandbox_project():
         test_conf = Config(
             name=SANDBOX_NAME,
             version="v0.0",
-            imported_artifacts=[ImportedArtifact(aname)],
-            envs=[ArtifactEnv(f"test_{env}", import_envs={aname: env}) for env in envs],
+            imported_projects=[ImportedProject(aname)],
+            envs=[ProjectEnv(f"test_{env}", import_envs={aname: env}) for env in envs],
         )
         test_reg = Registry(test_conf)
         infp = test_reg.paths.info_yaml_of(aname, actx.config.version)
@@ -125,7 +125,7 @@ def is_step_name(s):
 
 
 @contextmanager
-def sandbox_artifact():
+def sandbox_project():
     if not SANDBOX_DIR.exists():
         check_call(["git", "clone", TEMPLATE_REPO, SANDBOX_DIR.as_posix()])
         with cd_into(SANDBOX_DIR):
@@ -148,7 +148,7 @@ def _check_match(bc, s, nums_ok=True):
 
 def _nondesc_eq(serialized: NS_ATOM_TYPE, datascript: NS_ATOM_TYPE):
     if _dropdesc(serialized) != _dropdesc(datascript):
-        raise ArtifactSetupException(
+        raise ProjectSetupException(
             "inconsistent metadata: "
             f"serialized: {serialized}\ndatascript: {datascript}"
         )

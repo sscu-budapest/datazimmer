@@ -18,14 +18,14 @@ from ..metadata.bedrock.namespace_metadata import NamespaceMetadata
 from ..utils import is_postgres
 
 if TYPE_CHECKING:
-    from ..artifact_context import ArtifactContext  # pragma: no cover
+    from ..project_runtime import ProjectRuntime  # pragma: no cover
 
 
 logger = get_logger(ctx="sql loader")
 
 
 class SqlLoader:
-    """loads an entire artifact environment to an sql database
+    """loads an entire project environment to an sql database
 
     metadata needs to be serialized
 
@@ -72,7 +72,7 @@ class SqlLoader:
         for ns in self.runtime.metadata.namespaces.values():
             yield NamespaceMapper(self.runtime.name, ns, *f_args)
         for data_env in self.runtime.data_to_load:
-            art_name = data_env.artifact
+            art_name = data_env.project
             resolved_env = self.runtime.config.resolve_ns_env(art_name, self.env)
             if data_env.env != resolved_env:
                 continue
@@ -83,9 +83,9 @@ class SqlLoader:
 @dataclass
 class NamespaceMapper:
 
-    artifact_name: str
+    project_name: str
     ns_meta: NamespaceMetadata
-    runtime: "ArtifactContext"
+    runtime: "ProjectRuntime"
     sql_meta: sa.MetaData
     engine: sa.engine.Engine
     batch_size: int
@@ -107,7 +107,7 @@ class NamespaceMapper:
 
     @property
     def id_base(self):
-        return CompleteIdBase(self.artifact_name, self.ns_meta.name)
+        return CompleteIdBase(self.project_name, self.ns_meta.name)
 
     def _load_table(self, table: Table, session, env):
         trepo = self.runtime.config.table_to_trepo(table, self.id_base, env)
@@ -214,7 +214,7 @@ class SqlTableConverter:
 
 
 def _get_sql_id(table_name, id_base: CompleteIdBase):
-    return "__".join([id_base.artifact, id_base.namespace, table_name])
+    return "__".join([id_base.project, id_base.namespace, table_name])
 
 
 def _parse_d(d):

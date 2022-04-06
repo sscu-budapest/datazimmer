@@ -1,7 +1,7 @@
 name: dogsuccess
 version: v0.0
 registry: {{ test_registry }}
-imported_artifacts:
+imported_projects:
   dogshowbase:
     version: ==0.0 # can use PEP-440 version specifiers https://www.python.org/dev/peps/pep-0440/#version-specifiers
   dogracebase: {}

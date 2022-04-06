@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 
 from datazimmer import IndexBase, ScruTable, TableFeaturesBase
-from datazimmer.exceptions import ArtifactRuntimeException
+from datazimmer.exceptions import ProjectRuntimeException
 from datazimmer.naming import MAIN_MODULE_NAME, META_MODULE_NAME
 
 _IN_MODULE = f"{MAIN_MODULE_NAME}.core"
@@ -30,7 +30,7 @@ def test_scrutable_init(running_template):
 
     sc3 = ScruTable(ExtFeatures)
 
-    with pytest.raises(ArtifactRuntimeException):
+    with pytest.raises(ProjectRuntimeException):
         sc3.replace_all(...)
 
     with pytest.raises(NameError):

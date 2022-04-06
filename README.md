@@ -10,7 +10,7 @@ Some utility function to help with
 - setting up data environments
 - simplified dvc pipeline registry
 
-these are used in the [artifact-template](https://github.com/sscu-budapest/project-template)
+these are used in the [project-template](https://github.com/sscu-budapest/project-template)
 
 Make sure that `python` points to `python>=3.8` and you have `pip` and `git`
 

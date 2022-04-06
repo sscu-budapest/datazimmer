@@ -3,7 +3,7 @@ from importlib import import_module
 from pathlib import Path
 from pkgutil import walk_packages
 
-from .exceptions import ArtifactSetupException
+from .exceptions import ProjectSetupException
 from .metaprogramming import table_var_name
 from .naming import MAIN_MODULE_NAME, META_MODULE_NAME, RegistryPaths
 from .utils import reset_src_module
@@ -18,7 +18,7 @@ class ModuleTree:
         try:
             src = import_module(MAIN_MODULE_NAME)
         except ModuleNotFoundError:
-            raise ArtifactSetupException(f"{MAIN_MODULE_NAME} module missing")
+            raise ProjectSetupException(f"{MAIN_MODULE_NAME} module missing")
         src_dir = Path(src.__file__).parent.as_posix()
         for _info in walk_packages([src_dir], f"{MAIN_MODULE_NAME}."):
             _m = import_module(_info.name)
@@ -36,6 +36,6 @@ class InstalledPaths:
         self.info_yaml = rpaths.info_yaml_of(to_load, mod.__version__)
 
 
-def load_scrutable(artifact, ns_name, table_name):
-    mod = import_module(f"{META_MODULE_NAME}.{artifact}.{ns_name}")
+def load_scrutable(project, ns_name, table_name):
+    mod = import_module(f"{META_MODULE_NAME}.{project}.{ns_name}")
     return getattr(mod, table_var_name(table_name))

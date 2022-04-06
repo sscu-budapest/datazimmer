@@ -32,7 +32,7 @@ class DatascriptToBedrockConverter:
             self._fill_table_dic(int_repo)
             for new_index in int_repo.index_classes:
                 _base = CompleteIdBase.from_cls(new_index)
-                if _base.artifact is None:
+                if _base.project is None:
                     continue
                 ext_repo = DatascriptObjectCollector(_base.ext_module_name)
                 self._fill_table_dic(ext_repo)

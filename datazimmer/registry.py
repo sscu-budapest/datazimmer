@@ -14,7 +14,7 @@ from flit.build import main
 from requests.exceptions import ConnectionError
 from structlog import get_logger
 
-from .exceptions import ArtifactSetupException
+from .exceptions import ProjectSetupException
 from .metadata.datascript.from_bedrock import ScriptWriter
 from .metadata.datascript.to_bedrock import DatascriptToBedrockConverter
 from .naming import (
@@ -45,7 +45,7 @@ class Registry:
             check_call(["git", "clone", conf.registry, self.posix])
             self.paths.ensure()
         self._port = 8087
-        self.requires = [a.name + a.version for a in conf.imported_artifacts]
+        self.requires = [a.name + a.version for a in conf.imported_projects]
         self._git_run = partial(git_run, wd=self.posix)
 
     def full_build(self):
@@ -82,7 +82,7 @@ class Registry:
             "project": {
                 "name": self.name,
                 "version": self.conf.version,
-                "description": "zimmer artifact",
+                "description": "zimmer project",
                 "requires-python": PYV,
                 "dependencies": self.requires,
             },
@@ -125,7 +125,7 @@ class Registry:
             logger.warning("bad response from index server", code=resp.status_code)
         else:
             server_popen.kill()
-            raise ArtifactSetupException("can't start index server")
+            raise ProjectSetupException("can't start index server")
         logger.info("running index server", pid=server_popen.pid)
         try:
             yield
@@ -148,9 +148,9 @@ class Registry:
     def _dump_meta(self):
         self.paths.meta_init_py.write_text("")
         vstr = f'__version__ = "{self.conf.version}"'
-        self.paths.artifact_init_py.write_text(vstr)
+        self.paths.project_init_py.write_text(vstr)
         for ns in DatascriptToBedrockConverter(self.name).get_namespaces():
-            ns_dir = self.paths.artifact_meta / ns.name
+            ns_dir = self.paths.project_meta / ns.name
             ns.dump(ns_dir)
             ScriptWriter(ns, ns_dir / "__init__.py")
 

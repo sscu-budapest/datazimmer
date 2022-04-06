@@ -1,1 +1,1 @@
-from .bedrock.artifact_metadata import ArtifactMetadata  # noqa: F401
+from .bedrock.project_metadata import ProjectMetadata  # noqa: F401

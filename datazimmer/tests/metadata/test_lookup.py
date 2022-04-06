@@ -1,6 +1,6 @@
 import pytest
 
-from datazimmer.metadata import ArtifactMetadata
+from datazimmer.metadata import ProjectMetadata
 from datazimmer.metadata.bedrock.atoms import Table
 from datazimmer.metadata.bedrock.complete_id import CompleteId
 from datazimmer.metadata.bedrock.namespace_metadata import NamespaceMetadata
@@ -14,7 +14,7 @@ def test_base_lookup():
 
     ns_empty_meta = NamespaceMetadata([], [], [], "")
     ns_meta = NamespaceMetadata([], [], [tab1], "ns2")
-    a_meta = ArtifactMetadata("uri", [], {"": ns_empty_meta, "ns2": ns_meta})
+    a_meta = ProjectMetadata("uri", [], {"": ns_empty_meta, "ns2": ns_meta})
 
     assert tab1 == a_meta.get_atom(t1_id)
 

@@ -10,13 +10,13 @@ from .complete_id import CompleteId, CompleteIdBase
 from .feature_types import CompositeFeature, ForeignKey, PrimitiveFeature
 
 if TYPE_CHECKING:
-    from ...artifact_context import ArtifactContext  # pragma: no cover
+    from ...project_runtime import ProjectRuntime  # pragma: no cover
 
 
 @dataclass
 class FeatConverter:
 
-    runtime: "ArtifactContext"
+    runtime: "ProjectRuntime"
     init_base: CompleteIdBase
     wrapper: Callable = lambda x: x
     proc_fk: Optional[Callable] = None
@@ -70,7 +70,7 @@ class FeatConverter:
         return self.runtime.get_atom(self._get_id(id_, calling_base))
 
 
-def table_id_to_dtype_maps(id_: CompleteId, runtime: "ArtifactContext"):
+def table_id_to_dtype_maps(id_: CompleteId, runtime: "ProjectRuntime"):
     table = runtime.get_atom(id_)
     convfun = FeatConverter(runtime, id_.base).feats_to_cols
     return map(

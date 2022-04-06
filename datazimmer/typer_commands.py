@@ -9,7 +9,7 @@ from dvc.repo import Repo
 from structlog import get_logger
 
 from .config_loading import Config, RunConfig, get_tag
-from .exceptions import ArtifactSetupException
+from .exceptions import ProjectSetupException
 from .explorer import build_explorer
 from .get_runtime import get_runtime
 from .gh_actions import write_actions
@@ -156,4 +156,4 @@ def _validate_empty_vc(attempt, prefs=("dvc.", MAIN_MODULE_NAME)):
     for fp in get_git_diffs() + get_git_diffs(True):
         if any([*[fp.startswith(pref) for pref in prefs], fp == BASE_CONF_PATH]):
             msg = f"{fp} should be committed to git before {attempt}"
-            raise ArtifactSetupException(msg)
+            raise ProjectSetupException(msg)

@@ -3,7 +3,6 @@ from contextlib import contextmanager
 from pathlib import Path
 from shutil import rmtree
 from subprocess import check_call
-from typing import Optional
 
 from cookiecutter.main import generate_files
 from jinja2 import Template
@@ -15,55 +14,46 @@ from datazimmer.naming import (
     EXPLORE_CONF_PATH,
     MAIN_MODULE_NAME,
     TEMPLATE_REPO,
-    repo_link
 )
 from datazimmer.utils import cd_into, git_run, package_root
 
 logger = get_logger()
 
 dogshow_root = package_root / "dogshow"
-artifact_src_root = dogshow_root / "artifacts"
+project_cc_root = dogshow_root / "projects"
 dec_src_root = dogshow_root / "explorer"
 
-_ARTIFACTS = ["dogshowbase", "dogracebase", "dogsuccess", "dogcombine"]
+_PROJECTS = ["dogshowbase", "dogracebase", "dogsuccess", "dogcombine"]
 _VERSIONS = {"dogshowbase": ["0.0", "0.1"], "dogsuccess": ["1.0"]}
 _CRONS = {"dogshowbase": ["0 0 1 * *"]}
 
 
 class DogshowContextCreator:
-    def __init__(
-        self,
-        local_output_root: Path,
-        git_remote_root: Optional[Path] = None,
-        dvc_remotes: Optional[list] = None,
-    ) -> None:
-
-        self.local_root = local_output_root
+    def __init__(self, local_root, csv_path, remote_root=None, dvc_remotes=None):
+        self.local_root = Path(local_root)
+        rmtree(self.local_root, ignore_errors=True)
+        self.local_root.mkdir()
         self.ran_dirs = []
-        self.git_remote_root = Path(git_remote_root or self.local_root / "git-remotes")
-        self.registry_path = self.git_remote_root / "test-registry"
-        self._init_if_local(self.registry_path)
+        self.remote_root = remote_root or self.local_root / "remotes"
         self.dvc_remotes = dvc_remotes or [*self._get_dvc_remotes(2)]
-
-        csv_path = Path(dogshow_root, "data").absolute().as_posix()
         self.cc_context = {
             "csv_path": csv_path,
-            "test_registry": str(self.registry_path),
+            "test_registry": self._init_if_local(self.remote_root / "test-registry"),
         }
-        self.all_contexts = map(self.artifact_ctx, _ARTIFACTS)
+        self.all_contexts = map(self.project_ctx, _PROJECTS)
 
     @contextmanager
-    def artifact_ctx(self, name):
+    def project_ctx(self, name):
         root_dir = self.local_root / name
         root_dir.mkdir()
-        template_path = artifact_src_root / f"cc-{name}"
-        git_remote = self._init_if_local(self.git_remote_root / f"dogshow-{name}")
+        template_path = project_cc_root / f"cc-{name}"
+        git_remote = self._init_if_local(self.remote_root / f"dogshow-{name}")
         check_call(["git", "clone", TEMPLATE_REPO, "."], cwd=root_dir)
         Path(root_dir, MAIN_MODULE_NAME, "core.py").unlink()
         check_call(["git", "remote", "set-url", "origin", git_remote], cwd=root_dir)
         generate_files(
             template_path,
-            {"cookiecutter": {"artifact": name}, **self.cc_context},
+            {"cookiecutter": {"project": name}, **self.cc_context},
             self.local_root,
             overwrite_if_exists=True,
         )
@@ -86,9 +76,25 @@ class DogshowContextCreator:
         with cd_into(root_dir):
             EXPLORE_CONF_PATH.write_text(conf_str)
             yield
+            remote = self._init_if_local(self.remote_root / "dogshow-dec")
+            check_call(["git", "init"])
+            check_call(["git", "remote", "add", "origin", remote])
+            git_run(add=["*"], msg="setup-dec")
+            check_call(["git", "push", "--set-upstream", "origin", "main"])
 
     def check_sdists(self):
         pass  # TODO check builds
+
+    @classmethod
+    def load(cls, mode: str, tmp_path: Path):
+        if mode == "test":
+            kwargs = {
+                "csv_path": Path(dogshow_root, "data").absolute().as_posix(),
+                "local_root": tmp_path,
+            }
+        else:  # pragma: no cover
+            kwargs = safe_load((dogshow_root / "confs-live.yaml").read_text())[mode]
+        return cls(**kwargs)
 
     def _get_dvc_remotes(self, n):
         for i in range(n):
@@ -100,7 +106,7 @@ class DogshowContextCreator:
         if not str(repo_path).startswith("git@"):
             repo_path.mkdir(parents=True, exist_ok=True)
             check_call(["git", "init"], cwd=repo_path)
-        return repo_path
+        return str(repo_path)
 
 
 def modify_to_version(version: str):
@@ -121,17 +127,6 @@ def modify_to_version(version: str):
                 new_line = old_line
             lines.append(new_line)
         path.write_text("\n".join(lines))
-
-
-def setup_dogshow(mode, tmp_path: Path) -> DogshowContextCreator:
-    if mode == "test":
-        return DogshowContextCreator(tmp_path)
-    else:  # pragma: no cover
-        conf_dic = safe_load((dogshow_root / "confs-live.yaml").read_text())[mode]
-        conf_root = Path(conf_dic.pop("local_output_root"))
-        rmtree(conf_root, ignore_errors=True)
-        conf_root.mkdir()
-        return DogshowContextCreator(local_output_root=conf_root, **conf_dic)
 
 
 def _add_readme():

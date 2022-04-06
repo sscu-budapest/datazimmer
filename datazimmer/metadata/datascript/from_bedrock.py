@@ -139,7 +139,7 @@ class ScriptWriter:
             full_id = feat.val_id
             if isinstance(feat, ForeignKey):
                 ind_cls = get_index_cls_name(full_id.obj_id)
-                full_id = CompleteId(full_id.artifact, full_id.namespace, ind_cls)
+                full_id = CompleteId(full_id.project, full_id.namespace, ind_cls)
             if full_id.namespace is None and not (
                 full_id.obj_id in PrimitiveType.__members__
             ):

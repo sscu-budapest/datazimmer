@@ -9,7 +9,7 @@ from pyinstrument import Profiler
 from structlog import get_logger
 
 from .config_loading import Config, RunConfig
-from .exceptions import ArtifactSetupException
+from .exceptions import ProjectSetupException
 from .metadata.bedrock.complete_id import CompleteIdBase
 from .metadata.datascript.scrutable import ScruTable
 from .naming import BASE_CONF_PATH, CLI, PROFILES_PATH, get_data_path
@@ -133,7 +133,7 @@ class PipelineRegistry:
 
     def _get_data_dirs(self, fun, env):
         id_ = CompleteIdBase.from_cls(fun, self._conf.name)
-        return [get_data_path(id_.artifact, id_.namespace, env)]
+        return [get_data_path(id_.project, id_.namespace, env)]
 
     @property
     def _all_env_names(self):
@@ -205,7 +205,7 @@ class PipelineElement:
             _suff, val = [key], _envconf.params[key]
         else:
             if _envconf.parent is None:
-                raise ArtifactSetupException(f"no {namespace}.{key} in {env}")
+                raise ProjectSetupException(f"no {namespace}.{key} in {env}")
             return self._get_param_id_val(namespace, key, _envconf.parent)
         # WET: 2 keys here in str literal
         return ".".join(["envs", env, "params", *_suff]), val

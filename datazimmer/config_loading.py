@@ -7,7 +7,7 @@ from dvc.repo import Repo
 from parquetranger import TableRepo
 from structlog import get_logger
 
-from .exceptions import ArtifactSetupException
+from .exceptions import ProjectSetupException
 from .metadata.bedrock.complete_id import CompleteId, CompleteIdBase
 from .naming import (
     BASE_CONF_PATH,
@@ -27,7 +27,7 @@ logger = get_logger(ctx="config loading")
 
 
 @dataclass
-class ArtifactEnv:
+class ProjectEnv:
     name: str = DEFAULT_ENV_NAME
     remote: Optional[str] = None
     parent: Optional[str] = None
@@ -45,7 +45,7 @@ class ArtifactEnv:
 
 
 @dataclass
-class ImportedArtifact:
+class ImportedProject:
     name: str
     data_namespaces: list = None
     version: str = ""
@@ -58,13 +58,13 @@ class Config:
     default_env: str = None
     registry: str = DEFAULT_REGISTRY
     validation_envs: list = None
-    envs: List[ArtifactEnv] = None
-    imported_artifacts: List[ImportedArtifact] = field(default_factory=list)
+    envs: List[ProjectEnv] = None
+    imported_projects: List[ImportedProject] = field(default_factory=list)
     cron_bumps: dict = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.envs:
-            self.envs = [ArtifactEnv()]
+            self.envs = [ProjectEnv()]
         if self.default_env is None:
             self.default_env = self.envs[0].name
         if self.validation_envs is None:
@@ -74,11 +74,11 @@ class Config:
         assert re.compile("^[a-z]+$").findall(self.name), msg
         self.version = self.version[1:]
 
-    def get_env(self, env_name: str) -> ArtifactEnv:
+    def get_env(self, env_name: str) -> ProjectEnv:
         return _get(self.envs, env_name)
 
-    def get_import(self, artifact_name: str) -> ImportedArtifact:
-        return _get(self.imported_artifacts, artifact_name)
+    def get_import(self, project_name: str) -> ImportedProject:
+        return _get(self.imported_projects, project_name)
 
     def create_trepo(
         self,
@@ -87,12 +87,12 @@ class Config:
         max_partition_size=None,
     ):
 
-        envs_of_ns = self.get_data_envs(id_.artifact, id_.namespace)
+        envs_of_ns = self.get_data_envs(id_.project, id_.namespace)
         if not envs_of_ns:
             return UnavailableTrepo()
-        default_env = self.resolve_ns_env(id_.artifact, self.default_env)
+        default_env = self.resolve_ns_env(id_.project, self.default_env)
         parents_dict = {
-            env: get_data_path(id_.artifact, id_.namespace, env) for env in envs_of_ns
+            env: get_data_path(id_.project, id_.namespace, env) for env in envs_of_ns
         }
         main_path = parents_dict[default_env] / id_.obj_id
         return TableRepo(
@@ -102,26 +102,26 @@ class Config:
             env_parents=parents_dict,
         )
 
-    def get_data_envs(self, artifact, ns):
-        if artifact == self.name:
+    def get_data_envs(self, project, ns):
+        if project == self.name:
             return [e.name for e in self.envs]
-        for iaf in self.imported_artifacts:
-            if iaf.name == artifact:
+        for iaf in self.imported_projects:
+            if iaf.name == project:
                 dnss = iaf.data_namespaces
                 if dnss and (ns not in dnss):
                     return []
-        data_envs = [e.import_envs.get(artifact) for e in self.envs]
+        data_envs = [e.import_envs.get(project) for e in self.envs]
         return set(filter(None, data_envs))
 
-    def get_data_env(self, env_name, data_artifact):
+    def get_data_env(self, env_name, data_project):
         env = self.get_env(env_name)
-        data_env = env.import_envs.get(data_artifact)
-        return data_env or self.get_data_env(env.parent, data_artifact)
+        data_env = env.import_envs.get(data_project)
+        return data_env or self.get_data_env(env.parent, data_project)
 
-    def resolve_ns_env(self, artifact, env):
-        if artifact == self.name:
+    def resolve_ns_env(self, project, env):
+        if project == self.name:
             return env
-        return self.get_data_env(env, artifact)
+        return self.get_data_env(env, project)
 
     def table_to_trepo(
         self, table: "Table", id_base: CompleteIdBase, env=None
@@ -132,7 +132,7 @@ class Config:
             table.partition_max_rows,
         )
         if env is not None:
-            trepo.set_env(self.resolve_ns_env(id_base.artifact, env))
+            trepo.set_env(self.resolve_ns_env(id_base.project, env))
         return trepo
 
     def init_cron_bump(self, pipe_elem_name):
@@ -148,7 +148,7 @@ class Config:
 
     def dump(self):
         d = asdict(self)
-        for k in ["envs", "imported_artifacts"]:
+        for k in ["envs", "imported_projects"]:
             d[k] = {e.pop("name"): e for e in d[k]}
         d["version"] = f"v{d['version']}"
         BASE_CONF_PATH.write_text(yaml.safe_dump(d))
@@ -156,12 +156,12 @@ class Config:
     @classmethod
     def load(cls):
         dic = _yaml_or_err(BASE_CONF_PATH)
-        env_list = named_dict_to_list(dic.pop("envs", {}), ArtifactEnv)
-        art_val = dic.pop("imported_artifacts", {})
+        env_list = named_dict_to_list(dic.pop("envs", {}), ProjectEnv)
+        art_val = dic.pop("imported_projects", {})
         if isinstance(art_val, list):
             art_val = {k: {} for k in art_val}
-        art_list = named_dict_to_list(art_val, ImportedArtifact)
-        return cls(**dic, envs=env_list, imported_artifacts=art_list)
+        art_list = named_dict_to_list(art_val, ImportedProject)
+        return cls(**dic, envs=env_list, imported_projects=art_list)
 
     @property
     def sorted_envs(self):
@@ -208,7 +208,7 @@ def _yaml_or_err(path, desc=None):
         return yaml.safe_load(path.read_text()) or {}
     except FileNotFoundError as e:
         msg = f"Config of {desc or path} not found in {e}"
-        raise ArtifactSetupException(msg)
+        raise ProjectSetupException(msg)
 
 
 def _get(obj_l, key):

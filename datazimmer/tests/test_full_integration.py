@@ -16,19 +16,19 @@ from datazimmer.typer_commands import (
 )
 from datazimmer.utils import cd_into, get_git_diffs, git_run, reset_meta_module
 
-from .create_dogshow import modify_to_version, setup_dogshow
+from .create_dogshow import DogshowContextCreator, modify_to_version
 
 
 def test_full_dogshow(tmp_path: Path, pytestconfig):
     # TODO: turn this into documentation
     mode = pytestconfig.getoption("mode")
-    ds_cc = setup_dogshow(mode, tmp_path)
+    ds_cc = DogshowContextCreator.load(mode, tmp_path)
 
     pg_host = os.environ.get("POSTGRES_HOST", "localhost")
     constr = f"postgresql://postgres:postgres@{pg_host}:5432/postgres"
     try:
         for ds in ds_cc.all_contexts:
-            run_artifact_test(ds, constr)
+            run_project_test(ds, constr)
         ds_cc.check_sdists()
         with ds_cc.explorer():
             build_explorer()
@@ -38,7 +38,7 @@ def test_full_dogshow(tmp_path: Path, pytestconfig):
                 cleanup()
 
 
-def run_artifact_test(dog_context, constr):
+def run_project_test(dog_context, constr):
     reset_meta_module()
     with dog_context as (versions, crons):
         init_version = Config.load().version

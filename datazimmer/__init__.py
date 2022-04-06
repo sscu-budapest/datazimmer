@@ -1,7 +1,7 @@
 """sscu-budapest utilities for scientific data engineering"""
 # flake8: noqa
 from ._version import __version__
-from .artifact_context import dump_dfs_to_tables
+from .project_runtime import dump_dfs_to_tables
 from .metadata.datascript import (
     BaseEntity,
     CompositeTypeBase,

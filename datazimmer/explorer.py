@@ -3,6 +3,7 @@ from datetime import date
 from hashlib import md5
 from itertools import groupby
 from pathlib import Path
+from shutil import move
 from tempfile import TemporaryDirectory
 from typing import List, Optional, Union
 
@@ -14,13 +15,13 @@ from bs4 import BeautifulSoup, Tag
 from cookiecutter.main import generate_files
 from jinja2 import Template
 
-from .config_loading import ArtifactEnv, Config, ImportedArtifact, RunConfig
+from .config_loading import ProjectEnv, Config, ImportedProject, RunConfig
 from .get_runtime import get_runtime
 from .module_tree import load_scrutable
 from .naming import DEFAULT_REGISTRY, EXPLORE_CONF_PATH, SANDBOX_NAME
 from .registry import Registry
 from .utils import reset_meta_module
-from .validation_functions import sandbox_artifact
+from .validation_functions import sandbox_project
 
 CC_DIR = "/home/borza/mega/hacking/tools/data-explorer-template"
 BOOK_DIR = Path("book")
@@ -80,7 +81,7 @@ class LocalRemote:
 @dataclass
 class TableDir:
     name: str
-    artifact: str
+    project: str
     namespace: str
     env: str
     table: str
@@ -92,7 +93,7 @@ class TableDir:
         self.df = df
 
     def id_(self):
-        return (self.artifact, self.v_str)
+        return (self.project, self.v_str)
 
     def dump(self, remote: S3Remote, template, nb_template, minimal):
         # slow import...
@@ -139,7 +140,7 @@ class ExplorerContext:
     def set_dfs(self):
         # to avoid dependency clashes, it is slower but simpler
         # to setup a sandbox one by one
-        with sandbox_artifact():
+        with sandbox_project():
             # TODO: avoid recursive data imports here
             self._set_in_box()
 
@@ -173,8 +174,8 @@ class ExplorerContext:
                 name=SANDBOX_NAME,
                 registry=self.registry,
                 version="v0.0",
-                imported_artifacts=[ImportedArtifact(aname, dnss, version=av)],
-                envs=[ArtifactEnv(env, import_envs={aname: env}) for env in envs],
+                imported_projects=[ImportedProject(aname, dnss, version=av)],
+                envs=[ProjectEnv(env, import_envs={aname: env}) for env in envs],
             )
             test_conf.dump()
             test_reg = Registry(test_conf, True)
@@ -183,7 +184,7 @@ class ExplorerContext:
             # TODO: cleanup
             get_runtime(True).load_all_data()
             for tdir in _dirs:
-                scrutable = load_scrutable(tdir.artifact, tdir.namespace, tdir.table)
+                scrutable = load_scrutable(tdir.project, tdir.namespace, tdir.table)
                 with RunConfig(read_env=tdir.env):
                     tdir.set_df(scrutable.get_full_df())
             reset_meta_module()
@@ -202,6 +203,7 @@ def build_explorer(minimal: bool = False):
     for sd in [HOMES, TABLES]:
         sd.mkdir(exist_ok=True, parents=True)
     ctx.dump_tables(minimal)
+    move(BOOK_DIR / ".github", ".github")
     HOME_JINJA.unlink()
     NB_JINJA.unlink()
 

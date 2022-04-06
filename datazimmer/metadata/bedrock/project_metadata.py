@@ -14,7 +14,7 @@ from .namespace_metadata import NamespaceMetadata
 
 
 @dataclass
-class ArtifactMetadata:
+class ProjectMetadata:
 
     uri: str
     tags: List[str]
@@ -26,17 +26,17 @@ class ArtifactMetadata:
     def latest_tag_of(self, env):
         return sorted(self._tags_by_v.items())[-1][1][env]
 
-    def get_used_artifacts(self):
-        artids = set()
+    def get_used_projects(self):
+        projids = set()
         for ns in self.namespaces.values():
             for table in ns.tables:
-                _add_feats(table.features + table.index, artids)
+                _add_feats(table.features + table.index, projids)
             for ctype in ns.composite_types:
-                _add_feats(ctype.features, artids)
+                _add_feats(ctype.features, projids)
             for enclass in ns.entity_classes:
                 for parent in enclass.parents:
-                    artids.add(parent.artifact)
-        return filter(None, artids)
+                    projids.add(parent.project)
+        return filter(None, projids)
 
     @property
     def next_data_v(self):
@@ -109,4 +109,4 @@ class DataVersion:
 
 def _add_feats(feats, a_set: set):
     for feat in feats:
-        a_set.add(feat.val_id.artifact)
+        a_set.add(feat.val_id.project)

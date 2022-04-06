@@ -4,7 +4,7 @@ from typing import List, Optional, Type
 from structlog import get_logger
 
 from ...config_loading import Config, RunConfig, UnavailableTrepo
-from ...exceptions import ArtifactRuntimeException
+from ...exceptions import ProjectRuntimeException
 from ...get_runtime import get_runtime
 from ...metaprogramming import camel_to_snake, snake_to_camel
 from ...naming import FEATURES_CLS_SUFFIX, INDEX_CLS_SUFFIX
@@ -31,7 +31,7 @@ class ScruTable:
         try:
             self._conf = Config.load()
         except FileNotFoundError:
-            raise ArtifactRuntimeException("can only init Scrutable in an artifact")
+            raise ProjectRuntimeException("can only init Scrutable in an project")
         self.id_: CompleteId = self._infer_id(features, index)
         self.index = index
         self.features = self._infer_features_cls(features)
@@ -58,8 +58,8 @@ class ScruTable:
     @contextmanager
     def env_ctx(self, env):
         if isinstance(self.trepo, UnavailableTrepo):
-            raise ArtifactRuntimeException(f"trepo unavailable for {self.id_}")
-        true_env = self._conf.resolve_ns_env(self.id_.artifact, env)
+            raise ProjectRuntimeException(f"trepo unavailable for {self.id_}")
+        true_env = self._conf.resolve_ns_env(self.id_.project, env)
         with self.trepo.env_ctx(true_env):
             yield
 

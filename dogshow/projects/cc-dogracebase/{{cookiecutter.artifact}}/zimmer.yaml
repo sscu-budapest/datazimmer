@@ -1,7 +1,7 @@
 name: dogracebase
 version: v0.0
 registry: {{ test_registry }}
-imported_artifacts:
+imported_projects:
   - dogshowbase  # can be either list or dict
 envs:
   complete:
