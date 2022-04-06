@@ -1,3 +1,4 @@
+import re
 import shutil
 import sys
 from contextlib import contextmanager
@@ -42,7 +43,15 @@ class Registry:
         if not self.paths.dir.exists() or reset:
             rmtree(self.paths.dir, ignore_errors=True)
             self.paths.dir.mkdir(parents=True)
-            check_call(["git", "clone", conf.registry, self.posix])
+            try:
+                check_call(["git", "clone", conf.registry, self.posix])
+            except CalledProcessError as e:  # pragma: no cover
+                r_out = re.compile("(.*)@(.*):(.*)").findall(conf.registry)
+                if not r_out:
+                    raise e
+                no_auth_url = f"https://{r_out[1]}/{r_out[2]}"
+                check_call(["git", "clone", no_auth_url, self.posix])
+
             self.paths.ensure()
         self._port = 8087
         self.requires = [a.name + a.version for a in conf.imported_projects]
