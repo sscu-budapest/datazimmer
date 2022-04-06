@@ -49,7 +49,7 @@ class Registry:
                 r_out = re.compile("(.*)@(.*):(.*)").findall(conf.registry)
                 if not r_out:
                     raise e
-                no_auth_url = f"https://{r_out[1]}/{r_out[2]}"
+                no_auth_url = f"https://{r_out[0][1]}/{r_out[0][2]}"
                 check_call(["git", "clone", no_auth_url, self.posix])
 
             self.paths.ensure()
