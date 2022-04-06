@@ -56,7 +56,3 @@ build-backend = "flit_core.buildapi"
 line-length = 88
 [tool.pytest.ini_options]
 addopts = "-s"
-[tool.coverage.run]
-omit = [
-    "*/tests/core_of_test_artifact.py",
-]
