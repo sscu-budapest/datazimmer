@@ -26,10 +26,14 @@ book_comm = f"{CLI} load-explorer-data && jupyter-book build book"
 
 def _get_base(req_file):
     instr = f"python -m pip install --upgrade pip; pip install -r {req_file}"
+    uconfs = ['user.email "leo@dumbartonserum.com"', 'user.name "Leo Dumbarton"']
+    confs = ["init.defaultBranch main", *uconfs]
+    git_comm = ";".join([f"git config --global {c}" for c in confs])
     return [
         {"uses": "actions/checkout@v2"},
         {"uses": "actions/setup-python@v1", "with": {"python-version": "3.x"}},
         {"name": "Install dependencies", "run": instr},
+        {"name": "Setup Git", "run": git_comm}
     ]
 
 
@@ -42,14 +46,6 @@ def _get_cron_dic(cron_exprs):
                 "runs-on": "ubuntu-latest",
                 "steps": [
                     *_get_base("requirements.txt"),
-                    {
-                        "name": "Setup Git",
-                        "run": (
-                            "git config --global init.defaultBranch main;"
-                            'git config --global user.email "leo@dumbartonserum.com";'
-                            'git config --global user.name "Leo Dumbarton"'
-                        ),
-                    },
                     {
                         "name": "Setup Auth",
                         "env": {"DVC_LOCAL_CONF": r"${{ secrets.DVC_LOCAL }}"},
