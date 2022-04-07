@@ -16,8 +16,8 @@ def write_cron_actions(cron_exprs):
     write_action(_get_cron_dic(cron_exprs), _GHA_PATH / "zimmer_crons.yml")
 
 
-def write_book_actions():
-    write_action(_get_book_dic(), _GHA_PATH / "deploy.yml")
+def write_book_actions(cron):
+    write_action(_get_book_dic(cron), _GHA_PATH / "deploy.yml")
 
 
 cron_comm = f"{CLI} build-meta && {CLI} run-cronjobs && {CLI} publish-data"
@@ -67,10 +67,10 @@ def _get_cron_dic(cron_exprs):
     }
 
 
-def _get_book_dic():
+def _get_book_dic(cron):
     return {
         "name": "Build and Deploy Book",
-        "on": {"push": {"branches": ["main"]}},
+        "on": {"push": {"branches": ["main"], "schedule": [{"cron": cron}]}},
         "jobs": {
             "build-and-deploy-book": {
                 "runs-on": "ubuntu-latest",
@@ -82,7 +82,7 @@ def _get_book_dic():
                         "env": {
                             EXPLORE_AK_ENV: r"${{ secrets.EXPLORE_AK }}",
                             EXPLORE_SECRET_ENV: r"${{ secrets.EXPLORE_SECRET }}",
-                            **_env
+                            **_env,
                         },
                     },
                     {

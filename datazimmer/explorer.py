@@ -1,9 +1,11 @@
 import os
+from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import datetime
 from hashlib import md5
 from itertools import groupby
 from pathlib import Path
+from shutil import rmtree
 from tempfile import TemporaryDirectory
 from typing import List, Optional, Union
 
@@ -80,7 +82,7 @@ class LocalRemote:
 
     def push(self, content, key):
         Path(self.root, key).write_text(content)
-        return date.today()
+        return datetime.now()
 
     def full_link(self, key):
         return f"file://{self.root}/{key}"
@@ -115,17 +117,15 @@ class TableDir:
         csv_str = self.df.to_csv(index=any(self.df.index.names))
         csv_path.write_text(csv_str)
         remote.push(_shorten(ProfileReport(self.df, minimal=minimal)), profile_key)
-        if not template:
-            return
         index_md = template.render(
             name=self.name,
             description=self._get_description(),
             profile_url=remote.full_link(profile_key),
             csv_url=remote_csv,
-            update_date=remote.push(csv_str, csv_path.name).isoformat(),
+            update_date=remote.push(csv_str, csv_path.name).isoformat(" ", "minutes"),
         )
-        nb_str = nb_template.render(csv_filename=csv_path.name)
         (HOMES / f"{self.slug}.md").write_text(index_md)
+        nb_str = nb_template.render(csv_filename=csv_path.name)
         (csv_path.parent / "intro.ipynb").write_text(nb_str)
 
     @property
@@ -153,9 +153,9 @@ class ExplorerContext:
             # TODO: avoid recursive data imports here
             self._set_in_box()
 
-    def dump_tables(self, minimal=False, init=True):
-        template = init and Template(HOME_JINJA.read_text())
-        nb_template = init and Template(NB_JINJA.read_text())
+    def dump_tables(self, minimal=False):
+        template = Template(HOME_JINJA.read_text())
+        nb_template = Template(NB_JINJA.read_text())
         for tdir in self.tables:
             tdir.dump(self.remote, template, nb_template, minimal)
 
@@ -199,29 +199,40 @@ class ExplorerContext:
             reset_meta_module()
 
 
-def build_explorer(minimal: bool = False):
-    ctx = ExplorerContext.load()
-    ctx.set_dfs()
-    cc_context = {"tables": {"tables": ctx.table_slugs}}
-    cookiecutter(
-        CC_DIR,
-        no_input=True,
-        extra_context={"cookiecutter": {"slug": BOOK_DIR.as_posix()}, **cc_context},
-        overwrite_if_exists=False,
-        skip_if_file_exists=True,
-    )
-    for sd in [HOMES, TABLES]:
-        sd.mkdir(exist_ok=True, parents=True)
-    ctx.dump_tables(minimal)
-    write_book_actions()
-    HOME_JINJA.unlink()
-    NB_JINJA.unlink()
+def build_explorer(cron: str = "0 15 * * *", minimal: bool = False):
+    write_book_actions(cron)
+    load_explorer_data(minimal)
 
 
 def load_explorer_data(minimal: bool = False):
     ctx = ExplorerContext.load()
     ctx.set_dfs()
-    ctx.dump_tables(minimal, init=False)
+    cc_context = {"tables": {"tables": ctx.table_slugs}}
+    with save_notebooks():
+        cookiecutter(
+            CC_DIR,
+            no_input=True,
+            extra_context={"cookiecutter": {"slug": BOOK_DIR.as_posix()}, **cc_context},
+            overwrite_if_exists=False,
+            skip_if_file_exists=True,
+        )
+        for sd in [HOMES, TABLES]:
+            sd.mkdir(exist_ok=True, parents=True)
+        ctx.dump_tables(minimal)
+        HOME_JINJA.unlink()
+        NB_JINJA.unlink()
+
+
+@contextmanager
+def save_notebooks():
+    outs = []
+    for nbp in TABLES.glob("**/*ipynb"):
+        outs.append((nbp, nbp.read_text()))
+    rmtree(BOOK_DIR, ignore_errors=True)
+    yield
+    for nbp, nbstr in outs:
+        if nbp.parent.exists():
+            nbp.write_text(nbstr)
 
 
 def _shorten(profile):
