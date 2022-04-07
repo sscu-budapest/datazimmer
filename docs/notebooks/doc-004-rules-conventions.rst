@@ -1,7 +1,7 @@
 Naming Conventions and Restrictions
 ===================================
 
--  artifact names:
+-  project names:
 
    -  lower case letters and non-duplicated dashes (-) not at either end
 

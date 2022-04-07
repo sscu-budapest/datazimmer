@@ -15,7 +15,7 @@ Namespace
 
 -  represented by
 
-   -  a module in a data artifact (as datascript) - nested right below
+   -  a module in a data project (as datascript) - nested right below
       the main (src) module
    -  a set of YAML files in ``{namespace name}/**.yaml`` as serialized
       metadata in the released sdist
@@ -30,8 +30,8 @@ Namespace
    -  data (even for foreign keys in tables)
    -  defined composite types / entity classes
 
-Data Artifact
-~~~~~~~~~~~~~
+Data Project
+~~~~~~~~~~~~
 
    A versioned set of interconnected namespaces with metadata and
    different environments
@@ -54,7 +54,7 @@ Registry
 ~~~~~~~~
 
    A repository containing data about the releases and dependencies of
-   artifacts to make importing namespaces straightforward
+   projects to make importing namespaces straightforward
 
 -  represented by
 
@@ -63,13 +63,13 @@ Registry
 
 -  contains data about
 
-   -  (named) artifacts
+   -  (named) projects
 
       -  URI
       -  versions
       -  environment->dvc remote mapping
 
--  contains sdist forms of metadata of artifacts release there
+-  contains sdist forms of metadata of projects release there
 
    -  to set up a special PyPI index so that installation and dependency
       resolution is outsourced
@@ -77,7 +77,7 @@ Registry
 Metadata
 ~~~~~~~~
 
-   Information about the data contained in artifacts
+   Information about the data contained in projects
 
 -  defines
 
@@ -89,7 +89,7 @@ Metadata
 
 -  represented
 
-   -  in an artifact repository
+   -  in a project repository
 
       -  defined in code (datascript object)
 
@@ -119,11 +119,11 @@ Config
       default)
    -  validation-environments (the default-environment by default)
    -  registry address (the SSCUB registry by default) TODO: link
-   -  imported_artifacts
+   -  imported_projects
 
-      -  either a list of artifact names to be imported, where other
-         than name, all default values are used
-      -  or a dictionary, where the key is the artifact name (in the
+      -  either a list of project names to be imported, where other than
+         name, all default values are used
+      -  or a dictionary, where the key is the project name (in the
          registry), and values are:
 
          -  version (metadata version)
@@ -138,7 +138,7 @@ Config
 
          -  logged to DVC from here
 
-      -  environments of imported artifacts (where data is needed)
+      -  environments of imported projects (where data is needed)
       -  specific DVC remote
 
          -  where to push data generated as outputs of running the code
@@ -150,12 +150,12 @@ Config
 
          -  all missing keys of parameters or imported ns
 
--  represented as ``zimmer.yaml`` in artifact root
+-  represented as ``zimmer.yaml`` in project root
 
 Environment
 ~~~~~~~~~~~
 
-   A complete run of the code in an artifact with its values for
+   A complete run of the code in an project with its values for
    parameters and environments for imported data
 
 -  defined by config

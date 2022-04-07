@@ -1,8 +1,8 @@
-Mock Artifacts
-==============
+Mock Projects
+=============
 
-The *dogshow standard* artifacts are intended to showcase all features
-of the package.
+The *dogshow standard* projects and explorer are intended to showcase
+all features of the package.
 
 They have their test registry (TODO: should have sscu-budapest GitHub
 repo address)
