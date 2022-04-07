@@ -22,6 +22,7 @@ from .get_runtime import get_runtime
 from .gh_actions import write_book_actions
 from .module_tree import load_scrutable
 from .naming import (
+    DEFAULT_ENV_NAME,
     DEFAULT_REGISTRY,
     EXPLORE_AK_ENV,
     EXPLORE_CONF_PATH,
@@ -93,8 +94,8 @@ class TableDir:
     name: str
     project: str
     namespace: str
-    env: str
     table: str
+    env: str = DEFAULT_ENV_NAME
     description: str = ""
     version: str = ""
     df: pd.DataFrame = field(init=False, default=None)
