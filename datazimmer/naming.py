@@ -37,7 +37,9 @@ def repo_link(slug):
 
 
 TEMPLATE_REPO = os.environ.get("ZIMMER_TEMPLATE", repo_link("project-template"))
-DEFAULT_REGISTRY = os.environ.get("ZIMMER_REGISTRY", repo_link("main-registry"))
+DEFAULT_REGISTRY = os.environ.get(
+    "ZIMMER_REGISTRY", "git@github.com:sscu-budapest/main-registry"
+)
 CONSTR = os.environ.get("ZIMMER_CONSTR", "sqlite:///:memory:")
 
 

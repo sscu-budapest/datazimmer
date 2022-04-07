@@ -23,6 +23,11 @@ def write_book_actions():
 cron_comm = f"{CLI} build-meta && {CLI} run-cronjobs && {CLI} publish-data"
 book_comm = f"{CLI} load-explorer-data && jupyter-book build book"
 
+_env = {
+    "AWS_ACCESS_KEY_ID": r"${{ secrets.AWS_ACCESS_KEY_ID }}",
+    "AWS_SECRET_ACCESS_KEY": r"${{ secrets.AWS_SECRET_ACCESS_KEY }}",
+}
+
 
 def _get_base(req_file):
     instr = f"python -m pip install --upgrade pip; pip install -r {req_file}"
@@ -53,10 +58,7 @@ def _get_cron_dic(cron_exprs):
                     },
                     {
                         "name": "Bump crons",
-                        "env": {
-                            CRON_ENV_VAR: r"${{ github.event.schedule }}",
-                            "ZIMMER_REGISTRY": r"${{ secrets.ZIMMER_REGISTRY }}",
-                        },
+                        "env": {CRON_ENV_VAR: r"${{ github.event.schedule }}", **_env},
                         "run": cron_comm,
                     },
                 ],
@@ -80,6 +82,7 @@ def _get_book_dic():
                         "env": {
                             EXPLORE_AK_ENV: r"${{ secrets.EXPLORE_AK }}",
                             EXPLORE_SECRET_ENV: r"${{ secrets.EXPLORE_SECRET }}",
+                            **_env
                         },
                     },
                     {

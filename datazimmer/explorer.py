@@ -115,7 +115,8 @@ class TableDir:
         csv_str = self.df.to_csv(index=any(self.df.index.names))
         csv_path.write_text(csv_str)
         remote.push(_shorten(ProfileReport(self.df, minimal=minimal)), profile_key)
-
+        if not template:
+            return
         index_md = template.render(
             name=self.name,
             description=self._get_description(),
@@ -152,9 +153,9 @@ class ExplorerContext:
             # TODO: avoid recursive data imports here
             self._set_in_box()
 
-    def dump_tables(self, minimal=False):
-        template = Template(HOME_JINJA.read_text())
-        nb_template = Template(NB_JINJA.read_text())
+    def dump_tables(self, minimal=False, init=True):
+        template = init and Template(HOME_JINJA.read_text())
+        nb_template = init and Template(NB_JINJA.read_text())
         for tdir in self.tables:
             tdir.dump(self.remote, template, nb_template, minimal)
 
@@ -220,7 +221,7 @@ def build_explorer(minimal: bool = False):
 def load_explorer_data(minimal: bool = False):
     ctx = ExplorerContext.load()
     ctx.set_dfs()
-    ctx.dump_tables(minimal)
+    ctx.dump_tables(minimal, init=False)
 
 
 def _shorten(profile):
