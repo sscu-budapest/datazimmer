@@ -33,6 +33,7 @@ app.command()(build_explorer)
 app.command()(load_explorer_data)
 
 
+
 @app.command()
 def run_step(name: str):
     get_runtime().pipereg.get_step(name).run()
@@ -42,6 +43,11 @@ def run_step(name: str):
 def publish_meta():
     _validate_empty_vc("publishing meta", [MAIN_MODULE_NAME])
     get_runtime(True).registry.publish()
+
+
+@app.command()
+def update_registr():
+    get_runtime(True).registry.update()
 
 
 @app.command()
