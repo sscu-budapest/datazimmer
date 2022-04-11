@@ -26,10 +26,12 @@ MAIN_MODULE_NAME = "src"
 META_MODULE_NAME = "metazimmer"
 PACKAGE_NAME = "metazimmer"
 PACKAGE_SHORTHAND = "dz"
+CLI = "datazimmer"
+
 CRON_ENV_VAR = "CRON_TRIGGER"
+GIT_TOKEN_ENV = "GIT_HTTPS_TOKEN"
 EXPLORE_AK_ENV = "ZIMMER_EXPLORE_KEY"
 EXPLORE_SECRET_ENV = "ZIMMER_EXPLORE_SECRET"
-CLI = "datazimmer"
 
 
 def repo_link(slug):
@@ -37,9 +39,7 @@ def repo_link(slug):
 
 
 TEMPLATE_REPO = os.environ.get("ZIMMER_TEMPLATE", repo_link("project-template"))
-DEFAULT_REGISTRY = os.environ.get(
-    "ZIMMER_REGISTRY", "git@github.com:sscu-budapest/main-registry.git"
-)
+DEFAULT_REGISTRY = "git@github.com:sscu-budapest/main-registry.git"
 CONSTR = os.environ.get("ZIMMER_CONSTR", "sqlite:///:memory:")
 
 

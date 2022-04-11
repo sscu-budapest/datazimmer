@@ -1,3 +1,4 @@
+import os
 import re
 import shutil
 import sys
@@ -19,6 +20,7 @@ from .exceptions import ProjectSetupException
 from .metadata.datascript.from_bedrock import ScriptWriter
 from .metadata.datascript.to_bedrock import DatascriptToBedrockConverter
 from .naming import (
+    GIT_TOKEN_ENV,
     META_MODULE_NAME,
     PYV,
     VERSION_PREFIX,
@@ -183,4 +185,6 @@ def _de_auth(url):
     r_out = re.compile(r"(.*)@(.*):(.*)\.git").findall(url)
     if not r_out:
         return url
-    return f"https://{r_out[0][1]}/{r_out[0][2]}"
+    _, host, repo_id = r_out[0]
+    base = "@".join(filter(None, [os.environ.get(GIT_TOKEN_ENV), host]))
+    return f"https://{base}/{repo_id}"

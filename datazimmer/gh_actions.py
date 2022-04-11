@@ -2,7 +2,7 @@ from pathlib import Path
 
 import yaml
 
-from .naming import CLI, CRON_ENV_VAR, EXPLORE_AK_ENV, EXPLORE_SECRET_ENV
+from .naming import CLI, CRON_ENV_VAR, EXPLORE_AK_ENV, EXPLORE_SECRET_ENV, GIT_TOKEN_ENV
 
 _GHA_PATH = Path(".github", "workflows")
 
@@ -23,10 +23,8 @@ def write_book_actions(cron):
 cron_comm = f"{CLI} build-meta && {CLI} run-cronjobs && {CLI} publish-data"
 book_comm = f"{CLI} load-explorer-data && jupyter-book build book"
 
-_env = {
-    "AWS_ACCESS_KEY_ID": r"${{ secrets.AWS_ACCESS_KEY_ID }}",
-    "AWS_SECRET_ACCESS_KEY": r"${{ secrets.AWS_SECRET_ACCESS_KEY }}",
-}
+_env_keys = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", GIT_TOKEN_ENV]
+_env = {k: r"${{ secrets." + k + r" }}" for k in _env_keys}
 
 
 def _get_base(req_file):
