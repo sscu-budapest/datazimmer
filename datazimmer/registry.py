@@ -48,7 +48,7 @@ class Registry:
             try:
                 check_call(["git", "clone", conf.registry, self.posix])
             except CalledProcessError:  # pragma: no cover
-                check_call(["git", "clone", _de_auth(conf.registry), self.posix])
+                check_call(["git", "clone", _de_auth(conf.registry, True), self.posix])
 
             self.paths.ensure()
         self._port = 8087
@@ -162,9 +162,11 @@ class Registry:
             ScriptWriter(ns, ns_dir / "__init__.py")
 
     def _dump_info(self):
+        print("DUMPING INFO")
         remote_comm = ["git", "config", "--get", "remote.origin.url"]
         uri = check_output(remote_comm).decode("utf-8").strip()
         meta_dic = {"uri": _de_auth(uri), "tags": self._get_tags()}
+        print(self._get_tags())
         self.paths.info_yaml.write_text(yaml.safe_dump(meta_dic))
 
     def _get_tags(self):
@@ -181,10 +183,13 @@ class Registry:
         return package_names
 
 
-def _de_auth(url):
+def _de_auth(url, re_auth=False):
     r_out = re.compile(r"(.*)@(.*):(.*)\.git").findall(url)
     if not r_out:
         return url
     _, host, repo_id = r_out[0]
-    base = "@".join(filter(None, [os.environ.get(GIT_TOKEN_ENV), host]))
+    if re_auth:
+        base = "@".join(filter(None, [os.environ.get(GIT_TOKEN_ENV), host]))
+    else:
+        base = host
     return f"https://{base}/{repo_id}"
