@@ -33,7 +33,7 @@ def _get_base(req_file):
     confs = ["init.defaultBranch main", *uconfs]
     git_comm = ";".join([f"git config --global {c}" for c in confs])
     return [
-        {"uses": "actions/checkout@v2"},
+        {"uses": "actions/checkout@v3"},
         {"uses": "actions/setup-python@v1", "with": {"python-version": "3.x"}},
         {"name": "Install dependencies", "run": instr},
         {"name": "Setup Git", "run": f"{git_comm};git pull --tags"},
