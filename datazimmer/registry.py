@@ -162,11 +162,9 @@ class Registry:
             ScriptWriter(ns, ns_dir / "__init__.py")
 
     def _dump_info(self):
-        print("DUMPING INFO")
         remote_comm = ["git", "config", "--get", "remote.origin.url"]
         uri = check_output(remote_comm).decode("utf-8").strip()
         meta_dic = {"uri": _de_auth(uri), "tags": self._get_tags()}
-        print(self._get_tags())
         self.paths.info_yaml.write_text(yaml.safe_dump(meta_dic))
 
     def _get_tags(self):
