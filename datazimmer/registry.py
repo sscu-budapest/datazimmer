@@ -62,7 +62,6 @@ class Registry:
             # FIXME: check if already installed
             with self._index_server():
                 self._install([self.name], upgrade=True)
-            self._dump_info()
             return
         except CalledProcessError:
             pass
@@ -71,6 +70,7 @@ class Registry:
             self._build_from_script()
             if self._package():
                 self._install([self.name], upgrade=True)
+        self._dump_info()
 
     def update(self):
         self._git_run(pull=True)
