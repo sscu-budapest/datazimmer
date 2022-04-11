@@ -62,6 +62,7 @@ class Registry:
             # FIXME: check if already installed
             with self._index_server():
                 self._install([self.name], upgrade=True)
+            self._dump_info()
             return
         except CalledProcessError:
             pass
@@ -75,7 +76,7 @@ class Registry:
         self._git_run(pull=True)
 
     def publish(self):
-        self._dump_meta()
+        self._dump_info()
         msg = f"push {self.name}-{self.conf.version}"
         self._git_run(add=self.paths.publish_paths, msg=msg, push=True)
 
@@ -106,7 +107,6 @@ class Registry:
         ns = main(
             self.paths.toml_path,
             formats={"sdist"},
-            # gen_setup_py=True,
         )
         copy(ns.sdist.file, self.paths.dist_dir)
         return True
@@ -159,6 +159,7 @@ class Registry:
             ns.dump(ns_dir)
             ScriptWriter(ns, ns_dir / "__init__.py")
 
+    def _dump_info(self):
         remote_comm = ["git", "config", "--get", "remote.origin.url"]
         uri = check_output(remote_comm).decode("utf-8").strip()
         meta_dic = {"uri": _de_auth(uri), "tags": self._get_tags()}
@@ -179,7 +180,7 @@ class Registry:
 
 
 def _de_auth(url):
-    r_out = re.compile("(.*)@(.*):(.*)").findall(url)
+    r_out = re.compile(r"(.*)@(.*):(.*)\.git").findall(url)
     if not r_out:
         return url
     return f"https://{r_out[0][1]}/{r_out[0][2]}"
