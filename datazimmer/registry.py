@@ -56,6 +56,7 @@ class Registry:
         self._git_run = partial(git_run, wd=self.posix)
 
     def full_build(self):
+        self._dump_info()
         try:
             comm = ["git", "cat-file", "-e", f"origin/main:{self.paths.dist_gitpath}"]
             check_call(comm, cwd=self.posix)
@@ -72,7 +73,6 @@ class Registry:
             self._build_from_script()
             if self._package():
                 self._install([self.name], upgrade=True)
-        self._dump_info()
 
     def update(self):
         self._git_run(pull=True)
