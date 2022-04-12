@@ -13,7 +13,8 @@ _DVC_FRAME = """
 ['remote "{name}"']
     url = s3://{name}
     access_key_id = {key}
-    secret_access_key = {s}"""
+    secret_access_key = {s}
+"""
 
 
 @dataclass
