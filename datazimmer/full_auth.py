@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 import toml
+from structlog import get_logger
 
 from .naming import AUTH_ENV_VAR
 
@@ -48,6 +49,7 @@ class ZimmerAuth:
     def dump_dvc(self):
         if dvc_local.exists():
             return
+        get_logger().info("writing dvc auth", remotes=[*self.remotes.keys()])
         dvc_local.write_text(
             "\n".join([rem.to_dvc_conf() for rem in self.remotes.values()])
         )
