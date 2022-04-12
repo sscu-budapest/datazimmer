@@ -1,20 +1,12 @@
 import os
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Optional
 
 import toml
+from dvc.config import Config
 from structlog import get_logger
 
 from .naming import AUTH_ENV_VAR
-
-dvc_local = Path(".dvc", "config.local")
-_DVC_FRAME = """
-['remote "{name}"']
-    url = s3://{name}
-    access_key_id = {key}
-    secret_access_key = {s}
-"""
 
 
 @dataclass
@@ -30,10 +22,14 @@ class Remote:
     auth: Auth
 
     def to_dvc_conf(self):
-        s = _DVC_FRAME.format(name=self.name, key=self.auth.key, s=self.auth.secret)
+        d = {
+            "url": f"s3://{self.name}",
+            "access_key_id": self.auth.key,
+            "secret_access_key": self.auth.secret,
+        }
         if self.auth.endpoint:
-            s += f"    endpointurl = {self.auth.endpoint}"
-        return s
+            d["endpointurl"] = self.auth.endpoint
+        return d
 
 
 class ZimmerAuth:
@@ -47,10 +43,8 @@ class ZimmerAuth:
     def get_auth(self, remote_id: str) -> Auth:
         return self.remotes[remote_id].auth
 
-    def dump_dvc(self):
-        if dvc_local.exists():
-            return
+    def dump_dvc(self, local=True):
+        conf = Config()
         get_logger().info("writing dvc auth", remotes=[*self.remotes.keys()])
-        dvc_local.write_text(
-            "\n".join([rem.to_dvc_conf() for rem in self.remotes.values()])
-        )
+        with conf.edit("local" if local else "global") as ced:
+            ced["remote"] = {k: v.to_dvc_conf() for k, v in self.remotes.items()}

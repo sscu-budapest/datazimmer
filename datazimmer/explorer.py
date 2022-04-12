@@ -199,6 +199,7 @@ def build_explorer(cron: str = "0 15 * * *", minimal: bool = False):
 
 
 def load_explorer_data(minimal: bool = False):
+    ZimmerAuth().dump_dvc(local=False)
     ctx = ExplorerContext.load()
     ctx.set_dfs()
     cc_context = {"tables": {"tables": ctx.table_slugs}}
@@ -219,6 +220,7 @@ def load_explorer_data(minimal: bool = False):
 
 @contextmanager
 def save_notebooks():
+    # TODO: save requirements
     outs = []
     for nbp in TABLES.glob("**/*ipynb"):
         outs.append((nbp, nbp.read_text()))
