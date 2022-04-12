@@ -108,15 +108,15 @@ class TableDir:
         csv_path.parent.mkdir(exist_ok=True)
         remote_csv = remote.full_link(csv_path.name)
 
-        csv_str = self.df.to_csv(index=any(self.df.index.names))
-        csv_path.write_text(csv_str)
+        csv = self.df.to_csv(index=any(self.df.index.names))
+        csv_path.write_text(csv)
         remote.push(_shorten(ProfileReport(self.df, minimal=minimal)), profile_key)
         index_md = template.render(
             name=self.name,
             description=self._get_description(),
             profile_url=remote.full_link(profile_key),
             csv_url=remote_csv,
-            update_date=remote.push(csv_str, csv_path.name).isoformat(" ", "minutes"),
+            update_date=remote.push(csv, csv_path.name).isoformat(" ", "minutes")[:16],
         )
         (HOMES / f"{self.slug}.md").write_text(index_md)
         nb_str = nb_template.render(csv_filename=csv_path.name)
