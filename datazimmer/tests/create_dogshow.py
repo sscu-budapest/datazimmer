@@ -43,11 +43,12 @@ class DogshowContextCreator:
         self.local_root.mkdir()
         self.ran_dirs = []
         self.remote_root = Path(remote_root or self.local_root / "remotes")
-        self.dvc_remotes = dvc_remotes or [*self._get_dvc_remotes(2)]
+        self.dvc_remotes = [*self._get_dvc_remotes(dvc_remotes)]
         self.cc_context = {
             "csv_path": csv_path,
             "test_registry": self._init_if_local(self.remote_root / "dogshow-registry"),
             "explore_remote": json.dumps(explore_remote),
+            "remote2": self.dvc_remotes[1][0],
         }
         self.all_contexts = map(self.project_ctx, _PROJECTS)
 
@@ -69,10 +70,9 @@ class DogshowContextCreator:
         self.ran_dirs.append(root_dir)
         with cd_into(root_dir):
             _add_readme()
-            for i, remote in enumerate(self.dvc_remotes):
-                # dog-remote1 and dog-remote2 names are set in the yamls
-                check_call(["dvc", "remote", "add", f"dog-remote{i+1}", remote])
-            check_call(["dvc", "remote", "default", "dog-remote1"])
+            for remote_name, remote_id in self.dvc_remotes:
+                check_call(["dvc", "remote", "add", remote_name, remote_id])
+            check_call(["dvc", "remote", "default", self.dvc_remotes[0][0]])
             git_run(add=["*"], msg="setup project")
             yield _VERSIONS.get(name, []), _CRONS.get(name, [])
 
@@ -105,11 +105,15 @@ class DogshowContextCreator:
             kwargs = safe_load((dogshow_root / "confs-live.yaml").read_text())[mode]
         return cls(**kwargs)
 
-    def _get_dvc_remotes(self, n):
-        for i in range(n):
+    def _get_dvc_remotes(self, remotes):
+        if remotes:  # pragma: no cover
+            for r in remotes:
+                yield r, f"s3://{r}"
+            return
+        for i in range(2):
             dvc_dir = self.local_root / "dvc-remotes" / f"remote-{i+1}"
             dvc_dir.mkdir(parents=True)
-            yield dvc_dir.absolute().as_posix()
+            yield f"dog-remote{i}", dvc_dir.absolute().as_posix()
 
     def _init_if_local(self, repo_path):
         if not str(repo_path).startswith("git@"):

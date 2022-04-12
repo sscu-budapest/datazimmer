@@ -2,7 +2,7 @@ from pathlib import Path
 
 import yaml
 
-from .naming import CLI, CRON_ENV_VAR, EXPLORE_AK_ENV, EXPLORE_SECRET_ENV, GIT_TOKEN_ENV
+from .naming import AUTH_ENV_VAR, CLI, CRON_ENV_VAR, GIT_TOKEN_ENV_VAR
 
 _GHA_PATH = Path(".github", "workflows")
 
@@ -20,10 +20,10 @@ def write_book_actions(cron):
     write_action(_get_book_dic(cron), _GHA_PATH / "deploy.yml")
 
 
-cron_comm = f"{CLI} build-meta && {CLI} run-cronjobs && {CLI} publish-data"
+cron_comm = f"{CLI} build-meta && dvc pull && {CLI} run-cronjobs && {CLI} publish-data"
 book_comm = f"{CLI} load-explorer-data && jupyter-book build book"
 
-_env_keys = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", GIT_TOKEN_ENV]
+_env_keys = [AUTH_ENV_VAR, GIT_TOKEN_ENV_VAR]
 _env = {k: r"${{ secrets." + k + r" }}" for k in _env_keys}
 
 
@@ -50,11 +50,6 @@ def _get_cron_dic(cron_exprs):
                 "steps": [
                     *_get_base("requirements.txt"),
                     {
-                        "name": "Setup Auth",
-                        "env": {"DVC_LOCAL_CONF": r"${{ secrets.DVC_LOCAL }}"},
-                        "run": ('echo "$DVC_LOCAL_CONF" > .dvc/config.local'),
-                    },
-                    {
                         "name": "Bump crons",
                         "env": {CRON_ENV_VAR: r"${{ github.event.schedule }}", **_env},
                         "run": cron_comm,
@@ -74,15 +69,7 @@ def _get_book_dic(cron):
                 "runs-on": "ubuntu-latest",
                 "steps": [
                     *_get_base("book/requirements.txt"),
-                    {
-                        "name": "Build the book",
-                        "run": book_comm,
-                        "env": {
-                            EXPLORE_AK_ENV: r"${{ secrets.EXPLORE_AK }}",
-                            EXPLORE_SECRET_ENV: r"${{ secrets.EXPLORE_SECRET }}",
-                            **_env,
-                        },
-                    },
+                    {"name": "Build the book", "run": book_comm, "env": _env},
                     {
                         "name": "GitHub Pages action",
                         "uses": "peaceiris/actions-gh-pages@v3",

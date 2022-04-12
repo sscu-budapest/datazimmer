@@ -17,10 +17,11 @@ from requests.exceptions import ConnectionError
 from structlog import get_logger
 
 from .exceptions import ProjectSetupException
+from .full_auth import ZimmerAuth
 from .metadata.datascript.from_bedrock import ScriptWriter
 from .metadata.datascript.to_bedrock import DatascriptToBedrockConverter
 from .naming import (
-    GIT_TOKEN_ENV,
+    GIT_TOKEN_ENV_VAR,
     META_MODULE_NAME,
     PYV,
     VERSION_PREFIX,
@@ -57,6 +58,7 @@ class Registry:
 
     def full_build(self):
         self._dump_info()
+        ZimmerAuth().dump_dvc()
         try:
             comm = ["git", "cat-file", "-e", f"origin/main:{self.paths.dist_gitpath}"]
             check_call(comm, cwd=self.posix)
@@ -187,7 +189,7 @@ def _de_auth(url, re_auth=False):
         return url
     _, host, repo_id = r_out[0]
     if re_auth:
-        base = "@".join(filter(None, [os.environ.get(GIT_TOKEN_ENV), host]))
+        base = "@".join(filter(None, [os.environ.get(GIT_TOKEN_ENV_VAR), host]))
     else:
         base = host
     return f"https://{base}/{repo_id}"

@@ -11,6 +11,6 @@ envs:
     params:
       min_prize_pool: 8000
   highest_comps:
-    remote: dog-remote2
+    remote: {{ remote2 }}
     params:
       min_prize_pool: 12000

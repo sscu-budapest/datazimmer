@@ -1,4 +1,3 @@
-import os
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -18,15 +17,14 @@ from cookiecutter.main import cookiecutter
 from jinja2 import Template
 
 from .config_loading import Config, ImportedProject, ProjectEnv, RunConfig
+from .full_auth import ZimmerAuth
 from .get_runtime import get_runtime
 from .gh_actions import write_book_actions
 from .module_tree import load_scrutable
 from .naming import (
     DEFAULT_ENV_NAME,
     DEFAULT_REGISTRY,
-    EXPLORE_AK_ENV,
     EXPLORE_CONF_PATH,
-    EXPLORE_SECRET_ENV,
     SANDBOX_NAME,
     repo_link,
 )
@@ -41,24 +39,17 @@ NB_JINJA = BOOK_DIR / "sneak-peek.ipynb.jinja"
 HOMES, TABLES = [BOOK_DIR / sd for sd in ["homes", "tables"]]
 
 
-@dataclass
 class S3Remote:
-    bucket: str
-    endpoint: Optional[str] = None
-    access_key: str = field(init=False)
-    secret_key: str = field(init=False)
-    s3: boto3.resources.factory.ServiceResource = field(init=False)
+    def __init__(self, rem_id):
 
-    def __post_init__(self):
-
-        self.access_key = os.environ.get(EXPLORE_AK_ENV)
-        self.secret_key = os.environ.get(EXPLORE_SECRET_ENV)
-
+        auth = ZimmerAuth().get_auth(rem_id)
+        self.bucket = rem_id
+        self.endpoint = auth.endpoint
         self.s3 = boto3.resource(
             "s3",
             endpoint_url=self.endpoint,
-            aws_access_key_id=self.access_key,
-            aws_secret_access_key=self.secret_key,
+            aws_access_key_id=auth.key,
+            aws_secret_access_key=auth.secret,
         )
 
     def push(self, content, key):
@@ -73,6 +64,8 @@ class S3Remote:
         return bucket.put_object(Body=content, Key=key).last_modified
 
     def full_link(self, key):
+        if self.endpoint is None:
+            return f"https://{self.bucket}.s3.amazonaws.com/{key}"
         return f"{self.endpoint}/{self.bucket}/{key}"
 
 
@@ -164,9 +157,9 @@ class ExplorerContext:
     def load(cls):
         conf_dic = yaml.safe_load(EXPLORE_CONF_PATH.read_text())
         tdirs = [TableDir(**tdkw) for tdkw in conf_dic.pop("tables")]
-        remote_raw = conf_dic.pop("remote", None)
-        if isinstance(remote_raw, dict):
-            remote = S3Remote(**remote_raw)
+        remote_raw = conf_dic.pop("remote", "")
+        if remote_raw and (not remote_raw.startswith("/")):
+            remote = S3Remote(remote_raw)
         else:
             remote = LocalRemote(remote_raw)
         return cls(tdirs, remote, **conf_dic)

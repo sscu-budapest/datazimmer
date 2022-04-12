@@ -16,7 +16,7 @@ envs:
       dogshowbase: highest_comps
       dogracebase: complete
   bigger:
-    remote: dog-remote2
+    remote: {{ remote2 }}
     parent: prime  # is default anyway
     params:
       top_report:
