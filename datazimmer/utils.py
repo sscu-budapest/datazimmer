@@ -6,7 +6,6 @@ from inspect import ismodule
 from itertools import chain
 from pathlib import Path
 from subprocess import check_call, check_output
-from tempfile import TemporaryDirectory
 from typing import List, Type, TypeVar, Union
 
 import isort
@@ -77,53 +76,26 @@ def get_git_diffs(staged=False):
 
 
 @contextmanager
-def cd_into(
-    dirpath: Union[str, Path],
-    reset_src=True,
-    checkout=None,
-    force_clone=False,
-):
-    _run = check_output
-
+def cd_into(dirpath: Union[str, Path]):
     wd = os.getcwd()
-    needs_clone = force_clone or is_repo(dirpath)
-
-    if needs_clone:
-        tmp_dir = TemporaryDirectory()
-        cd_path = tmp_dir.__enter__()
-        _run(["git", "clone", str(dirpath), "."], cwd=cd_path)
-    else:
-        cd_path = dirpath
-
-    if checkout:
-        _run(["git", "checkout", checkout], cwd=cd_path)
-
-    os.chdir(cd_path)
-    # sys.path.insert(0, str(cd_path))
-
-    if reset_src:
-        reset_src_module()
+    os.chdir(dirpath)
+    # sys.path.insert(0, str(dirpath))
+    reset_src_module()
     try:
         yield
     finally:
         os.chdir(wd)
         # sys.path.pop(0)
-        if needs_clone:
-            tmp_dir.__exit__(None, None, None)
 
 
 def format_code(code_str):
     try:
-        blacked = format_file_contents(
-            code_str, fast=True, mode=Mode(line_length=LINE_LEN)
-        )
+        mode = Mode(line_length=LINE_LEN)
+        blacked = format_file_contents(code_str, fast=True, mode=mode)
     except NothingChanged:
         blacked = code_str
 
-    return isort.code(
-        blacked,
-        profile="black",
-    )
+    return isort.code(blacked, profile="black")
 
 
 def load_named_dict_to_list(
