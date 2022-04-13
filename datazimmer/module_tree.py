@@ -2,11 +2,15 @@ import sys
 from importlib import import_module
 from pathlib import Path
 from pkgutil import walk_packages
+from typing import TYPE_CHECKING
 
 from .exceptions import ProjectSetupException
 from .metaprogramming import table_var_name
 from .naming import MAIN_MODULE_NAME, META_MODULE_NAME, RegistryPaths
 from .utils import reset_src_module
+
+if TYPE_CHECKING:  # pragma: no cover
+    from .metadata.datascript.scrutable import ScruTable
 
 
 class ModuleTree:
@@ -36,6 +40,6 @@ class InstalledPaths:
         self.info_yaml = rpaths.info_yaml_of(to_load, mod.__version__)
 
 
-def load_scrutable(project, ns_name, table_name):
+def load_scrutable(project, ns_name, table_name) -> "ScruTable":
     mod = import_module(f"{META_MODULE_NAME}.{project}.{ns_name}")
     return getattr(mod, table_var_name(table_name))
