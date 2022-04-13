@@ -34,9 +34,7 @@ from .validation_functions import sandbox_project
 
 CC_DIR = repo_link("explorer-template")
 BOOK_DIR = Path("book")
-HOME_JINJA = BOOK_DIR / "home.md.jinja"
-NB_JINJA = BOOK_DIR / "sneak-peek.ipynb.jinja"
-HOMES, TABLES = [BOOK_DIR / sd for sd in ["homes", "tables"]]
+HOMES, TABLES, HEADERS = [BOOK_DIR / sd for sd in ["homes", "tables", "headers"]]
 
 
 class S3Remote:
@@ -83,44 +81,78 @@ class LocalRemote:
 
 
 @dataclass
+class TableTemplate:
+    filepath: str
+    out_dir: Path
+    nested: bool
+    jinja: Template = field(init=False)
+
+    def __post_init__(self):
+        t_path = BOOK_DIR / self.filepath
+        self.jinja = Template(t_path.read_text())
+        t_path.unlink()
+
+    def dump(self, table_obj: "TableDir", full_table_meta):
+        out_str = self.jinja.render(**full_table_meta)
+        if self.nested:
+            out_path = (
+                self.out_dir / table_obj.slug / self.filepath.replace(".jinja", "")
+            )
+        else:
+            out_path = self.out_dir / f"{table_obj.slug}.{self.filepath.split('.')[-2]}"
+        out_path.parent.mkdir(exist_ok=True, parents=True)
+        out_path.write_text(out_str)
+
+
+@dataclass
 class TableDir:
     name: str
     project: str
     namespace: str
     table: str
     env: str = DEFAULT_ENV_NAME
-    description: str = ""
     version: str = ""
     df: pd.DataFrame = field(init=False, default=None)
+    profile_url: str = field(init=False, default=None)
+    entity: str = field(init=False, default=None)
+    project_url: str = field(init=False, default=None)
 
-    def set_df(self, df):
+    def set_meta(self, df, remote: S3Remote, entity, project_url):
         self.df = df
+        self.profile_url = remote.full_link(self.profile_key)
+        self.entity = entity
+        self.project_url = project_url
 
     def id_(self):
         return (self.project, self.v_str)
 
-    def dump(self, remote: S3Remote, template, nb_template, minimal):
+    def dump(self, remote: S3Remote, templates: List[TableTemplate], minimal):
         # slow import...
         from pandas_profiling import ProfileReport
 
-        profile_key = f"{self.slug}-profile.html"
         csv_path = TABLES / self.slug / f"{self.slug}.csv"
-        csv_path.parent.mkdir(exist_ok=True)
-        remote_csv = remote.full_link(csv_path.name)
-
         csv = self.df.to_csv(index=any(self.df.index.names))
+        remote.push(_shorten(ProfileReport(self.df, minimal=minimal)), self.profile_key)
+        mod_date = remote.push(csv, csv_path.name)
+
+        meta = self.get_full_meta(mod_date, remote, csv_path.name)
+        for template in templates:
+            template.dump(self, meta)
         csv_path.write_text(csv)
-        remote.push(_shorten(ProfileReport(self.df, minimal=minimal)), profile_key)
-        index_md = template.render(
-            name=self.name,
-            description=self._get_description(),
-            profile_url=remote.full_link(profile_key),
-            csv_url=remote_csv,
-            update_date=remote.push(csv, csv_path.name).isoformat(" ", "minutes")[:16],
-        )
-        (HOMES / f"{self.slug}.md").write_text(index_md)
-        nb_str = nb_template.render(csv_filename=csv_path.name)
-        (csv_path.parent / "intro.ipynb").write_text(nb_str)
+
+    def get_full_meta(self, mod_date, remote, csv_filename):
+        # to all the templates
+        return {
+            "name": self.name,
+            "slug": self.slug,
+            "update_date": mod_date.isoformat(" ", "minutes")[:16],
+            "n_cols": self.df.shape[1],
+            "n_rows": self.df.shape[0],
+            "entity": self.entity,
+            "csv_url": remote.full_link(csv_filename),
+            "csv_filename": csv_filename,
+            "project_url": self.project_url
+        }
 
     @property
     def v_str(self):
@@ -130,8 +162,9 @@ class TableDir:
     def slug(self):
         return self.name.lower().replace(" ", "-")
 
-    def _get_description(self):
-        return self.description or f"{' × '.join(map(str, self.df.shape))} table"
+    @property
+    def profile_key(self):
+        return f"{self.slug}-profile.html"
 
 
 @dataclass
@@ -148,10 +181,13 @@ class ExplorerContext:
             self._set_in_box()
 
     def dump_tables(self, minimal=False):
-        template = Template(HOME_JINJA.read_text())
-        nb_template = Template(NB_JINJA.read_text())
+        templates = [
+            TableTemplate("home.md.jinja", HOMES, False),
+            TableTemplate("intro.ipynb.jinja", TABLES, True),
+            TableTemplate("header.md.jinja", HEADERS, False),
+        ]
         for tdir in self.tables:
-            tdir.dump(self.remote, template, nb_template, minimal)
+            tdir.dump(self.remote, templates, minimal)
 
     @classmethod
     def load(cls):
@@ -165,8 +201,8 @@ class ExplorerContext:
         return cls(tdirs, remote, **conf_dic)
 
     @property
-    def table_slugs(self):
-        return [t.slug for t in self.tables]
+    def table_cc_dicts(self):
+        return [{"slug": t.slug, "profile_url": t.profile_url} for t in self.tables]
 
     def _set_in_box(self):
         for (aname, av), dirgen in groupby(self.tables, TableDir.id_):
@@ -185,11 +221,14 @@ class ExplorerContext:
             test_reg.update()
             test_reg.full_build()
             # TODO: cleanup
-            get_runtime(True).load_all_data()
+            runtime = get_runtime(True)
+            runtime.load_all_data()
             for tdir in _dirs:
                 scrutable = load_scrutable(tdir.project, tdir.namespace, tdir.table)
+                uri = runtime.ext_metas[tdir.project].uri
                 with RunConfig(read_env=tdir.env):
-                    tdir.set_df(scrutable.get_full_df())
+                    entity = scrutable.subject.__name__
+                    tdir.set_meta(scrutable.get_full_df(), self.remote, entity, uri)
             reset_meta_module()
 
 
@@ -202,33 +241,28 @@ def load_explorer_data(minimal: bool = False):
     ZimmerAuth().dump_dvc(local=False)
     ctx = ExplorerContext.load()
     ctx.set_dfs()
-    cc_context = {"tables": {"tables": ctx.table_slugs}}
+    cc_tables = {"tables": {"tables": ctx.table_cc_dicts}}
+    cc_dic = {"cookiecutter": {"slug": BOOK_DIR.as_posix()}, **cc_tables}
     with save_notebooks():
-        cookiecutter(
-            CC_DIR,
-            no_input=True,
-            extra_context={"cookiecutter": {"slug": BOOK_DIR.as_posix()}, **cc_context},
-            overwrite_if_exists=False,
-            skip_if_file_exists=True,
-        )
-        for sd in [HOMES, TABLES]:
-            sd.mkdir(exist_ok=True, parents=True)
+        cookiecutter(CC_DIR, no_input=True, extra_context=cc_dic)
         ctx.dump_tables(minimal)
-        HOME_JINJA.unlink()
-        NB_JINJA.unlink()
 
 
 @contextmanager
 def save_notebooks():
-    # TODO: save requirements
     outs = []
-    for nbp in TABLES.glob("**/*ipynb"):
-        outs.append((nbp, nbp.read_text()))
+    paths = [
+        *TABLES.glob("**/*.ipynb"),
+        *BOOK_DIR.glob("*.txt"),
+        *HOMES.glob("**/*.md"),
+    ]
+    for _save_path in paths:
+        outs.append((_save_path, _save_path.read_text()))
     rmtree(BOOK_DIR, ignore_errors=True)
     yield
-    for nbp, nbstr in outs:
-        if nbp.parent.exists():
-            nbp.write_text(nbstr)
+    for _path, nbstr in outs:
+        if _path.parent.exists():
+            _path.write_text(nbstr)
 
 
 def _shorten(profile):
