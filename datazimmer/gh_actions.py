@@ -63,7 +63,7 @@ def _get_cron_dic(cron_exprs):
 def _get_book_dic(cron):
     return {
         "name": "Build and Deploy Book",
-        "on": {"push": {"branches": ["main"], "schedule": [{"cron": cron}]}},
+        "on": {"push": {"branches": ["main"]}, "schedule": [{"cron": cron}]},
         "jobs": {
             "build-and-deploy-book": {
                 "runs-on": "ubuntu-latest",
