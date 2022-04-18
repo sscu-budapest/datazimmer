@@ -18,7 +18,7 @@ logger = get_logger()
 class ScruTable:
     def __init__(
         self,
-        features: Type[TableFeaturesBase] = None,
+        features: Optional[Type[TableFeaturesBase]] = None,
         index: Optional[Type[IndexBase]] = None,
         subject_of_records: Optional[Type[BaseEntity]] = None,
         partitioning_cols: Optional[List[str]] = None,
