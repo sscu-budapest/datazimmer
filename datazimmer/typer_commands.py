@@ -19,6 +19,7 @@ from .naming import (
     MAIN_MODULE_NAME,
     SANDBOX_DIR,
     SANDBOX_NAME,
+    TEMPLATE_REPO,
 )
 from .pipeline_registry import get_global_pipereg
 from .registry import Registry
@@ -47,6 +48,12 @@ def publish_meta():
 @app.command()
 def update_registry():
     get_runtime(True).registry.update()
+
+
+@app.command()
+def init(name: str):
+    check_call(["git", "clone", TEMPLATE_REPO, name])
+    check_call(["git", "remote", "rename", "origin", "template"], cwd=name)
 
 
 @app.command()
