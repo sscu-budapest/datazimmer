@@ -1,0 +1,2 @@
+class SourceUrl(str):
+    pass

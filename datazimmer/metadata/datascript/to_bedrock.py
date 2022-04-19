@@ -1,5 +1,7 @@
+from collections import defaultdict
 from functools import cached_property, partial
-from typing import Dict, Iterable, Type
+from importlib import import_module
+from typing import Dict, Iterable, List, Type
 
 from ...metaprogramming import get_simplified_mro
 from ...module_tree import ModuleTree
@@ -16,6 +18,7 @@ from ..bedrock.feature_types import CompositeFeature, ForeignKey, PrimitiveFeatu
 from ..bedrock.namespace_metadata import NamespaceMetadata
 from .bases import BaseEntity, CompositeTypeBase, IndexBase, Nullable, get_feature_dict
 from .scrutable import ScruTable
+from .source_url import SourceUrl
 
 
 class DatascriptToBedrockConverter:
@@ -27,6 +30,7 @@ class DatascriptToBedrockConverter:
         self.tables = {}
         self.composite_types = {}
         self.entity_classes = {}
+        self.meta_dicts = defaultdict(lambda: defaultdict(list))
         for module in module_tree.all_modules:
             int_repo = DatascriptObjectCollector(module)
             self._fill_table_dic(int_repo)
@@ -39,9 +43,12 @@ class DatascriptToBedrockConverter:
             for ext_collector in int_repo.meta_module_collectors:
                 self._fill_table_dic(ext_collector)
             self.repos.append(int_repo)
+            # TODO: str literal
+            ns_name = CompleteIdBase.from_module_name(module.__name__, name).namespace
+            self.meta_dicts[ns_name]["source_urls"] += int_repo.source_urls
 
         for repo in self.repos:
-            module_name = repo.namespace_module.__name__
+            module_name = repo.module.__name__
             self._id_base = CompleteIdBase.from_module_name(module_name, name)
             for ds_obj in repo.atoms:
                 self._parse(ds_obj)
@@ -52,7 +59,7 @@ class DatascriptToBedrockConverter:
         for _ns in self._namespaces:
             ns_args = [*map(partial(_dic_by_ns, _ns), _arg_bases)]
             if any(ns_args):
-                yield NamespaceMetadata(*ns_args, _ns)
+                yield NamespaceMetadata(*ns_args, _ns, **self.meta_dicts[_ns])
 
     def _fill_table_dic(self, repo: "DatascriptObjectCollector"):
         for new_table in repo.tables:
@@ -153,7 +160,7 @@ class DatascriptToBedrockConverter:
 
 class DatascriptObjectCollector:
     def __init__(self, module) -> None:
-        self.namespace_module = module
+        self.module = import_module(module) if isinstance(module, str) else module
 
     @cached_property
     def atoms(self):
@@ -161,7 +168,11 @@ class DatascriptObjectCollector:
 
     @cached_property
     def tables(self) -> Iterable[ScruTable]:
-        return get_instances_from_module(self.namespace_module, ScruTable).values()
+        return get_instances_from_module(self.module, ScruTable).values()
+
+    @cached_property
+    def source_urls(self) -> List[SourceUrl]:
+        return [*map(str, get_instances_from_module(self.module, SourceUrl).values())]
 
     @cached_property
     def composite_types(self) -> Iterable[Type[CompositeTypeBase]]:
@@ -177,11 +188,11 @@ class DatascriptObjectCollector:
 
     @property
     def meta_module_collectors(self):
-        mods = get_modules_from_module(self.namespace_module, META_MODULE_NAME).values()
+        mods = get_modules_from_module(self.module, META_MODULE_NAME).values()
         return map(type(self), mods)
 
     def _obj_of_cls(self, py_cls):
-        return get_cls_defined_in_module(self.namespace_module, py_cls).values()
+        return get_cls_defined_in_module(self.module, py_cls).values()
 
 
 def _dic_by_ns(ns, dic):

@@ -45,6 +45,7 @@ class SDistPaths:
     def __init__(self, parent: Path) -> None:
         parent.mkdir(exist_ok=True, parents=True)
         _p = partial(Path, parent)
+        self.meta = _p("meta.yaml")
         self.composite_types = _p("composite-types.yaml")
         self.entity_classes = _p("entity-classes.yaml")
         self.table_schemas = _p("tables.yaml")

@@ -6,6 +6,7 @@ import metazimmer.dogshowbase.core as dogfirst
 import numpy as np
 import pandas as pd
 from colassigner import Col
+from metazimmer.dogshowbase.core import DogIndex
 
 import datazimmer as dz
 
@@ -47,7 +48,7 @@ class SizedDogFeatures(dz.TableFeaturesBase):
 status_table = dz.ScruTable(StatusFeatures, StatusIndex)
 sized_dog_table = dz.ScruTable(
     SizedDogFeatures,
-    index=dogfirst.DogIndex,
+    index=DogIndex,
     subject_of_records=dogfirst.Dog,
 )
 

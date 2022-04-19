@@ -6,6 +6,7 @@ from .metadata.datascript import (
     CompositeTypeBase,
     IndexBase,
     Nullable,
+    SourceUrl,
     TableFeaturesBase,
 )
 from .metadata.datascript.scrutable import ScruTable

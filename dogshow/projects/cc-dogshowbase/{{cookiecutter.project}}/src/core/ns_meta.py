@@ -108,3 +108,5 @@ relationship_table = dz.ScruTable(RelationshipFeatures, RelationshipIndex)
 competition_table = dz.ScruTable(CompetitionFeatures, CompetitionIndex)
 spot_table = dz.ScruTable(SpotFeatures)
 photo_table = dz.ScruTable(PhotoFeatures, index=PhotoIndex)
+
+test_base_url = dz.SourceUrl("https://sscu-budapest.github.io/")
