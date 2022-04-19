@@ -151,7 +151,7 @@ class TableDir:
             "entity": self.entity,
             "csv_url": remote.full_link(csv_filename),
             "csv_filename": csv_filename,
-            "project_url": self.project_url
+            "project_url": self.project_url,
         }
 
     @property
@@ -243,17 +243,18 @@ def load_explorer_data(minimal: bool = False):
     ctx.set_dfs()
     cc_tables = {"tables": {"tables": ctx.table_cc_dicts}}
     cc_dic = {"cookiecutter": {"slug": BOOK_DIR.as_posix()}, **cc_tables}
-    with save_notebooks():
+    with save_edits():
         cookiecutter(CC_DIR, no_input=True, extra_context=cc_dic)
         ctx.dump_tables(minimal)
 
 
 @contextmanager
-def save_notebooks():
+def save_edits():
     outs = []
     paths = [
         *TABLES.glob("**/*.ipynb"),
         *BOOK_DIR.glob("*.txt"),
+        *BOOK_DIR.glob("*.md"),
         *HOMES.glob("**/*.md"),
     ]
     for _save_path in paths:
