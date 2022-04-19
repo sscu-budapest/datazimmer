@@ -1,17 +1,16 @@
+import sys
 from pathlib import Path
 from subprocess import check_call
-import sys
 from tempfile import TemporaryDirectory
 
 import pytest
 
-from datazimmer.tests.create_dogshow import dogshow_root
 from datazimmer.config_loading import RunConfig
-from datazimmer.typer_commands import build_meta, cleanup
-from datazimmer.naming import DEFAULT_ENV_NAME, MAIN_MODULE_NAME, TEMPLATE_REPO
-from datazimmer.utils import cd_into, reset_meta_module
 from datazimmer.get_runtime import get_runtime
-
+from datazimmer.naming import DEFAULT_ENV_NAME, MAIN_MODULE_NAME, TEMPLATE_REPO
+from datazimmer.tests.create_dogshow import dogshow_root
+from datazimmer.typer_commands import build_meta, cleanup
+from datazimmer.utils import cd_into, reset_meta_module
 
 CORE_PY = dogshow_root / "minimal.py"
 
@@ -26,7 +25,7 @@ def empty_template():
     with TemporaryDirectory() as tmpdir:
         check_call(["git", "clone", TEMPLATE_REPO, tmpdir])
         with cd_into(tmpdir):
-            check_call(["dvc", "remote", "add", f"testrem", "/nothing"])
+            check_call(["dvc", "remote", "add", "testrem", "/nothing"])
             check_call(["dvc", "remote", "default", "testrem"])
             Path(MAIN_MODULE_NAME, "core.py").write_text(CORE_PY.read_text())
             build_meta()
