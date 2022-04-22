@@ -4,32 +4,33 @@ tables:
   - name: Dog One
     project: dogshowbase
     namespace: core
-    table: dog
+    tables: 
+      - dog
+      - person
     env: top_comps
-  - name: Owner One
-    project: dogshowbase
-    namespace: core
-    env: top_comps
-    table: person
   - name: Dog Two
     project: dogracebase
     namespace: core
     env: complete
-    table: dog
+    tables: 
+      - dog
   - name: Matching Dogs
     project: dogsuccess
     namespace: sex_matches
     env: prime
-    table: sex_match
+    tables: 
+      - sex_match
   - name: Spots One
     project: dogshowbase
     namespace: core
     env: complete
-    table: spot
+    tables: 
+      - spot
     version: v0.0
   - name: Spots Two
     project: dogshowbase
     namespace: core
     env: complete
-    table: spot
+    tables: 
+      - spot
     version: v0.1

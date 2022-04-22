@@ -6,20 +6,19 @@ from itertools import groupby
 from pathlib import Path
 from shutil import rmtree
 from tempfile import TemporaryDirectory
-from typing import List, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 
 import boto3
-import pandas as pd
 import yaml
 from botocore.exceptions import ClientError
 from bs4 import BeautifulSoup, Tag
 from cookiecutter.main import cookiecutter
-from jinja2 import Template
 
 from .config_loading import Config, ImportedProject, ProjectEnv, RunConfig
 from .full_auth import ZimmerAuth
 from .get_runtime import get_runtime
 from .gh_actions import write_book_actions
+from .metaprogramming import camel_to_snake
 from .module_tree import load_scrutable
 from .naming import (
     DEFAULT_ENV_NAME,
@@ -32,9 +31,12 @@ from .registry import Registry
 from .utils import reset_meta_module
 from .validation_functions import sandbox_project
 
+if TYPE_CHECKING:
+    from .project_runtime import ProjectRuntime
+
 CC_DIR = repo_link("explorer-template")
 BOOK_DIR = Path("book")
-HOMES, TABLES, HEADERS = [BOOK_DIR / sd for sd in ["homes", "tables", "headers"]]
+HOMES, DATASETS = [BOOK_DIR / sd for sd in ["homes", "datasets"]]
 
 
 class S3Remote:
@@ -73,7 +75,9 @@ class LocalRemote:
         Path(self.root).mkdir(exist_ok=True)
 
     def push(self, content, key):
-        Path(self.root, key).write_text(content)
+        ppath = Path(self.root, key)
+        ppath.parent.mkdir(exist_ok=True, parents=True)
+        ppath.write_text(content)
         return datetime.now()
 
     def full_link(self, key):
@@ -81,118 +85,103 @@ class LocalRemote:
 
 
 @dataclass
-class TableTemplate:
-    filepath: str
-    out_dir: Path
-    nested: bool
-    jinja: Template = field(init=False)
-
-    def __post_init__(self):
-        t_path = BOOK_DIR / self.filepath
-        self.jinja = Template(t_path.read_text())
-        t_path.unlink()
-
-    def dump(self, table_obj: "TableDir", full_table_meta):
-        out_str = self.jinja.render(**full_table_meta)
-        if self.nested:
-            out_path = (
-                self.out_dir / table_obj.slug / self.filepath.replace(".jinja", "")
-            )
-        else:
-            out_path = self.out_dir / f"{table_obj.slug}.{self.filepath.split('.')[-2]}"
-        out_path.parent.mkdir(exist_ok=True, parents=True)
-        out_path.write_text(out_str)
-
-
-@dataclass
-class TableDir:
+class ExplorerDataset:
     name: str
     project: str
     namespace: str
-    table: str
+    tables: Optional[List[str]] = None
     env: str = DEFAULT_ENV_NAME
     version: str = ""
-    df: pd.DataFrame = field(init=False, default=None)
-    profile_url: str = field(init=False, default=None)
-    entity: str = field(init=False, default=None)
-    project_url: str = field(init=False, default=None)
+    cc_context: dict = field(init=False, default_factory=dict)
+    to_write: list = field(init=False, default_factory=list)
 
-    def set_meta(self, df, remote: S3Remote, entity, project_url):
-        self.df = df
-        self.profile_url = remote.full_link(self.profile_key)
-        self.entity = entity
-        self.project_url = project_url
+    def set_from_project(
+        self, remote: S3Remote, runtime: "ProjectRuntime", minimal, book_root
+    ):
+        meta = runtime.ext_metas[self.project]
+        ns_meta = meta.namespaces[self.namespace]
+        table_list = self.tables or [t.name for t in ns_meta.tables]
+        self.cc_context.update(
+            {
+                "project_url": meta.uri,
+                "slug": self._slug,
+                "name": self.name,
+                "source_urls": ns_meta.source_urls,
+                "tables": [],
+                "n_tables": len(table_list),
+            }
+        )
+        with RunConfig(read_env=self.env):
+            for table in table_list:
+                self.cc_context["tables"].append(
+                    self._get_table_cc(table, remote, minimal, book_root)
+                )
+
+    def dump(self):
+        for path, text in self.to_write:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text)
 
     def id_(self):
         return (self.project, self.v_str)
-
-    def dump(self, remote: S3Remote, templates: List[TableTemplate], minimal):
-        # slow import...
-        from pandas_profiling import ProfileReport
-
-        csv_path = TABLES / self.slug / f"{self.slug}.csv"
-        csv = self.df.to_csv(index=any(self.df.index.names))
-        remote.push(_shorten(ProfileReport(self.df, minimal=minimal)), self.profile_key)
-        mod_date = remote.push(csv, csv_path.name)
-
-        meta = self.get_full_meta(mod_date, remote, csv_path.name)
-        for template in templates:
-            template.dump(self, meta)
-        csv_path.write_text(csv)
-
-    def get_full_meta(self, mod_date, remote, csv_filename):
-        # to all the templates
-        return {
-            "name": self.name,
-            "slug": self.slug,
-            "update_date": mod_date.isoformat(" ", "minutes")[:16],
-            "n_cols": self.df.shape[1],
-            "n_rows": self.df.shape[0],
-            "entity": self.entity,
-            "csv_url": remote.full_link(csv_filename),
-            "csv_filename": csv_filename,
-            "project_url": self.project_url,
-        }
 
     @property
     def v_str(self):
         return f"=={self.version}" if self.version else ""
 
-    @property
-    def slug(self):
-        return self.name.lower().replace(" ", "-")
+    def _get_table_cc(self, table, remote: S3Remote, minimal, book_root):
+        # slow import...
+        from pandas_profiling import ProfileReport
+
+        scrutable = load_scrutable(self.project, self.namespace, table)
+        df = scrutable.get_full_df()
+        csv_str = df.to_csv(index=any(df.index.names))
+        profile_str = _shorten(ProfileReport(df, minimal=minimal))
+        name = scrutable.name
+
+        profile_key = f"{self._slug}/{name}-profile.html"
+        csv_key = f"{self._slug}/{name}.csv"
+        csv_path = book_root / DATASETS / self._slug / f"{name}.csv"
+        remote.push(profile_str, profile_key)
+        mod_date = remote.push(csv_str, csv_key)
+        self.to_write.append((csv_path, csv_str))
+        return {
+            "entity": _title(scrutable.subject.__name__),
+            "name": _title(scrutable.name),
+            "slug": scrutable.name,
+            "profile_url": remote.full_link(profile_key),
+            "update_date": mod_date.isoformat(" ", "minutes")[:16],
+            "n_cols": df.shape[1],
+            "n_rows": df.shape[0],
+            "csv_url": remote.full_link(csv_key),
+            "csv_filename": csv_path.name,
+        }
 
     @property
-    def profile_key(self):
-        return f"{self.slug}-profile.html"
+    def _slug(self):
+        return self.name.lower().replace(" ", "_")
 
 
 @dataclass
 class ExplorerContext:
-    tables: List[TableDir]
+    datasets: List[ExplorerDataset]
     remote: Union[S3Remote, LocalRemote]
     registry: str = DEFAULT_REGISTRY
+    minimal: bool = False
+    book_root: Path = field(init=False, default_factory=Path.cwd)
 
-    def set_dfs(self):
+    def load_data(self):
         # to avoid dependency clashes, it is slower but simpler
         # to setup a sandbox one by one
         with sandbox_project():
             # TODO: avoid recursive data imports here
-            self._set_in_box()
-
-    def dump_tables(self, minimal=False):
-        templates = [
-            TableTemplate("home.md.jinja", HOMES, False),
-            TableTemplate("intro.ipynb.jinja", TABLES, True),
-            TableTemplate("header.md.jinja", HEADERS, False),
-        ]
-        for tdir in self.tables:
-            tdir.dump(self.remote, templates, minimal)
+            for (pname, pv), ds_gen in groupby(self.datasets, ExplorerDataset.id_):
+                self._set_from_project([*ds_gen], pname, pv)
 
     @classmethod
     def load(cls):
         conf_dic = yaml.safe_load(EXPLORE_CONF_PATH.read_text())
-        tdirs = [TableDir(**tdkw) for tdkw in conf_dic.pop("tables")]
+        tdirs = [ExplorerDataset(**tdkw) for tdkw in conf_dic.pop("tables")]
         remote_raw = conf_dic.pop("remote", "")
         if remote_raw and (not remote_raw.startswith("/")):
             remote = S3Remote(remote_raw)
@@ -200,61 +189,59 @@ class ExplorerContext:
             remote = LocalRemote(remote_raw)
         return cls(tdirs, remote, **conf_dic)
 
-    @property
-    def table_cc_dicts(self):
-        return [{"slug": t.slug, "profile_url": t.profile_url} for t in self.tables]
-
-    def _set_in_box(self):
-        for (aname, av), dirgen in groupby(self.tables, TableDir.id_):
-            _dirs = [*dirgen]
-            envs = set([d.env for d in _dirs])
-            dnss = [*set([d.namespace for d in _dirs])]
-            test_conf = Config(
-                name=SANDBOX_NAME,
-                registry=self.registry,
-                version="v0.0",
-                imported_projects=[ImportedProject(aname, dnss, version=av)],
-                envs=[ProjectEnv(env, import_envs={aname: env}) for env in envs],
-            )
-            test_conf.dump()
-            test_reg = Registry(test_conf, True)
-            test_reg.update()
-            test_reg.full_build()
-            # TODO: cleanup
-            runtime = get_runtime(True)
-            runtime.load_all_data()
-            for tdir in _dirs:
-                scrutable = load_scrutable(tdir.project, tdir.namespace, tdir.table)
-                uri = runtime.ext_metas[tdir.project].uri
-                with RunConfig(read_env=tdir.env):
-                    entity = scrutable.subject.__name__
-                    tdir.set_meta(scrutable.get_full_df(), self.remote, entity, uri)
-            reset_meta_module()
+    def _set_from_project(
+        self, datasets: List[ExplorerDataset], project_name, project_v
+    ):
+        envs = set([d.env for d in datasets])
+        dnss = [*set([d.namespace for d in datasets])]
+        test_conf = Config(
+            name=SANDBOX_NAME,
+            registry=self.registry,
+            version="v0.0",
+            imported_projects=[ImportedProject(project_name, dnss, version=project_v)],
+            envs=[ProjectEnv(env, import_envs={project_name: env}) for env in envs],
+        )
+        test_conf.dump()
+        test_reg = Registry(test_conf, True)
+        test_reg.update()
+        test_reg.full_build()
+        # TODO: cleanup
+        runtime = get_runtime(True)
+        runtime.load_all_data()
+        for dataset in datasets:
+            dataset.set_from_project(self.remote, runtime, self.minimal, self.book_root)
+        reset_meta_module()
 
 
-def build_explorer(cron: str = "0 15 * * *", minimal: bool = False):
+def build_explorer(cron: str = "0 15 * * *"):
     write_book_actions(cron)
-    load_explorer_data(minimal)
+    load_explorer_data()
 
 
-def load_explorer_data(minimal: bool = False):
+def load_explorer_data():
     ZimmerAuth().dump_dvc(local=False)
     ctx = ExplorerContext.load()
-    ctx.set_dfs()
-    cc_tables = {"tables": {"tables": ctx.table_cc_dicts}}
-    cc_dic = {"cookiecutter": {"slug": BOOK_DIR.as_posix()}, **cc_tables}
+    ctx.load_data()
+    cc_datasets = {"datasets": {"datasets": [ds.cc_context for ds in ctx.datasets]}}
+    cc_dic = {"cookiecutter": {"slug": BOOK_DIR.as_posix()}, **cc_datasets}
     with save_edits():
-        cookiecutter(CC_DIR, no_input=True, extra_context=cc_dic)
-        ctx.dump_tables(minimal)
+        for ds in ctx.datasets:
+            cookiecutter(
+                CC_DIR,
+                no_input=True,
+                extra_context={**cc_dic, "main": ds.cc_context},
+                overwrite_if_exists=True,
+            )
+            ds.dump()
 
 
 @contextmanager
 def save_edits():
     outs = []
     paths = [
-        *TABLES.glob("**/*.ipynb"),
+        *DATASETS.glob("**/*.ipynb"),
         *BOOK_DIR.glob("*.txt"),
-        *BOOK_DIR.glob("*.md"),
+        # *BOOK_DIR.glob("*.md"),
         *HOMES.glob("**/*.md"),
     ]
     for _save_path in paths:
@@ -288,3 +275,7 @@ def _shorten(profile):
     soup.find("body").insert(-1, bs_script)
     soup.find("body").insert(-2, jq_script)
     return str(soup)
+
+
+def _title(s):
+    return camel_to_snake(s).replace("_", " ").title()
