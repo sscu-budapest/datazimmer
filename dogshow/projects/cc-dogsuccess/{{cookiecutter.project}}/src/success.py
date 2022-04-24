@@ -66,6 +66,7 @@ status_md = dz.ReportFile("status_table.md")
         sized_dog_table,
     ],
     outputs_nocache=[status_md],
+    cron="0 1 13 * 5"
 )
 def proc(top_status_multiplier: int):
 

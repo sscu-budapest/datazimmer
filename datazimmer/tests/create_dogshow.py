@@ -26,7 +26,7 @@ dec_src_root = dogshow_root / "explorer"
 
 _PROJECTS = ["dogshowbase", "dogracebase", "dogsuccess", "dogcombine"]
 _VERSIONS = {"dogshowbase": ["0.0", "0.1"], "dogsuccess": ["1.0"]}
-_CRONS = {"dogshowbase": ["0 0 1 * *"]}
+_CRONS = {"dogshowbase": ["0 0 1 * *"], "dogsuccess": ["0 1 13 * 5"]}
 
 
 class DogshowContextCreator:
