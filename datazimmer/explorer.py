@@ -32,7 +32,7 @@ from .utils import reset_meta_module
 from .validation_functions import sandbox_project
 
 if TYPE_CHECKING:
-    from .project_runtime import ProjectRuntime
+    from .project_runtime import ProjectRuntime  # pragma: no cover
 
 CC_DIR = repo_link("explorer-template")
 BOOK_DIR = Path("book")
@@ -40,6 +40,7 @@ HOMES, DATASETS = [BOOK_DIR / sd for sd in ["homes", "datasets"]]
 
 
 class S3Remote:
+    # TODO: cover s3
     def __init__(self, rem_id):
 
         auth = ZimmerAuth().get_auth(rem_id)
@@ -173,7 +174,7 @@ class ExplorerContext:
     def load_data(self):
         # to avoid dependency clashes, it is slower but simpler
         # to setup a sandbox one by one
-        with sandbox_project():
+        with sandbox_project(self.registry):
             # TODO: avoid recursive data imports here
             for (pname, pv), ds_gen in groupby(self.datasets, ExplorerDataset.id_):
                 self._set_from_project([*ds_gen], pname, pv)
