@@ -127,7 +127,7 @@ class Registry:
                 resp = requests.get(self._index_addr)
             except ConnectionError:
                 if attempt > 10:
-                    logger.exception("failed index server")
+                    logger.info("failed index server")
                 continue
             if resp.ok or (resp.status_code == 404):
                 break
