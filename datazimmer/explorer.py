@@ -93,11 +93,12 @@ class ExplorerDataset:
     tables: Optional[List[str]] = None
     env: str = DEFAULT_ENV_NAME
     version: str = ""
+    minimal: bool = False
     cc_context: dict = field(init=False, default_factory=dict)
     to_write: list = field(init=False, default_factory=list)
 
     def set_from_project(
-        self, remote: S3Remote, runtime: "ProjectRuntime", minimal, book_root
+        self, remote: S3Remote, runtime: "ProjectRuntime", book_root
     ):
         meta = runtime.ext_metas[self.project]
         ns_meta = meta.namespaces[self.namespace]
@@ -115,7 +116,7 @@ class ExplorerDataset:
         with RunConfig(read_env=self.env):
             for table in table_list:
                 self.cc_context["tables"].append(
-                    self._get_table_cc(table, remote, minimal, book_root)
+                    self._get_table_cc(table, remote, book_root)
                 )
 
     def dump(self):
@@ -130,14 +131,14 @@ class ExplorerDataset:
     def v_str(self):
         return f"=={self.version}" if self.version else ""
 
-    def _get_table_cc(self, table, remote: S3Remote, minimal, book_root):
+    def _get_table_cc(self, table, remote: S3Remote, book_root):
         # slow import...
         from pandas_profiling import ProfileReport
 
         scrutable = load_scrutable(self.project, self.namespace, table)
         df = scrutable.get_full_df()
         csv_str = df.to_csv(index=any(df.index.names))
-        profile_str = _shorten(ProfileReport(df, minimal=minimal))
+        profile_str = _shorten(ProfileReport(df, minimal=self.minimal))
         name = scrutable.name
 
         profile_key = f"{self._slug}/{name}-profile.html"
@@ -168,7 +169,6 @@ class ExplorerContext:
     datasets: List[ExplorerDataset]
     remote: Union[S3Remote, LocalRemote]
     registry: str = DEFAULT_REGISTRY
-    minimal: bool = False
     book_root: Path = field(init=False, default_factory=Path.cwd)
 
     def load_data(self):
@@ -210,7 +210,7 @@ class ExplorerContext:
         runtime = get_runtime(True)
         runtime.load_all_data()
         for dataset in datasets:
-            dataset.set_from_project(self.remote, runtime, self.minimal, self.book_root)
+            dataset.set_from_project(self.remote, runtime, self.book_root)
         reset_meta_module()
 
 
