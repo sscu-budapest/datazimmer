@@ -56,8 +56,14 @@ class Registry:
         self.requires = [a.name + a.version for a in conf.imported_projects]
         self._git_run = partial(git_run, wd=self.posix)
 
+    def dump_info(self):
+        remote_comm = ["git", "config", "--get", "remote.origin.url"]
+        uri = check_output(remote_comm).decode("utf-8").strip()
+        meta_dic = {"uri": _de_auth(uri), "tags": self._get_tags()}
+        self.paths.info_yaml.write_text(yaml.safe_dump(meta_dic))
+
     def full_build(self):
-        self._dump_info()
+        self.dump_info()
         ZimmerAuth().dump_dvc()
         try:
             comm = ["git", "cat-file", "-e", f"origin/main:{self.paths.dist_gitpath}"]
@@ -80,7 +86,7 @@ class Registry:
         self._git_run(pull=True)
 
     def publish(self):
-        self._dump_info()
+        self.dump_info()
         msg = f"push {self.name}-{self.conf.version}"
         self._git_run(add=self.paths.publish_paths, msg=msg, push=True)
 
@@ -162,12 +168,6 @@ class Registry:
             ns_dir = self.paths.project_meta / ns.name
             ns.dump(ns_dir)
             ScriptWriter(ns, ns_dir / "__init__.py")
-
-    def _dump_info(self):
-        remote_comm = ["git", "config", "--get", "remote.origin.url"]
-        uri = check_output(remote_comm).decode("utf-8").strip()
-        meta_dic = {"uri": _de_auth(uri), "tags": self._get_tags()}
-        self.paths.info_yaml.write_text(yaml.safe_dump(meta_dic))
 
     def _get_tags(self):
         out = []
