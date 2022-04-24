@@ -10,7 +10,7 @@ from .exceptions import ProjectSetupException
 from .get_runtime import get_runtime
 from .metadata.bedrock.atoms import NS_ATOM_TYPE
 from .metadata.datascript.to_bedrock import DatascriptToBedrockConverter
-from .naming import CONSTR, SANDBOX_DIR, SANDBOX_NAME, TEMPLATE_REPO
+from .naming import CONSTR, DEFAULT_REGISTRY, SANDBOX_DIR, SANDBOX_NAME, TEMPLATE_REPO
 from .registry import Registry
 from .sql.draw import dump_graph
 from .sql.loader import SqlLoader
@@ -93,7 +93,7 @@ def sql_validation(constr, env, draw=False, batch_size=2000):
 def validate_importable(actx: "ProjectRuntime"):
     aname = actx.config.name
     envs = actx.config.validation_envs
-    with sandbox_project():
+    with sandbox_project(actx.config.registry):
         test_conf = Config(
             name=SANDBOX_NAME,
             version="v0.0",
@@ -106,6 +106,7 @@ def validate_importable(actx: "ProjectRuntime"):
         test_conf.dump()
         type(actx)().load_all_data()
         # TODO: assert this data matches local
+        test_reg.purge()
 
 
 def is_underscored_name(s):
@@ -125,11 +126,11 @@ def is_step_name(s):
 
 
 @contextmanager
-def sandbox_project():
+def sandbox_project(registry=DEFAULT_REGISTRY):
     if not SANDBOX_DIR.exists():
         check_call(["git", "clone", TEMPLATE_REPO, SANDBOX_DIR.as_posix()])
         with cd_into(SANDBOX_DIR):
-            conf = Config(SANDBOX_NAME, "v0.0")
+            conf = Config(SANDBOX_NAME, "v0.0", registry=registry)
             conf.dump()
             Registry(conf, reset=True).full_build()
     with cd_into(SANDBOX_DIR):
