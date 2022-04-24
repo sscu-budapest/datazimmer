@@ -173,7 +173,7 @@ class PipelineElement:
             outs=self.outputs,
             outs_persist=self.out_persist,
             deps=self.dependencies,
-            params=[{BASE_CONF_PATH.as_posix(): param_ids}],
+            params=[{BASE_CONF_PATH.as_posix(): param_ids}] if param_ids else None,
             force=True,
         )
 
