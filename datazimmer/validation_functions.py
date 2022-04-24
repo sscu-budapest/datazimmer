@@ -99,7 +99,7 @@ def validate_importable(actx: "ProjectRuntime"):
             version="v0.0",
             imported_projects=[ImportedProject(aname)],
             envs=[ProjectEnv(f"test_{env}", import_envs={aname: env}) for env in envs],
-            registry=actx.config.registry
+            registry=actx.config.registry,
         )
         test_reg = Registry(test_conf)
         test_reg.dump_info()
