@@ -127,7 +127,7 @@ def run_cronjobs(cronexpr: str = None, commit: bool = True):
 
 @app.command()
 def run(
-    stage: bool = True, profile: bool = False, env: bool = None, commit: bool = False
+    stage: bool = True, profile: bool = False, env: str = None, commit: bool = False
 ):
     dvc_repo = Repo(config={"core": {"autostage": stage}})
     runtime = get_runtime()
