@@ -145,7 +145,7 @@ def run(
         dvc_repo.lock.lock()
         stage.remove_outs(force=True)
         dvc_repo.lock.unlock()
-    targets = runtime.pipereg.step_names_of_env(env.name) if env else None
+    targets = runtime.pipereg.step_names_of_env(env) if env else None
     rconf = RunConfig(profile=profile)
     with rconf:
         logger.info("running repro", targets=targets, **asdict(rconf))
