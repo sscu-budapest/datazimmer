@@ -46,6 +46,8 @@ class ScruTable:
         )
         self.get_full_df = self._read_wrap(self.trepo.get_full_df)
         self.get_full_ddf = self._read_wrap(self.trepo.get_full_ddf)
+        self.map_partitions = self._read_wrap(self.trepo.map_partitions)
+        
         self.extend = self._write_wrap(self.trepo.extend)
         self.replace_all = self._write_wrap(self.trepo.replace_all)
         self.replace_records = self._write_wrap(self.trepo.replace_records)
@@ -54,6 +56,11 @@ class ScruTable:
     @property
     def name(self):
         return self.id_.obj_id
+
+    @property
+    def paths(self):
+        with self.env_ctx(RunConfig.load().read_env):
+            return self.trepo.paths
 
     @contextmanager
     def env_ctx(self, env):
