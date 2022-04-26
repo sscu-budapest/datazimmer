@@ -11,6 +11,7 @@ ScruTable
    .. autosummary::
 
       ~ScruTable.name
+      ~ScruTable.paths
 
    .. rubric:: Methods Summary
 
@@ -21,6 +22,7 @@ ScruTable
    .. rubric:: Attributes Documentation
 
    .. autoattribute:: name
+   .. autoattribute:: paths
 
    .. rubric:: Methods Documentation
 
