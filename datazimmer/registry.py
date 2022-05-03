@@ -65,22 +65,22 @@ class Registry:
     def full_build(self):
         self.dump_info()
         ZimmerAuth().dump_dvc()
-        try:
-            comm = ["git", "cat-file", "-e", f"origin/main:{self.paths.dist_gitpath}"]
-            check_call(comm, cwd=self.posix)
-            msg = f"can't package {self.name}-{self.conf.version} - already released"
-            logger.warning(msg)
-            # FIXME: check if already installed
-            with self._index_server():
-                self._install([self.name], upgrade=True)
+        if self._is_released():
             return
-        except CalledProcessError:
-            pass
         with self._index_server():
             self._install(self.requires)
             self._build_from_script()
             if self._package():
                 self._install([self.name], upgrade=True)
+
+    def update_meta(self):
+        self.dump_info()
+        # FIXME: check if already installed
+        with self._index_server():
+            self._build_from_script()
+            self._package()
+            self._install(self.requires)
+            self._install([self.name], upgrade=True)
 
     def update(self):
         self._git_run(pull=True)
@@ -181,6 +181,16 @@ class Registry:
 
     def _parse_package_names(self, package_names):
         return package_names
+
+    def _is_released(self):
+        try:
+            comm = ["git", "cat-file", "-e", f"origin/main:{self.paths.dist_gitpath}"]
+            check_call(comm, cwd=self.posix)
+            msg = f"can't package {self.name}-{self.conf.version} - already released"
+            logger.warning(msg)
+            return True
+        except CalledProcessError:
+            return False
 
 
 def _de_auth(url, re_auth=False):

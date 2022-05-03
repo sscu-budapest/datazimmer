@@ -63,6 +63,7 @@ def publish_data(validate: bool = False):
     runtime = get_runtime(True)
     dvc_repo = Repo()
     data_version = runtime.metadata.next_data_v
+    vtags = []
     for env in runtime.config.sorted_envs:
         targets = runtime.pipereg.step_names_of_env(env.name)
         logger.info("pushing targets", targets=targets, env=env.name)
@@ -70,8 +71,10 @@ def publish_data(validate: bool = False):
         vtag = get_tag(runtime.config.version, data_version, env.name)
         _commit_dvc_default(env.remote)
         check_call(["git", "tag", vtag])
-        check_call(["git", "push", "origin", vtag])
+        vtags.append(vtag)
     git_run(push=True)
+    for tag_to_push in vtags:
+        check_call(["git", "push", "origin", tag_to_push])
     runtime.registry.publish()
     if validate:
         validate_importable(runtime)
@@ -86,6 +89,11 @@ def build_meta():
     if crons:
         logger.info("writing github actions files for crons", crons=crons)
         write_cron_actions(crons)
+
+@app.command()
+def update_meta():
+    get_global_pipereg(reset=True)
+    Registry(Config.load()).update_meta()
 
 
 @app.command()
