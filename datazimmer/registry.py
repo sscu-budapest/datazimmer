@@ -65,17 +65,15 @@ class Registry:
     def full_build(self):
         self.dump_info()
         ZimmerAuth().dump_dvc()
-        if self._is_released():
-            return
         with self._index_server():
             self._install(self.requires)
-            self._build_from_script()
-            if self._package():
-                self._install([self.name], upgrade=True)
+            if not self._is_released():
+                self._build_from_script()
+                self._package()
+            self._install([self.name], upgrade=True)
 
     def update_meta(self):
         self.dump_info()
-        # FIXME: check if already installed
         with self._index_server():
             self._build_from_script()
             self._package()
