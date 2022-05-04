@@ -81,7 +81,7 @@ def sql_validation(constr, env, draw=False, batch_size=2000):
     try:
         _log("schema setup")
         loader.setup_schema()
-        draw and dump_graph(loader.sql_meta, loader.engine)
+        draw and dump_graph(constr)
         _log("loading to db")
         loader.load_data()
         _log("validating")

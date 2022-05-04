@@ -30,7 +30,8 @@ dependencies = [
     "pandas<1.4.0",
     "cookiecutter",
     "beautifulsoup4",
-    "html5lib"
+    "html5lib",
+    "sqlmermaid"
 ]
 
 [project.optional-dependencies]

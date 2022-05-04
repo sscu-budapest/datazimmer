@@ -1,3 +1,4 @@
-def dump_graph(*args, **kwargs):
-    # moving to its own package
-    pass
+from sqlmermaid import to_file
+
+def dump_graph(constr):
+    to_file(constr, "erd.md")
