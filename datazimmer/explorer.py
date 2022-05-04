@@ -97,9 +97,7 @@ class ExplorerDataset:
     cc_context: dict = field(init=False, default_factory=dict)
     to_write: list = field(init=False, default_factory=list)
 
-    def set_from_project(
-        self, remote: S3Remote, runtime: "ProjectRuntime", book_root
-    ):
+    def set_from_project(self, remote: S3Remote, runtime: "ProjectRuntime", book_root):
         meta = runtime.ext_metas[self.project]
         ns_meta = meta.namespaces[self.namespace]
         table_list = self.tables or [t.name for t in ns_meta.tables]
