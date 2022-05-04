@@ -57,6 +57,13 @@ def init(name: str):
 
 
 @app.command()
+def update():
+    update_registry()
+    git_run(pull=True)
+    Repo().pull()
+
+
+@app.command()
 def publish_data(validate: bool = False):
     # TODO: current meta should be built and published
     _validate_empty_vc("publishing data")
@@ -89,6 +96,7 @@ def build_meta():
     if crons:
         logger.info("writing github actions files for crons", crons=crons)
         write_cron_actions(crons)
+
 
 @app.command()
 def update_meta():
