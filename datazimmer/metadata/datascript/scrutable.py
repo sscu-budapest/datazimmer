@@ -52,6 +52,8 @@ class ScruTable:
         self.replace_all = self._write_wrap(self.trepo.replace_all)
         self.replace_records = self._write_wrap(self.trepo.replace_records)
         self.replace_groups = self._write_wrap(self.trepo.replace_groups)
+        self.purge = self._write_wrap(self.trepo.purge)
+
 
     @property
     def name(self):
