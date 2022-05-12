@@ -168,7 +168,7 @@ class ExplorerContext:
     remote: Union[S3Remote, LocalRemote]
     registry: str = DEFAULT_REGISTRY
     book_root: Path = field(init=False, default_factory=Path.cwd)
-    cc_template = CC_DIR
+    cc_template: str = CC_DIR
 
     def load_data(self):
         # to avoid dependency clashes, it is slower but simpler
