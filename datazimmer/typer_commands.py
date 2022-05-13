@@ -1,12 +1,15 @@
 import datetime as dt
 import os
 from dataclasses import asdict
+from pathlib import Path
 from shutil import rmtree
 from subprocess import check_call
 
 import typer
 from dvc.repo import Repo
 from structlog import get_logger
+
+from datazimmer.sql.draw import dump_graph
 
 from .config_loading import Config, RunConfig, get_tag
 from .exceptions import ProjectSetupException
@@ -23,6 +26,7 @@ from .naming import (
 )
 from .pipeline_registry import get_global_pipereg
 from .registry import Registry
+from .sql.loader import SqlLoader
 from .utils import get_git_diffs, git_run
 from .validation_functions import validate, validate_importable
 
@@ -61,6 +65,19 @@ def update():
     update_registry()
     git_run(pull=True)
     Repo().pull()
+
+
+@app.command()
+def draw(v: bool = False):
+    sqlpath = Path("__draw.db")
+    constr = f"sqlite:///{sqlpath.name}"
+    loader = SqlLoader(constr, echo=v)
+    try:
+        loader.setup_schema()
+        draw and dump_graph(constr)
+    finally:
+        loader.purge()
+        sqlpath.unlink()
 
 
 @app.command()
@@ -146,7 +163,7 @@ def run(
     stage: bool = True, profile: bool = False, env: str = None, commit: bool = False
 ):
     dvc_repo = Repo(config={"core": {"autostage": stage}})
-    runtime = get_runtime()
+    runtime = get_runtime(True)
     stage_names = []
     for step in runtime.pipereg.steps:
         logger.info("adding step", step=step)
