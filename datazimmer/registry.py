@@ -101,7 +101,7 @@ class Registry:
                 "requires-python": PYV,
                 "dependencies": self.requires,
             },
-            "tool": {"flit": {"module": {"name": META_MODULE_NAME}}},
+            "tool": {"flit": {"module": {"name": f"{META_MODULE_NAME}.{self.name}"}}},
         }
         self.paths.toml_path.write_text(toml.dumps(proj_conf))
         msg = f"build-{self.name}-{self.conf.version}"
@@ -124,7 +124,6 @@ class Registry:
         check_call(comm + extras + packages)
 
     def _dump_meta(self):
-        self.paths.meta_init_py.write_text("")
         if self.paths.project_meta.exists():
             rmtree(self.paths.project_meta, onerror=_onerror)
         copytree(MAIN_MODULE_NAME, self.paths.project_meta)

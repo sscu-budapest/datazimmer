@@ -32,7 +32,8 @@ dependencies = [
     "beautifulsoup4",
     "html5lib",
     "sqlmermaid",
-    "cron-descriptor"
+    "cron-descriptor",
+    "metazimmer"
 ]
 
 [project.optional-dependencies]

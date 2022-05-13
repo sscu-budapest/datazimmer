@@ -48,7 +48,6 @@ class RegistryPaths:
 
         self.index_dir = self.dir / "index"
         self.toml_path = _dev_dir / "pyproject.toml"
-        self.meta_init_py = _meta_root / "__init__.py"
         self.project_meta = _meta_root / name
 
         self.dist_dir = self.index_dir / name
