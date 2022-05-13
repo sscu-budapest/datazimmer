@@ -23,5 +23,5 @@ def get_runtime(reset=False) -> "ProjectRuntime":
             _GLOBAL_RUNTIME = ProjectRuntime()
         except Exception as e:
             logger.info(str(e))
-            raise ProjectRuntimeException("can't start runtime")
+            raise ProjectRuntimeException(f"can't start runtime: {e}")
     return _GLOBAL_RUNTIME
