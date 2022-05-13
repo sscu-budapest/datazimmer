@@ -92,12 +92,7 @@ class Registry:
         shutil.rmtree(self.posix, ignore_errors=True)
 
     def _package(self):
-        msg = f"build-{self.name}-{self.conf.version}"
-        try:
-            self._git_run(add=self.paths.flit_posixes, msg=msg)
-        except CalledProcessError:
-            logger.warning("Tried building new package with no changes")
-            return False
+        self._dump_meta()
         proj_conf = {
             "project": {
                 "name": self.name,
@@ -109,7 +104,12 @@ class Registry:
             "tool": {"flit": {"module": {"name": META_MODULE_NAME}}},
         }
         self.paths.toml_path.write_text(toml.dumps(proj_conf))
-        self._dump_meta()
+        msg = f"build-{self.name}-{self.conf.version}"
+        try:
+            self._git_run(add=self.paths.flit_posixes, msg=msg)
+        except CalledProcessError:
+            logger.warning("Tried building new package with no changes")
+            return False
         ns = main(self.paths.toml_path, formats={"sdist"})
         copy(ns.sdist.file, self.paths.dist_dir)
         return True
