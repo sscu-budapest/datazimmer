@@ -1,17 +1,13 @@
 import os
-from functools import partial
 from pathlib import Path
+
+from colassigner.constants import PREFIX_SEP  # noqa: F401
 
 PYV = ">=3.8"
 DEFAULT_ENV_NAME = "complete"
 
-FEATURES_CLS_SUFFIX = "features"
-INDEX_CLS_SUFFIX = "index"
-
 VERSION_PREFIX = "zimmer-v0"
 VERSION_SEPARATOR = "/"
-NS_ID_SEPARATOR = ":"
-
 
 RUN_CONF_PATH = Path("__run_conf.yaml")
 BASE_CONF_PATH = Path("zimmer.yaml")
@@ -31,6 +27,8 @@ CRON_ENV_VAR = "CRON_TRIGGER"
 GIT_TOKEN_ENV_VAR = "GIT_HTTPS_TOKEN"
 AUTH_ENV_VAR = "ZIMMER_FULL_AUTH"
 
+VERSION_VAR_NAME = "__version__"
+
 
 def repo_link(slug):
     return f"https://github.com/sscu-budapest/{slug}"
@@ -39,17 +37,6 @@ def repo_link(slug):
 TEMPLATE_REPO = os.environ.get("ZIMMER_TEMPLATE", repo_link("project-template"))
 DEFAULT_REGISTRY = "git@github.com:sscu-budapest/main-registry.git"
 CONSTR = os.environ.get("ZIMMER_CONSTR", "sqlite:///:memory:")
-
-
-class SDistPaths:
-    def __init__(self, parent: Path) -> None:
-        parent.mkdir(exist_ok=True, parents=True)
-        _p = partial(Path, parent)
-        self.meta = _p("meta.yaml")
-        self.composite_types = _p("composite-types.yaml")
-        self.entity_classes = _p("entity-classes.yaml")
-        self.table_schemas = _p("tables.yaml")
-        self.datascript = _p("__init__.py")
 
 
 class RegistryPaths:
@@ -63,7 +50,7 @@ class RegistryPaths:
         self.toml_path = _dev_dir / "pyproject.toml"
         self.meta_init_py = _meta_root / "__init__.py"
         self.project_meta = _meta_root / name
-        self.project_init_py = self.project_meta / "__init__.py"
+
         self.dist_dir = self.index_dir / name
         self.info_yaml = self.info_yaml_of(name, version)
 
@@ -71,7 +58,7 @@ class RegistryPaths:
         self.publish_paths = self._relpos([self.dist_dir, self.info_yaml])
         self.dist_gitpath = f"index/{name}/{name}-{version}.tar.gz"
 
-    def info_yaml_of(self, name, version):
+    def info_yaml_of(self, name, version) -> Path:
         return self._info_dir / f"{name}-{version}.yaml"
 
     def ensure(self):
