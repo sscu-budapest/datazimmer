@@ -10,8 +10,8 @@ from structlog import get_logger
 
 from .config_loading import Config, RunConfig
 from .exceptions import ProjectSetupException
-from .metadata.bedrock.complete_id import CompleteIdBase
-from .metadata.datascript.scrutable import ScruTable
+from .metadata.complete_id import CompleteIdBase
+from .metadata.scrutable import ScruTable
 from .naming import BASE_CONF_PATH, CLI, PROFILES_PATH, get_data_path
 from .reporting import ReportFile
 
@@ -44,6 +44,8 @@ class PipelineRegistry:
         and will be looked up in conf/envs.yaml params"""
 
         def f(fun):
+            if CompleteIdBase.from_cls(fun).project:
+                return fun
             relpath = inspect.getfile(fun)
             lineno = inspect.findsource(fun)[1]
             iter_envs = [write_env] if write_env else self._all_env_names
