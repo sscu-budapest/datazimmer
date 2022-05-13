@@ -2,37 +2,22 @@ import metazimmer.dogracebase.core as doglast
 
 import datazimmer as dz
 
-from ..success import status_table
+from ..success import Status
 
 # TODO: this seems a bit too much hassle
 
 
-class CountBase(dz.TableFeaturesBase):
+class CountBase(dz.AbstractEntity):
     elem_count = int
 
 
-class SizeCountFeatures(CountBase):
-    pass
+class SizeCount(CountBase):
+    size = dz.Index & doglast.DogSize
 
 
-class StatusCountFeatures(CountBase):
-    pass
+class StatusCount(CountBase):
+    status = dz.Index & Status
 
 
-class SizeCountIndex(dz.IndexBase):
-    size = doglast.DogSizeIndex
-
-
-class StatusCountIndex(dz.IndexBase):
-    status = status_table.index
-
-
-size_count_table = dz.ScruTable(
-    SizeCountFeatures,
-    index=SizeCountIndex,
-    subject_of_records=doglast.DogSize,
-)
-
-status_count_table = dz.ScruTable(
-    StatusCountFeatures, StatusCountIndex, subject_of_records=status_table.subject
-)
+size_count_table = dz.ScruTable(SizeCount)
+status_count_table = dz.ScruTable(StatusCount)
