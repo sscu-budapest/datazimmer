@@ -31,7 +31,8 @@ dependencies = [
     "cookiecutter",
     "beautifulsoup4",
     "html5lib",
-    "sqlmermaid"
+    "sqlmermaid",
+    "cron-descriptor"
 ]
 
 [project.optional-dependencies]
