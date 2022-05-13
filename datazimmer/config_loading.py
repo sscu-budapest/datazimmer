@@ -1,6 +1,6 @@
 import re
 from dataclasses import asdict, dataclass, field
-from typing import TYPE_CHECKING, List, Optional
+from typing import List, Optional
 
 import yaml
 from dvc.repo import Repo
@@ -8,7 +8,7 @@ from parquetranger import TableRepo
 from structlog import get_logger
 
 from .exceptions import ProjectSetupException
-from .metadata.bedrock.complete_id import CompleteId, CompleteIdBase
+from .metadata.complete_id import CompleteId
 from .naming import (
     BASE_CONF_PATH,
     DEFAULT_ENV_NAME,
@@ -19,9 +19,6 @@ from .naming import (
     get_data_path,
 )
 from .utils import named_dict_to_list
-
-if TYPE_CHECKING:
-    from .metadata.bedrock.atoms import Table  # pragma: no cover
 
 logger = get_logger(ctx="config loading")
 
@@ -122,18 +119,6 @@ class Config:
         if project == self.name:
             return env
         return self.get_data_env(env, project)
-
-    def table_to_trepo(
-        self, table: "Table", id_base: CompleteIdBase, env=None
-    ) -> TableRepo:
-        trepo = self.create_trepo(
-            id_base.to_id(table.name),
-            table.partitioning_cols,
-            table.partition_max_rows,
-        )
-        if env is not None:
-            trepo.set_env(self.resolve_ns_env(id_base.project, env))
-        return trepo
 
     def init_cron_bump(self, pipe_elem_name):
         if self.cron_bumps.get(pipe_elem_name) is None:
