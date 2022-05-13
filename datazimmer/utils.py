@@ -43,13 +43,11 @@ def get_instances_from_module(module, cls):
     return out
 
 
-def get_modules_from_module(module, root_name: str):
-    out = {}
+def get_modules_from_module(module):
     for obj_name in dir(module):
         obj = getattr(module, obj_name)
-        if ismodule(obj) and obj.__name__.startswith(root_name):
-            out[obj_name] = obj
-    return out
+        if ismodule(obj):
+            yield obj
 
 
 def is_repo(s):
@@ -122,17 +120,12 @@ def get_dict_factory(key_name: str):
 
 
 def reset_src_module():
-    for m_id in filter(
-        lambda k: k.startswith(f"{MAIN_MODULE_NAME}.") or (k == MAIN_MODULE_NAME),
-        [*sys.modules.keys()],
-    ):
-        sys.modules.pop(m_id)
+    _reset_modules(MAIN_MODULE_NAME)
 
 
-def reset_meta_module():
-    for m_id in [*sys.modules.keys()]:
-        if m_id.startswith(f"{META_MODULE_NAME}."):
-            sys.modules.pop(m_id)
+def reset_meta_module(name=None):
+    mod = META_MODULE_NAME if name is None else f"{META_MODULE_NAME}.{name}"
+    _reset_modules(mod)
 
 
 def is_type_hint_origin(hint, cls):
@@ -152,3 +145,9 @@ def is_postgres(engine):
 
 def _dicfac(items, att_name):
     return {k: v for k, v in items if v and k != att_name}
+
+
+def _reset_modules(root_module):
+    for m_id in [*sys.modules.keys()]:
+        if m_id.startswith(f"{root_module}.") or (m_id == root_module):
+            sys.modules.pop(m_id)
