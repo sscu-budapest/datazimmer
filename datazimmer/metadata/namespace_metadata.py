@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List
 
-from .atoms import NS_ATOM_TYPE, CompositeType, EntityClass
+from .atoms import CompositeType, EntityClass
 from .scrutable import ScruTable
 
 
@@ -19,7 +19,3 @@ class NamespaceMetadata:
         for table in self.tables:
             if table.entity_class == ec:
                 return table
-
-    @property
-    def atoms(self) -> List[NS_ATOM_TYPE]:
-        return [*self.composite_types, *self.entity_classes, *self.tables]

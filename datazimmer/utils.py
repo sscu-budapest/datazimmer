@@ -1,7 +1,6 @@
 import os
 import sys
 from contextlib import contextmanager
-from functools import partial
 from inspect import ismodule
 from itertools import chain
 from pathlib import Path
@@ -11,6 +10,7 @@ from typing import List, Type, TypeVar, Union
 import isort
 from black import Mode, format_file_contents
 from black.report import NothingChanged
+from colassigner.util import camel_to_snake  # noqa: F401
 from sqlalchemy.dialects.postgresql import dialect as postgres_dialect
 from yaml import safe_load
 
@@ -48,10 +48,6 @@ def get_modules_from_module(module):
         obj = getattr(module, obj_name)
         if ismodule(obj):
             yield obj
-
-
-def is_repo(s):
-    return any(map(str(s).startswith, ["git@", "http://", "https://"]))
 
 
 def git_run(add=(), msg=None, pull=False, push=False, wd=None):
@@ -115,10 +111,6 @@ def named_dict_to_list(
     return out
 
 
-def get_dict_factory(key_name: str):
-    return partial(_dicfac, att_name=key_name)
-
-
 def reset_src_module():
     _reset_modules(MAIN_MODULE_NAME)
 
@@ -126,13 +118,6 @@ def reset_src_module():
 def reset_meta_module(name=None):
     mod = META_MODULE_NAME if name is None else f"{META_MODULE_NAME}.{name}"
     _reset_modules(mod)
-
-
-def is_type_hint_origin(hint, cls):
-    try:
-        return hint.__origin__ is cls
-    except AttributeError:
-        return False
 
 
 def chainmap(fun, iterable) -> list:
@@ -143,8 +128,17 @@ def is_postgres(engine):
     return isinstance(engine.dialect, postgres_dialect)
 
 
-def _dicfac(items, att_name):
-    return {k: v for k, v in items if v and k != att_name}
+def get_simplified_mro(cls: Type):
+    return _simplify_mro(cls.mro()[1:])
+
+
+def _simplify_mro(parent_list: List[Type]):
+    out = []
+    for cls in parent_list:
+        if any(map(lambda added_cls: cls in added_cls.mro(), out)):
+            continue
+        out.append(cls)
+    return out
 
 
 def _reset_modules(root_module):

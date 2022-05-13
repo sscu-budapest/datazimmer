@@ -10,9 +10,8 @@ from structlog import get_logger
 
 from ..config_loading import Config, RunConfig, UnavailableTrepo
 from ..exceptions import ProjectRuntimeException
-from ..metaprogramming import camel_to_snake
 from ..primitive_types import PrimitiveType, get_np_type, get_sa_type
-from ..utils import chainmap
+from ..utils import camel_to_snake, chainmap
 from .atoms import CompositeFeature, EntityClass, ObjectProperty, PrimitiveFeature
 from .complete_id import CompleteId, CompleteIdBase
 from .datascript import AbstractEntity
@@ -30,10 +29,7 @@ class ScruTable:
     ) -> None:
         # TODO: somehow add possibility for a description
 
-        try:
-            self._conf = Config.load()
-        except FileNotFoundError:
-            raise ProjectRuntimeException("can only init Scrutable in a project")
+        self._conf = Config.load()
         self.module_name = getmodule(stack()[1][0]).__name__
         self.id_: CompleteId = self._infer_id(entity, self.module_name)
         self.key_map = entity_key_table_map or {}

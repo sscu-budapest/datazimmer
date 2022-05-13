@@ -14,7 +14,7 @@ from .sql.loader import SqlLoader
 from .utils import cd_into
 
 if TYPE_CHECKING:
-    from .project_runtime import ProjectRuntime
+    from .project_runtime import ProjectRuntime  # pragma: no cover
 
 
 logger = get_logger(ctx="validation")
@@ -88,10 +88,6 @@ def validate_importable(runtime: "ProjectRuntime"):
 
 def is_underscored_name(s):
     _check_match("_", s)
-
-
-def is_dashed_name(s):
-    _check_match("-", s)
 
 
 def is_repo_name(s):

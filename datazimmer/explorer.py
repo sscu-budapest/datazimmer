@@ -14,13 +14,11 @@ from botocore.exceptions import ClientError
 from bs4 import BeautifulSoup, Tag
 from cookiecutter.main import cookiecutter
 
-from datazimmer.metadata.scrutable import ScruTable
-
 from .config_loading import Config, ImportedProject, ProjectEnv, RunConfig
 from .full_auth import ZimmerAuth
 from .get_runtime import get_runtime
 from .gh_actions import write_book_actions
-from .metaprogramming import camel_to_snake
+from .metadata.scrutable import ScruTable
 from .naming import (
     DEFAULT_ENV_NAME,
     DEFAULT_REGISTRY,
@@ -29,7 +27,7 @@ from .naming import (
     repo_link,
 )
 from .registry import Registry
-from .utils import reset_meta_module
+from .utils import camel_to_snake, reset_meta_module
 from .validation_functions import sandbox_project
 
 if TYPE_CHECKING:

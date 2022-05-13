@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import Optional
 
 from ..naming import MAIN_MODULE_NAME, META_MODULE_NAME
-from ..utils import PRIMITIVE_MODULES
 
 
 @dataclass
@@ -38,8 +37,6 @@ class CompleteIdBase:
     @classmethod
     def from_cls(cls, py_cls, project=None):
         _mod = py_cls.__module__
-        if _mod in PRIMITIVE_MODULES:
-            return cls(None, None)
         return cls.from_module_name(_mod, project)
 
     @classmethod

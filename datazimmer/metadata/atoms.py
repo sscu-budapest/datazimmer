@@ -2,9 +2,8 @@ from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import List, Optional, Union
 
-from ..metaprogramming import get_simplified_mro
 from ..primitive_types import PrimitiveType
-from ..utils import PRIMITIVE_MODULES
+from ..utils import PRIMITIVE_MODULES, get_simplified_mro
 from .datascript import AbstractEntity, IndexIndicator, Nullable, get_feature_dict
 
 _GLOBAL_CLS_MAP = {}
@@ -53,7 +52,7 @@ class _AtomBase:
 
     @abstractmethod
     def _extend(self, ids, props, ds_cls):
-        pass
+        pass  # pragma: no cover
 
 
 @dataclass
@@ -80,9 +79,6 @@ class EntityClass(_AtomBase):
         ]
         self.identifiers = ids
         self.properties = props
-
-
-NS_ATOM_TYPE = Union[EntityClass, CompositeType]
 
 
 def _ds_cls_to_feat_dicts(ds_cls: Union[EntityClass, CompositeType]):

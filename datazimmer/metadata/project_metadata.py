@@ -88,8 +88,3 @@ class DataVersion:
     @property
     def _args(self):
         return (self.year, self.month, self.day, self.num)
-
-
-def _add_feats(feats, a_set: set):
-    for feat in feats:
-        a_set.add(feat.val_id.project)

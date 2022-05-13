@@ -74,20 +74,11 @@ class Registry:
         self.dump_info()
         ZimmerAuth().dump_dvc()
         if not self._is_released():
-            self._build_from_script()
             self._package()
         if not self.requires:
             return
         with self._index_server():
             self._install(self.requires)
-
-    def update_meta(self):
-        self.dump_info()
-        with self._index_server():
-            self._build_from_script()
-            self._package()
-            self._install(self.requires)
-            self._install([self.name], upgrade=True)
 
     def update(self):
         self._git_run(pull=True)
@@ -100,7 +91,13 @@ class Registry:
     def purge(self):
         shutil.rmtree(self.posix, ignore_errors=True)
 
-    def _build_from_script(self):
+    def _package(self):
+        msg = f"build-{self.name}-{self.conf.version}"
+        try:
+            self._git_run(add=self.paths.flit_posixes, msg=msg)
+        except CalledProcessError:
+            logger.warning("Tried building new package with no changes")
+            return False
         proj_conf = {
             "project": {
                 "name": self.name,
@@ -113,18 +110,7 @@ class Registry:
         }
         self.paths.toml_path.write_text(toml.dumps(proj_conf))
         self._dump_meta()
-
-    def _package(self):
-        msg = f"build-{self.name}-{self.conf.version}"
-        try:
-            self._git_run(add=self.paths.flit_posixes, msg=msg)
-        except CalledProcessError:
-            logger.warning("Tried building new package with no changes")
-            return False
-        ns = main(
-            self.paths.toml_path,
-            formats={"sdist"},
-        )
+        ns = main(self.paths.toml_path, formats={"sdist"})
         copy(ns.sdist.file, self.paths.dist_dir)
         return True
 
@@ -139,7 +125,8 @@ class Registry:
 
     def _dump_meta(self):
         self.paths.meta_init_py.write_text("")
-        rmtree(self.paths.project_meta, ignore_errors=True)
+        if self.paths.project_meta.exists():
+            rmtree(self.paths.project_meta, onerror=_onerror)
         copytree(MAIN_MODULE_NAME, self.paths.project_meta)
         vstr = f'\n{VERSION_VAR_NAME} = "{self.conf.version}"'
         with (self.paths.project_meta / "__init__.py").open("a") as fp:
@@ -214,7 +201,6 @@ def _de_auth(url, re_auth=False):
 
 
 def _onerror(func, path, exc_info):
-    # Is the error an access error?
     if not os.access(path, os.W_OK):
         os.chmod(path, stat.S_IWUSR)
         func(path)

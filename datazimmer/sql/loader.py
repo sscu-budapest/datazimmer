@@ -12,7 +12,6 @@ from tqdm import tqdm
 from ..config_loading import RunConfig
 from ..get_runtime import get_runtime
 from ..metadata.atoms import EntityClass
-from ..metadata.complete_id import CompleteIdBase
 from ..metadata.namespace_metadata import NamespaceMetadata
 from ..metadata.scrutable import ScruTable, feats_to_cols, to_sa_col
 from ..utils import is_postgres
@@ -103,10 +102,6 @@ class NamespaceMapper:
     def validate_data(self):
         for table in self.ns_meta.tables:
             self._validate_table(table)
-
-    @property
-    def id_base(self):
-        return CompleteIdBase(self.project_name, self.ns_meta.name)
 
     def _load_table(self, table: ScruTable, session):
         ins = self.sql_meta.tables[table.id_.sql_id].insert()

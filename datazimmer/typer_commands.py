@@ -116,12 +116,6 @@ def build_meta():
 
 
 @app.command()
-def update_meta():
-    get_global_pipereg(reset=True)
-    Registry(Config.load()).update_meta()
-
-
-@app.command()
 def load_external_data(git_commit: bool = False):
     """watch out, this deletes everything
 
