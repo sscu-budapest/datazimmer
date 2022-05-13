@@ -14,12 +14,13 @@ from botocore.exceptions import ClientError
 from bs4 import BeautifulSoup, Tag
 from cookiecutter.main import cookiecutter
 
+from datazimmer.metadata.scrutable import ScruTable
+
 from .config_loading import Config, ImportedProject, ProjectEnv, RunConfig
 from .full_auth import ZimmerAuth
 from .get_runtime import get_runtime
 from .gh_actions import write_book_actions
 from .metaprogramming import camel_to_snake
-from .module_tree import load_scrutable
 from .naming import (
     DEFAULT_ENV_NAME,
     DEFAULT_REGISTRY,
@@ -98,9 +99,11 @@ class ExplorerDataset:
     to_write: list = field(init=False, default_factory=list)
 
     def set_from_project(self, remote: S3Remote, runtime: "ProjectRuntime", book_root):
-        meta = runtime.ext_metas[self.project]
+        meta = runtime.metadata_dic[self.project]
         ns_meta = meta.namespaces[self.namespace]
-        table_list = self.tables or [t.name for t in ns_meta.tables]
+        scrutable_list = ns_meta.tables
+        if self.tables:
+            scrutable_list = [t for t in ns_meta.tables if t.name in self.tables]
         self.cc_context.update(
             {
                 "project_url": meta.uri,
@@ -108,11 +111,11 @@ class ExplorerDataset:
                 "name": self.name,
                 "source_urls": ns_meta.source_urls,
                 "tables": [],
-                "n_tables": len(table_list),
+                "n_tables": len(scrutable_list),
             }
         )
         with RunConfig(read_env=self.env):
-            for table in table_list:
+            for table in scrutable_list:
                 self.cc_context["tables"].append(
                     self._get_table_cc(table, remote, book_root)
                 )
@@ -129,12 +132,11 @@ class ExplorerDataset:
     def v_str(self):
         return f"=={self.version}" if self.version else ""
 
-    def _get_table_cc(self, table, remote: S3Remote, book_root):
+    def _get_table_cc(self, scrutable: ScruTable, remote: S3Remote, book_root):
         # slow import...
         from pandas_profiling import ProfileReport
 
-        scrutable = load_scrutable(self.project, self.namespace, table)
-        df = scrutable.get_full_df()
+        df = scrutable.get_full_df(env=self.env)
         csv_str = df.to_csv(index=any(df.index.names))
         profile_str = _shorten(ProfileReport(df, minimal=self.minimal))
         name = scrutable.name
@@ -146,7 +148,6 @@ class ExplorerDataset:
         mod_date = remote.push(csv_str, csv_key)
         self.to_write.append((csv_path, csv_str))
         return {
-            "entity": _title(scrutable.subject.__name__),
             "name": _title(scrutable.name),
             "slug": scrutable.name,
             "profile_url": remote.full_link(profile_key),
@@ -168,6 +169,7 @@ class ExplorerContext:
     remote: Union[S3Remote, LocalRemote]
     registry: str = DEFAULT_REGISTRY
     book_root: Path = field(init=False, default_factory=Path.cwd)
+    cc_template = CC_DIR
 
     def load_data(self):
         # to avoid dependency clashes, it is slower but simpler
@@ -226,7 +228,7 @@ def load_explorer_data():
     with save_edits():
         for ds in ctx.datasets:
             cookiecutter(
-                CC_DIR,
+                ctx.cc_template,
                 no_input=True,
                 extra_context={**cc_dic, "main": ds.cc_context},
                 overwrite_if_exists=True,
