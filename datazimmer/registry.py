@@ -1,10 +1,11 @@
 import os
 import re
 import shutil
+import stat
 import sys
 from contextlib import contextmanager
 from functools import partial
-from shutil import copy, rmtree
+from shutil import copy, copytree, rmtree
 from subprocess import CalledProcessError, Popen, check_call, check_output
 from time import sleep
 from typing import TYPE_CHECKING
@@ -18,14 +19,14 @@ from structlog import get_logger
 
 from .exceptions import ProjectSetupException
 from .full_auth import ZimmerAuth
-from .metadata.datascript.from_bedrock import ScriptWriter
-from .metadata.datascript.to_bedrock import DatascriptToBedrockConverter
 from .naming import (
     GIT_TOKEN_ENV_VAR,
+    MAIN_MODULE_NAME,
     META_MODULE_NAME,
     PYV,
     VERSION_PREFIX,
     VERSION_SEPARATOR,
+    VERSION_VAR_NAME,
     RegistryPaths,
 )
 from .utils import git_run
@@ -44,7 +45,8 @@ class Registry:
         self.paths = RegistryPaths(self.name, conf.version)
         self.posix = self.paths.dir.as_posix()
         if not self.paths.dir.exists() or reset:
-            rmtree(self.paths.dir, ignore_errors=True)
+            if self.paths.dir.exists():
+                rmtree(self.paths.dir, onerror=_onerror)
             self.paths.dir.mkdir(parents=True)
             try:
                 check_call(["git", "clone", conf.registry, self.posix])
@@ -57,20 +59,27 @@ class Registry:
         self._git_run = partial(git_run, wd=self.posix)
 
     def dump_info(self):
-        remote_comm = ["git", "config", "--get", "remote.origin.url"]
-        uri = check_output(remote_comm).decode("utf-8").strip()
-        meta_dic = {"uri": _de_auth(uri), "tags": self._get_tags()}
+        meta_dic = self._get_info()
         self.paths.info_yaml.write_text(yaml.safe_dump(meta_dic))
+
+    def get_project_meta_base(self, project_name, version):
+        ypath = self.paths.info_yaml_of(project_name, version)
+        if ypath.exists():
+            return yaml.safe_load(ypath.read_text())
+        if project_name == self.name:
+            return self._get_info()
+        logger.warning(f"info for {project_name} {version} requested but not found")
 
     def full_build(self):
         self.dump_info()
         ZimmerAuth().dump_dvc()
+        if not self._is_released():
+            self._build_from_script()
+            self._package()
+        if not self.requires:
+            return
         with self._index_server():
             self._install(self.requires)
-            if not self._is_released():
-                self._build_from_script()
-                self._package()
-            self._install([self.name], upgrade=True)
 
     def update_meta(self):
         self.dump_info()
@@ -119,6 +128,48 @@ class Registry:
         copy(ns.sdist.file, self.paths.dist_dir)
         return True
 
+    def _install(self, packages: list, upgrade=False):
+        if not packages:
+            return
+        comm = [sys.executable, "-m", "pip", "install", "-i", self._index_addr]
+        extras = ["--no-cache", "--no-build-isolation"]
+        if upgrade:
+            extras += ["--upgrade"]
+        check_call(comm + extras + packages)
+
+    def _dump_meta(self):
+        self.paths.meta_init_py.write_text("")
+        rmtree(self.paths.project_meta, ignore_errors=True)
+        copytree(MAIN_MODULE_NAME, self.paths.project_meta)
+        vstr = f'\n{VERSION_VAR_NAME} = "{self.conf.version}"'
+        with (self.paths.project_meta / "__init__.py").open("a") as fp:
+            fp.write(vstr)
+
+    def _get_tags(self):
+        out = []
+        tagpref = VERSION_SEPARATOR.join([VERSION_PREFIX, self.conf.version])
+        for tagbytes in check_output(["git", "tag"]).strip().split():
+            tag = tagbytes.decode("utf-8").strip()
+            if not tag.startswith(tagpref):
+                continue
+            out.append(tag)
+        return out
+
+    def _get_info(self):
+        remote_comm = ["git", "config", "--get", "remote.origin.url"]
+        uri = check_output(remote_comm).decode("utf-8").strip()
+        return {"uri": _de_auth(uri), "tags": self._get_tags()}
+
+    def _is_released(self):
+        try:
+            comm = ["git", "cat-file", "-e", f"origin/main:{self.paths.dist_gitpath}"]
+            check_call(comm, cwd=self.posix)
+            msg = f"can't package {self.name}-{self.conf.version} - already released"
+            logger.warning(msg)
+            return True
+        except CalledProcessError:
+            return False
+
     @contextmanager
     def _index_server(self):
         index_root = self.paths.index_dir.as_posix()
@@ -149,47 +200,6 @@ class Registry:
     def _index_addr(self):
         return f"http://localhost:{self._port}"
 
-    def _install(self, packages: list, upgrade=False):
-        if not packages:
-            return
-        comm = [sys.executable, "-m", "pip", "install", "-i", self._index_addr]
-        extras = ["--no-cache", "--no-build-isolation"]
-        if upgrade:
-            extras += ["--upgrade"]
-        check_call(comm + extras + self._parse_package_names(packages))
-
-    def _dump_meta(self):
-        self.paths.meta_init_py.write_text("")
-        vstr = f'__version__ = "{self.conf.version}"'
-        self.paths.project_init_py.write_text(vstr)
-        for ns in DatascriptToBedrockConverter(self.name).get_namespaces():
-            ns_dir = self.paths.project_meta / ns.name
-            ns.dump(ns_dir)
-            ScriptWriter(ns, ns_dir / "__init__.py")
-
-    def _get_tags(self):
-        out = []
-        tagpref = VERSION_SEPARATOR.join([VERSION_PREFIX, self.conf.version])
-        for tagbytes in check_output(["git", "tag"]).strip().split():
-            tag = tagbytes.decode("utf-8").strip()
-            if not tag.startswith(tagpref):
-                continue
-            out.append(tag)
-        return out
-
-    def _parse_package_names(self, package_names):
-        return package_names
-
-    def _is_released(self):
-        try:
-            comm = ["git", "cat-file", "-e", f"origin/main:{self.paths.dist_gitpath}"]
-            check_call(comm, cwd=self.posix)
-            msg = f"can't package {self.name}-{self.conf.version} - already released"
-            logger.warning(msg)
-            return True
-        except CalledProcessError:
-            return False
-
 
 def _de_auth(url, re_auth=False):
     r_out = re.compile(r"(.*)@(.*):(.*)\.git").findall(url)
@@ -201,3 +211,12 @@ def _de_auth(url, re_auth=False):
     else:
         base = host
     return f"https://{base}/{repo_id}"
+
+
+def _onerror(func, path, exc_info):
+    # Is the error an access error?
+    if not os.access(path, os.W_OK):
+        os.chmod(path, stat.S_IWUSR)
+        func(path)
+    else:
+        raise
