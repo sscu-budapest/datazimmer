@@ -27,7 +27,10 @@ def test_full_dogshow(tmp_path: Path, pytestconfig):
     ds_cc = DogshowContextCreator.load(mode, tmp_path)
 
     pg_host = os.environ.get("POSTGRES_HOST", "localhost")
-    constr = f"postgresql://postgres:postgres@{pg_host}:5432/postgres"
+    if pg_host == "sqlite":  # pragma: no cover
+        constr = "sqlite:///_db.sqlite"
+    else:
+        constr = f"postgresql://postgres:postgres@{pg_host}:5432/postgres"
     try:
         for ds in ds_cc.all_contexts:
             run_project_test(ds, constr)
