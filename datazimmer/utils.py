@@ -12,7 +12,6 @@ from black import Mode, format_file_contents
 from black.report import NothingChanged
 from colassigner.util import camel_to_snake  # noqa: F401
 from sqlalchemy.dialects.postgresql import dialect as postgres_dialect
-from yaml import safe_load
 
 from .naming import MAIN_MODULE_NAME, META_MODULE_NAME
 
@@ -90,14 +89,6 @@ def format_code(code_str):
         blacked = code_str
 
     return isort.code(blacked, profile="black")
-
-
-def load_named_dict_to_list(
-    path: Path,
-    cls: Type[T],
-    key_name="name",
-) -> List[T]:
-    return named_dict_to_list(safe_load(path.read_text()) or {}, cls, key_name)
 
 
 def named_dict_to_list(

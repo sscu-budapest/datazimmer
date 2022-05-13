@@ -7,7 +7,6 @@ from pkgutil import walk_packages
 from typing import Any, Dict, Iterable, Type
 
 from .config_loading import Config
-from .exceptions import ProjectSetupException
 from .metadata.atoms import CompositeType, EntityClass
 from .metadata.complete_id import CompleteIdBase
 from .metadata.datascript import AbstractEntity, CompositeTypeBase, SourceUrl
@@ -44,14 +43,7 @@ class ModuleTree:
         self.project_meta = self._project_meta_dic[self._project_name]
 
     def _walk_id(self, module_id, allow_fail=False):
-        try:
-            mod = import_module(module_id)
-            if mod.__file__ is None:
-                raise ModuleNotFoundError("deleted from metazimmer last")  # FIXME!
-        except ModuleNotFoundError:
-            if allow_fail:
-                return
-            raise ProjectSetupException(f"{module_id} module missing")
+        mod = import_module(module_id)
         src_dir = Path(mod.__file__).parent.as_posix()
         for _info in walk_packages([src_dir], f"{module_id}."):
             _m = import_module(_info.name)

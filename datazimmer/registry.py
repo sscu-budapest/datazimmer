@@ -63,11 +63,11 @@ class Registry:
         self.paths.info_yaml.write_text(yaml.safe_dump(meta_dic))
 
     def get_project_meta_base(self, project_name, version):
+        if project_name == self.name:
+            return self._get_info()
         ypath = self.paths.info_yaml_of(project_name, version)
         if ypath.exists():
             return yaml.safe_load(ypath.read_text())
-        if project_name == self.name:
-            return self._get_info()
         logger.warning(f"info for {project_name} {version} requested but not found")
 
     def full_build(self):
@@ -115,8 +115,6 @@ class Registry:
         return True
 
     def _install(self, packages: list, upgrade=False):
-        if not packages:
-            return
         comm = [sys.executable, "-m", "pip", "install", "-i", self._index_addr]
         extras = ["--no-cache", "--no-build-isolation"]
         if upgrade:
@@ -168,12 +166,12 @@ class Registry:
                 resp = requests.get(self._index_addr)
             except ConnectionError:
                 if attempt > 10:
-                    logger.info("failed index server")
+                    logger.info("failed index server")  # pragma: no cover
                 continue
             if resp.ok or (resp.status_code == 404):
                 break
-            logger.warning("bad response from index server", code=resp.status_code)
-        else:
+            logger.warning("bad response", code=resp.status_code)  # pragma: no cover
+        else:  # pragma: no cover
             server_popen.kill()
             raise ProjectSetupException("can't start index server")
         logger.info("running index server", pid=server_popen.pid)

@@ -14,6 +14,7 @@ from datazimmer.typer_commands import (
     publish_meta,
     run,
     run_cronjobs,
+    update,
     validate,
 )
 from datazimmer.utils import cd_into, get_git_diffs, git_run, reset_meta_module
@@ -56,6 +57,7 @@ def run_project_test(dog_context, constr):
                 build_meta()
                 continue
             _complete(constr)
+            build_meta()
         for cronexpr in crons:
             # TODO: warn if same data is tagged differently
             run_cronjobs(cronexpr)
@@ -74,4 +76,5 @@ def _complete(constr):
     publish_meta()
     reset_meta_module()
     publish_data()
+    update()
     reset_meta_module()

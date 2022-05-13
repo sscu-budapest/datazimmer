@@ -28,7 +28,6 @@ def empty_template():
             check_call(["dvc", "remote", "add", "testrem", "/nothing"])
             check_call(["dvc", "remote", "default", "testrem"])
             Path(MAIN_MODULE_NAME, "core.py").write_text(CORE_PY.read_text())
-            build_meta()
         yield tmpdir
         with cd_into(tmpdir):
             cleanup()

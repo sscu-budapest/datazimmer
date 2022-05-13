@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 from datazimmer.exceptions import ProjectSetupException
+from datazimmer.naming import DEFAULT_ENV_NAME
 
 
 def test_scrutable_parsing(running_template):
@@ -20,6 +21,13 @@ def test_scrutable_parsing(running_template):
         df.astype({"d": "datetime64", "num": float}).set_index("ind"),
         parsed_df,
     )
+    for fp in scrutable.paths:
+        assert DEFAULT_ENV_NAME in fp
+    scrutable.purge()
+    assert scrutable.get_full_df().empty
+
+    with pytest.raises(KeyError):
+        scrutable.replace_all(pd.DataFrame({"ind": [1]}))
 
 
 def test_run_scrutable(in_template):
