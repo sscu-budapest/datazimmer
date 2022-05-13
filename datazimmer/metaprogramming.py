@@ -3,10 +3,6 @@ from typing import List, Type
 from colassigner.util import camel_to_snake  # noqa: F401
 
 
-def table_var_name(table_name):
-    return f"{table_name}_table"
-
-
 def class_def_from_cls(cls: Type):
 
     return get_class_def(
@@ -25,10 +21,6 @@ def get_class_def(cls_name: str, parent_names: List[str] = None, att_dict: dict 
         att_strs = ["    pass"]
     lines = [f"class {cls_name}({parent_str}):", *att_strs]
     return "\n".join(lines)
-
-
-def snake_to_camel(snake_str: str):
-    return "".join(snake_str.replace("_", " ").title().split())
 
 
 def simplify_mro(parent_list: List[Type]):
