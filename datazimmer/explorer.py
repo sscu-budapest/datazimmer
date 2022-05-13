@@ -168,6 +168,7 @@ class ExplorerContext:
     remote: Union[S3Remote, LocalRemote]
     registry: str = DEFAULT_REGISTRY
     book_root: Path = field(init=False, default_factory=Path.cwd)
+    cc_template: str = CC_DIR
 
     def load_data(self):
         # to avoid dependency clashes, it is slower but simpler
@@ -226,7 +227,7 @@ def load_explorer_data():
     with save_edits():
         for ds in ctx.datasets:
             cookiecutter(
-                CC_DIR,
+                ctx.cc_template,
                 no_input=True,
                 extra_context={**cc_dic, "main": ds.cc_context},
                 overwrite_if_exists=True,
