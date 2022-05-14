@@ -31,7 +31,10 @@ def empty_template():
     yield tmpdir
     with cd_into(tmpdir):
         cleanup()
-    gen_rmtree(tmpdir)
+    try:
+        gen_rmtree(tmpdir)
+    except PermissionError:
+        pass
 
 
 @pytest.fixture
