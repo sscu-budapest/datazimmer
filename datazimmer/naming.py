@@ -42,20 +42,13 @@ CONSTR = os.environ.get("ZIMMER_CONSTR", "sqlite:///:memory:")
 class RegistryPaths:
     def __init__(self, name: str, version: str) -> None:
         self.dir = REGISTRY_ROOT_DIR / name
-        _dev_dir = self.dir / "dev" / name
-        _meta_root = _dev_dir / META_MODULE_NAME
         self._info_dir = self.dir / "info"
 
         package_name = get_package_name(name)
 
         self.index_dir = self.dir / "index"
-        self.toml_path = _dev_dir / "pyproject.toml"
-        self.project_meta = _meta_root / name
-
         self.dist_dir = self.index_dir / package_name
         self.info_yaml = self.info_yaml_of(name, version)
-
-        self.flit_posixes = self._relpos([_meta_root, self.toml_path])
         self.publish_paths = self._relpos([self.dist_dir, self.info_yaml])
         self.dist_gitpath = f"index/{package_name}/{package_name}-{version}.tar.gz"
 
@@ -63,7 +56,7 @@ class RegistryPaths:
         return self._info_dir / f"{name}-{version}.yaml"
 
     def ensure(self):
-        for d in [self.dist_dir, self.project_meta, self._info_dir]:
+        for d in [self.dist_dir, self._info_dir]:
             d.mkdir(exist_ok=True, parents=True)
 
     def _relpos(self, dirlist):

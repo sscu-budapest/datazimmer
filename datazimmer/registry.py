@@ -3,8 +3,10 @@ import re
 import sys
 from contextlib import contextmanager
 from functools import partial
+from pathlib import Path
 from shutil import copy, copytree
 from subprocess import CalledProcessError, Popen, check_call, check_output
+from tempfile import TemporaryDirectory
 from time import sleep
 from typing import TYPE_CHECKING
 
@@ -95,7 +97,7 @@ class Registry:
         check_call([sys.executable, "-m", "pip", "uninstall", *self.requires, "-y"])
 
     def _package(self):
-        self._dump_meta()
+        pack_paths = self._dump_meta()
         proj_conf = {
             "project": {
                 "name": get_package_name(self.name),
@@ -106,14 +108,8 @@ class Registry:
             },
             "tool": {"flit": {"module": {"name": f"{META_MODULE_NAME}.{self.name}"}}},
         }
-        self.paths.toml_path.write_text(toml.dumps(proj_conf))
-        msg = f"build-{self.name}-{self.conf.version}"
-        try:
-            self._git_run(add=self.paths.flit_posixes, msg=msg)
-        except CalledProcessError:
-            logger.warning("Tried building new package with no changes")
-            return False
-        ns = main(self.paths.toml_path, formats={"sdist"})
+        pack_paths.toml_path.write_text(toml.dumps(proj_conf))
+        ns = main(pack_paths.toml_path, formats={"sdist"})
         copy(ns.sdist.file, self.paths.dist_dir)
         return True
 
@@ -125,11 +121,12 @@ class Registry:
         check_call(comm + extras + packages)
 
     def _dump_meta(self):
-        gen_rmtree(self.paths.project_meta)
-        copytree(MAIN_MODULE_NAME, self.paths.project_meta)
+        pack_paths = PackPaths(self.name)
+        copytree(MAIN_MODULE_NAME, pack_paths.project_meta)
         vstr = f'\n{VERSION_VAR_NAME} = "{self.conf.version}"'
-        with (self.paths.project_meta / "__init__.py").open("a") as fp:
+        with (pack_paths.project_meta / "__init__.py").open("a") as fp:
             fp.write(vstr)
+        return pack_paths
 
     def _get_tags(self):
         out = []
@@ -197,3 +194,11 @@ def _de_auth(url, re_auth=False):
     else:
         base = host
     return f"https://{base}/{repo_id}"
+
+
+class PackPaths:
+    def __init__(self, name) -> None:
+        self.dir = Path(TemporaryDirectory().name)
+        _meta_root = self.dir / META_MODULE_NAME
+        self.toml_path = self.dir / "pyproject.toml"
+        self.project_meta = _meta_root / name
