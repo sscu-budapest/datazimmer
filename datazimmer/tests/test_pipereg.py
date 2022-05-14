@@ -4,6 +4,7 @@ from pytest import raises
 
 from datazimmer.naming import DEFAULT_ENV_NAME
 from datazimmer.pipeline_registry import PipelineRegistry
+from datazimmer.utils import reset_src_module
 
 
 def test_pipereg_basics(running_template):
@@ -29,6 +30,7 @@ def test_pipereg_basics(running_template):
 
 def test_pipereg_parse_elems(in_template):
 
+    reset_src_module()
     from src import core
 
     _env = DEFAULT_ENV_NAME
