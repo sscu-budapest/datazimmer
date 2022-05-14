@@ -1,9 +1,10 @@
 import inspect
+from collections import defaultdict
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Dict, Iterable, Optional
 
 from pyinstrument import Profiler
 from structlog import get_logger
@@ -23,7 +24,8 @@ class PipelineRegistry:
     """register pipeline elements in a project"""
 
     def __init__(self):
-        self._steps = {}
+        self._steps: Dict[str, PipelineElement] = {}
+        self._external_crons = defaultdict(dict)
         self._conf = Config.load()
 
     def register(
@@ -44,8 +46,10 @@ class PipelineRegistry:
         and will be looked up in conf/envs.yaml params"""
 
         def f(fun):
-            if CompleteIdBase.from_cls(fun).project:
-                return fun
+            id_base = CompleteIdBase.from_cls(fun)
+            if id_base.project:
+                return self._add_external_cron(id_base, cron)
+
             relpath = inspect.getfile(fun)
             lineno = inspect.findsource(fun)[1]
             iter_envs = [write_env] if write_env else self._all_env_names
@@ -102,8 +106,11 @@ class PipelineRegistry:
     def get_step(self, name: str) -> "PipelineElement":
         return self._steps[name]
 
+    def get_external_cron(self, project, ns) -> str:
+        return self._external_crons[project].get(ns)
+
     def step_names_of_env(self, env: str):
-        return [k for k in self._steps if k.startswith(env + "-")]  # WET
+        return [k for k, v in self._steps.items() if v.env == env]
 
     @property
     def steps(self) -> Iterable["PipelineElement"]:
@@ -136,6 +143,9 @@ class PipelineRegistry:
     def _get_data_dirs(self, fun, env):
         id_ = CompleteIdBase.from_cls(fun, self._conf.name)
         return [get_data_path(id_.project, id_.namespace, env)]
+
+    def _add_external_cron(self, id_base: CompleteIdBase, cron: str):
+        self._external_crons[id_base.project][id_base.namespace] = cron
 
     @property
     def _all_env_names(self):

@@ -1,6 +1,6 @@
 registry: {{test_registry}}
 remote: {{explore_remote}}
-tables:
+datasets:
   - name: Dog One
     project: dogshowbase
     namespace: core
@@ -13,7 +13,7 @@ tables:
     namespace: core
     env: complete
     tables: 
-      - dog
+      - sized_dog
   - name: Matching Dogs
     project: dogsuccess
     namespace: sex_matches
@@ -25,12 +25,11 @@ tables:
     namespace: core
     env: complete
     tables: 
-      - spot
+      - spotting
     version: v0.0
   - name: Spots Two
     project: dogshowbase
     namespace: core
-    env: complete
-    tables: 
-      - spot
+    env: top_comps
     version: v0.1
+    erd: false

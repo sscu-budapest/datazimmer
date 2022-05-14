@@ -1,7 +1,6 @@
 import datetime as dt
 import os
 from dataclasses import asdict
-from pathlib import Path
 from shutil import rmtree
 from subprocess import check_call
 
@@ -26,7 +25,7 @@ from .naming import (
 )
 from .pipeline_registry import get_global_pipereg
 from .registry import Registry
-from .sql.loader import SqlLoader
+from .sql.loader import tmp_constr
 from .utils import get_git_diffs, git_run
 from .validation_functions import validate, validate_importable
 
@@ -69,15 +68,8 @@ def update():
 
 @app.command()
 def draw(v: bool = False):
-    sqlpath = Path("__draw.db")
-    constr = f"sqlite:///{sqlpath.name}"
-    loader = SqlLoader(constr, echo=v)
-    try:
-        loader.setup_schema()
-        draw and dump_graph(constr)
-    finally:
-        loader.purge()
-        sqlpath.unlink()
+    with tmp_constr(v) as constr:
+        dump_graph(constr)
 
 
 @app.command()

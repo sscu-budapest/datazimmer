@@ -1,5 +1,7 @@
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from typing import TYPE_CHECKING, List
 
 import pandas as pd
@@ -157,13 +159,6 @@ class SqlTableConverter:
             *self._schema_items,
         )
 
-    @property
-    def pk_constraints(self):
-        if self.ind_cols:
-            ind = sa.Index(f"_{self._sql_id}_i", *self.ind_cols, unique=True)
-            return [ind]
-        return []
-
     def _add_fk(
         self,
         sql_cols: List[sa.Column],
@@ -198,8 +193,20 @@ class SqlTableConverter:
             *self.feat_cols,
             *self.ind_cols,
             *self.fk_constraints,
-            *self.pk_constraints,
         ]
+
+
+@contextmanager
+def tmp_constr(v=False):
+    sqlpath = Path("__tmp.db")
+    constr = f"sqlite:///{sqlpath.name}"
+    loader = SqlLoader(constr, echo=v)
+    try:
+        loader.setup_schema()
+        yield constr
+    finally:
+        loader.purge()
+        sqlpath.unlink()
 
 
 def _parse_d(d):
