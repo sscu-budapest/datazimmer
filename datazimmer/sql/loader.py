@@ -209,5 +209,68 @@ def tmp_constr(v=False):
         sqlpath.unlink()
 
 
+@dataclass
+class SqlFilter:
+    project: str
+    namespace: str
+    tables: list
+    col_renamer: dict
+
+    @contextmanager
+    def filter(self, constr):
+        engine = sa.create_engine(constr)
+        meta = sa.MetaData(bind=engine)
+        sa.MetaData.reflect(meta)
+        new_meta = self._convert(meta)
+        db_file = Path("_filtered.db")
+        new_constr = f"sqlite:///{db_file}"
+        engine = sa.create_engine(new_constr)
+        new_meta.create_all(engine)
+        yield new_constr
+        db_file.unlink()
+
+    def _convert(self, meta: sa.MetaData):
+        new_meta = sa.MetaData()
+        for table in meta.tables.values():
+            new_table_name = self._get_new_table_name(table.name)
+            if not new_table_name:
+                continue
+            new_cols = []
+            for col in table.columns:
+                new_col_name = self._get_new_col_name(col.name, new_table_name)
+                fks = filter(None, map(self._get_fk, col.foreign_keys))
+                new_cols.append(
+                    sa.Column(
+                        new_col_name,
+                        col.type,
+                        *fks,
+                        primary_key=col.primary_key,
+                        nullable=col.nullable,
+                    ),
+                )
+            sa.Table(new_table_name, new_meta, *new_cols)
+        return new_meta
+
+    def _get_fk(self, old_fk: sa.ForeignKey):
+        old_fk_table_name, fk_colname = old_fk.target_fullname.split(".")
+        new_fk_table_name = self._get_new_table_name(old_fk_table_name)
+        if not new_fk_table_name:
+            return
+        fk_col = self._get_new_col_name(fk_colname, new_fk_table_name)
+        return sa.ForeignKey(f"{new_fk_table_name}.{fk_col}")
+
+    def _get_new_table_name(self, name):
+        pid, nsid, tname = name.split(PREFIX_SEP)
+        if (
+            (pid == self.project)
+            and (nsid == self.namespace)
+            and (tname in self.tables)
+        ):
+            return tname
+
+    def _get_new_col_name(self, colname, tablename):
+        return self.col_renamer.get(tablename, self.col_renamer).get(colname, colname)
+
+
 def _parse_d(d):
     return {k: None if pd.isna(v) else v for k, v in d.items()}

@@ -28,7 +28,7 @@ from .naming import (
     repo_link,
 )
 from .registry import Registry
-from .sql.loader import tmp_constr
+from .sql.loader import SqlFilter, tmp_constr
 from .utils import camel_to_snake, gen_rmtree, reset_meta_module
 from .validation_functions import sandbox_project
 
@@ -97,6 +97,7 @@ class ExplorerDataset:
     version: str = ""
     minimal: bool = False
     erd: bool = True
+    col_renamer: dict = field(default_factory=dict)
     cc_context: dict = field(init=False, default_factory=dict)
     to_write: list = field(init=False, default_factory=list)
 
@@ -180,8 +181,11 @@ class ExplorerDataset:
     def _get_erd(self, scrutables: List[ScruTable]):
         if not self.erd:
             return ""
+        names = [st.name for st in scrutables]
+        sql_filter = SqlFilter(self.project, self.namespace, names, self.col_renamer)
         with tmp_constr() as constr:
-            mm_str = get_mermaid(constr)
+            with sql_filter.filter(constr) as new_constr:
+                mm_str = get_mermaid(new_constr)
         return mm_str
 
     @property
