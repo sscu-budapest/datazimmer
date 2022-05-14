@@ -158,7 +158,7 @@ class Registry:
         index_root = self.paths.index_dir.as_posix()
         comm = ["twistd", "-n", "web"]
         if os.name != "nt":
-            comm.append("--pidfile=")
+            comm.insert(1, "--pidfile=")
         opts = ["--path", index_root, "--listen", f"tcp:{self._port}"]
         server_popen = Popen(comm + opts)
         for attempt in range(40):
