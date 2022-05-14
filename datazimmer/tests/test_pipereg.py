@@ -33,7 +33,7 @@ def test_pipereg_parse_elems(in_template):
 
     _env = DEFAULT_ENV_NAME
     pipereg = PipelineRegistry()
-    _module_file_path = Path(core.__file__).relative_to(Path.cwd()).as_posix()
+    _module_file_path = Path("src", "core.py").as_posix()
 
     maps = [
         (["sss", Path("sss")], "sss"),
