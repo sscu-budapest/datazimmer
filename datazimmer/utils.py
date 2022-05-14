@@ -97,15 +97,18 @@ def reset_src_module():
 
 def gen_rmtree(path: Path):
     if Path(path).exists():
-        rmtree(path, onerror=_onerror)
+        try:
+            rmtree(path, onerror=_onerror)
+        except PermissionError:  # pragma: no cover
+            pass  # stupid windows
 
 
-def _onerror(func, path, exc_info):
+def _onerror(func, path, exc_info):  # pragma: no cover
     if not os.access(path, os.W_OK):
         os.chmod(path, stat.S_IWUSR)
         func(path)
     else:
-        raise
+        raise  # still stupid windows
 
 
 def reset_meta_module(name=None):

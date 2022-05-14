@@ -156,7 +156,9 @@ class Registry:
     @contextmanager
     def _index_server(self):
         index_root = self.paths.index_dir.as_posix()
-        comm = ["twistd", "--pidfile=", "-n", "web"]
+        comm = ["twistd", "-n", "web"]
+        if os.name != "nt":
+            comm.append("--pidfile=")
         opts = ["--path", index_root, "--listen", f"tcp:{self._port}"]
         server_popen = Popen(comm + opts)
         for attempt in range(40):
