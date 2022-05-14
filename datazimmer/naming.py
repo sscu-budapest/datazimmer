@@ -46,16 +46,18 @@ class RegistryPaths:
         _meta_root = _dev_dir / META_MODULE_NAME
         self._info_dir = self.dir / "info"
 
+        package_name = get_package_name(name)
+
         self.index_dir = self.dir / "index"
         self.toml_path = _dev_dir / "pyproject.toml"
         self.project_meta = _meta_root / name
 
-        self.dist_dir = self.index_dir / name
+        self.dist_dir = self.index_dir / package_name
         self.info_yaml = self.info_yaml_of(name, version)
 
         self.flit_posixes = self._relpos([_meta_root, self.toml_path])
         self.publish_paths = self._relpos([self.dist_dir, self.info_yaml])
-        self.dist_gitpath = f"index/{name}/{name}-{version}.tar.gz"
+        self.dist_gitpath = f"index/{package_name}/{package_name}-{version}.tar.gz"
 
     def info_yaml_of(self, name, version) -> Path:
         return self._info_dir / f"{name}-{version}.yaml"
@@ -70,3 +72,7 @@ class RegistryPaths:
 
 def get_data_path(project_name, namespace, env_name):
     return DATA_PATH / project_name / namespace / env_name
+
+
+def get_package_name(project_name):
+    return f"{META_MODULE_NAME}-{project_name}"

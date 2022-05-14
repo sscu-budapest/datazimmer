@@ -1,11 +1,9 @@
 import os
 import re
-import shutil
-import stat
 import sys
 from contextlib import contextmanager
 from functools import partial
-from shutil import copy, copytree, rmtree
+from shutil import copy, copytree
 from subprocess import CalledProcessError, Popen, check_call, check_output
 from time import sleep
 from typing import TYPE_CHECKING
@@ -28,8 +26,9 @@ from .naming import (
     VERSION_SEPARATOR,
     VERSION_VAR_NAME,
     RegistryPaths,
+    get_package_name,
 )
-from .utils import git_run
+from .utils import gen_rmtree, git_run
 
 if TYPE_CHECKING:
     from .config_loading import Config  # pragma: no cover
@@ -45,8 +44,7 @@ class Registry:
         self.paths = RegistryPaths(self.name, conf.version)
         self.posix = self.paths.dir.as_posix()
         if not self.paths.dir.exists() or reset:
-            if self.paths.dir.exists():
-                rmtree(self.paths.dir, onerror=_onerror)
+            gen_rmtree(self.paths.dir)
             self.paths.dir.mkdir(parents=True)
             try:
                 check_call(["git", "clone", conf.registry, self.posix])
@@ -55,7 +53,9 @@ class Registry:
 
             self.paths.ensure()
         self._port = 8087
-        self.requires = [a.name + a.version for a in conf.imported_projects]
+        self.requires = [
+            get_package_name(p.name) + p.version for p in conf.imported_projects
+        ]
         self._git_run = partial(git_run, wd=self.posix)
 
     def dump_info(self):
@@ -89,13 +89,16 @@ class Registry:
         self._git_run(add=self.paths.publish_paths, msg=msg, push=True)
 
     def purge(self):
-        shutil.rmtree(self.posix, ignore_errors=True)
+        gen_rmtree(self.posix)
+        if not self.requires:
+            return
+        check_call([sys.executable, "-m", "pip", "uninstall", *self.requires, "-y"])
 
     def _package(self):
         self._dump_meta()
         proj_conf = {
             "project": {
-                "name": self.name,
+                "name": get_package_name(self.name),
                 "version": self.conf.version,
                 "description": "zimmer project",
                 "requires-python": PYV,
@@ -122,8 +125,7 @@ class Registry:
         check_call(comm + extras + packages)
 
     def _dump_meta(self):
-        if self.paths.project_meta.exists():
-            rmtree(self.paths.project_meta, onerror=_onerror)
+        gen_rmtree(self.paths.project_meta)
         copytree(MAIN_MODULE_NAME, self.paths.project_meta)
         vstr = f'\n{VERSION_VAR_NAME} = "{self.conf.version}"'
         with (self.paths.project_meta / "__init__.py").open("a") as fp:
@@ -195,11 +197,3 @@ def _de_auth(url, re_auth=False):
     else:
         base = host
     return f"https://{base}/{repo_id}"
-
-
-def _onerror(func, path, exc_info):
-    if not os.access(path, os.W_OK):
-        os.chmod(path, stat.S_IWUSR)
-        func(path)
-    else:
-        raise

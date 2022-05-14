@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from functools import partial
-from shutil import rmtree
 from typing import Dict, List
 
 from dvc.repo import Repo
@@ -15,7 +14,7 @@ from .module_tree import ModuleTree
 from .naming import PREFIX_SEP, get_data_path
 from .pipeline_registry import get_global_pipereg
 from .registry import Registry
-from .utils import reset_meta_module, reset_src_module
+from .utils import gen_rmtree, reset_meta_module, reset_src_module
 
 logger = get_logger()
 
@@ -38,7 +37,7 @@ class ProjectRuntime:
         dvc_repo = Repo()
         posixes = []
         for data_env in self.data_to_load:
-            rmtree(data_env.path, ignore_errors=True)  # brave thing...
+            gen_rmtree(data_env.path)  # brave thing...
             data_env.path.parent.mkdir(exist_ok=True, parents=True)
             data_env.load_data(dvc_repo)
             posixes.append(data_env.posix)

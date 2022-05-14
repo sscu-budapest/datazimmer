@@ -4,8 +4,6 @@ from datetime import datetime
 from hashlib import md5
 from itertools import groupby
 from pathlib import Path
-from shutil import rmtree
-from subprocess import check_call
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, List, Optional, Union
 
@@ -31,7 +29,7 @@ from .naming import (
 )
 from .registry import Registry
 from .sql.loader import tmp_constr
-from .utils import camel_to_snake, reset_meta_module
+from .utils import camel_to_snake, gen_rmtree, reset_meta_module
 from .validation_functions import sandbox_project
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -240,7 +238,7 @@ class ExplorerContext:
         for dataset in datasets:
             dataset.set_from_project(self.remote, runtime, self.book_root)
         reset_meta_module()
-        check_call(["pip", "uninstall", project_name, "-y"])
+        test_reg.purge()
 
 
 def build_explorer(cron: str = "0 15 * * *"):
@@ -276,7 +274,7 @@ def save_edits():
     ]
     for _save_path in paths:
         outs.append((_save_path, _save_path.read_text()))
-    rmtree(BOOK_DIR, ignore_errors=True)
+    gen_rmtree(BOOK_DIR)
     yield
     for _path, nbstr in outs:
         if _path.parent.exists():

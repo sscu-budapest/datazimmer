@@ -1,15 +1,14 @@
 import os
+import stat
 import sys
 from contextlib import contextmanager
 from inspect import ismodule
 from itertools import chain
 from pathlib import Path
+from shutil import rmtree
 from subprocess import check_call, check_output
 from typing import List, Type, TypeVar, Union
 
-import isort
-from black import Mode, format_file_contents
-from black.report import NothingChanged
 from colassigner.util import camel_to_snake  # noqa: F401
 from sqlalchemy.dialects.postgresql import dialect as postgres_dialect
 
@@ -81,16 +80,6 @@ def cd_into(dirpath: Union[str, Path]):
         # sys.path.pop(0)
 
 
-def format_code(code_str):
-    try:
-        mode = Mode(line_length=LINE_LEN)
-        blacked = format_file_contents(code_str, fast=True, mode=mode)
-    except NothingChanged:
-        blacked = code_str
-
-    return isort.code(blacked, profile="black")
-
-
 def named_dict_to_list(
     named_dict: dict,
     cls: Type[T],
@@ -104,6 +93,19 @@ def named_dict_to_list(
 
 def reset_src_module():
     _reset_modules(MAIN_MODULE_NAME)
+
+
+def gen_rmtree(path: Path):
+    if Path(path).exists():
+        rmtree(path, onerror=_onerror)
+
+
+def _onerror(func, path, exc_info):
+    if not os.access(path, os.W_OK):
+        os.chmod(path, stat.S_IWUSR)
+        func(path)
+    else:
+        raise
 
 
 def reset_meta_module(name=None):
