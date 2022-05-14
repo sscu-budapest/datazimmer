@@ -3,49 +3,38 @@ import datetime as dt
 import datazimmer as dz
 
 
-class Creature(dz.BaseEntity):
-    pass
+class Creature(dz.AbstractEntity):
+    cid = dz.Index & str
+
+    name = str
+    date_of_birth = dz.Nullable(dt.datetime)
 
 
-class Pet(dz.BaseEntity):
+class Pet(dz.AbstractEntity):
     """most likely owned by pet owners, but not necessarily a creature"""
 
     # ^ this goes to description
-    pass
+    sex = str
 
 
 class Dog(Creature, Pet):
-    pass
+    waist = dz.Nullable(float)
 
 
 class Person(Creature):
     pass
 
 
-class DogIndex(dz.IndexBase):
-    dog_id = str
+class Relationship(dz.AbstractEntity):
+    owner = dz.Index & Person
+    dog = dz.Index & Dog
 
-
-class PersonIndex(dz.IndexBase):
-    person_id = str
-
-
-class CompetitionIndex(dz.IndexBase):
-    competition_id = str
-
-
-class RelationshipIndex(dz.IndexBase):
-    owner = PersonIndex
-    dog = DogIndex
-
-
-class PhotoIndex(dz.IndexBase):
-    photo_id = str
+    since_birth = bool
 
 
 class ResultType(dz.CompositeTypeBase):
-    owner = PersonIndex
-    pet = DogIndex
+    owner = Person
+    pet = Dog
     prize = int
 
 
@@ -63,50 +52,34 @@ class AddressType(dz.CompositeTypeBase):
 # add in v0.0:     zip = str
 
 
-class PersonFeatures(dz.TableFeaturesBase):
-    name = str
-    date_of_birth = dz.Nullable(dt.datetime)
+class Competition(dz.AbstractEntity):
+    competition_id = dz.Index & str
 
-
-class DogFeatures(dz.TableFeaturesBase):
-    name = str
-    date_of_birth = dt.datetime
-    waist = dz.Nullable(float)
-    sex = str
-
-
-class RelationshipFeatures(dz.TableFeaturesBase):
-    since_birth = bool
-
-
-class CompetitionFeatures(dz.TableFeaturesBase):
     prize_pool = int
     winner = ResultType
     runner_up = ResultType
     special_mention = ResultType
 
 
-class SpotFeatures(dz.TableFeaturesBase):
-    dog_1 = DogIndex
-    dog_2 = DogIndex
+class Spotting(dz.AbstractEntity):
+    dog_1 = Dog
+    dog_2 = Dog
     place = AddressType
 
 
-class PhotoFeatures(dz.TableFeaturesBase):
+class Photo(dz.AbstractEntity):
+
+    photo_id = dz.Index & str
     cuteness = float
-    rel = RelationshipIndex
+    rel = Relationship
 
 
-person_table = dz.ScruTable(PersonFeatures, PersonIndex, subject_of_records=Person)
-dog_table = dz.ScruTable(
-    DogFeatures,
-    DogIndex,
-    subject_of_records=Dog,
-    partitioning_cols=[DogFeatures.sex],
-)
-relationship_table = dz.ScruTable(RelationshipFeatures, RelationshipIndex)
-competition_table = dz.ScruTable(CompetitionFeatures, CompetitionIndex)
-spot_table = dz.ScruTable(SpotFeatures)
-photo_table = dz.ScruTable(PhotoFeatures, index=PhotoIndex)
+person_table = dz.ScruTable(Person)
+dog_table = dz.ScruTable(Dog, partitioning_cols=[Dog.sex])
+relationship_table = dz.ScruTable(Relationship)
+competition_table = dz.ScruTable(Competition)
+spot_table = dz.ScruTable(Spotting)
+photo_table = dz.ScruTable(Photo)
+
 
 test_base_url = dz.SourceUrl("https://sscu-budapest.github.io/")

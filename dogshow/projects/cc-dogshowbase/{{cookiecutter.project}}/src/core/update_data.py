@@ -14,8 +14,8 @@ def update_data(data_root):
     dogs_df = pd.read_csv(f"{data_root}/dog.csv")
     comps_df = pd.read_csv(f"{data_root}/comp.csv")
     rel_renamer = {
-        "owner_id": ns.RelationshipIndex.owner.person_id,
-        "dog_id": ns.RelationshipIndex.dog.dog_id,
+        "owner_id": ns.Relationship.owner.cid,
+        "dog_id": ns.Relationship.dog.cid,
     }
     rels_df = pd.read_csv(f"{data_root}/rel.csv").rename(columns=rel_renamer)
     spots_df = pd.read_csv(f"{data_root}/spotted.csv", dtype=str)
@@ -25,7 +25,7 @@ def update_data(data_root):
 
     # for cron - data update
     randog = {
-        "dog_id": f"d-{dogs_df.shape[0] + 1}",
+        "cid": f"d-{dogs_df.shape[0] + 1}",
         "name": "Randog",
         "date_of_birth": "2014-04-01",
         "waist": (time() - 1648 * 10**6) / 10**4,

@@ -1,5 +1,7 @@
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from typing import TYPE_CHECKING, List
 
 import pandas as pd
@@ -9,12 +11,11 @@ from sqlalchemy.orm import sessionmaker
 from structlog import get_logger
 from tqdm import tqdm
 
+from ..config_loading import RunConfig
 from ..get_runtime import get_runtime
-from ..metadata.bedrock.atoms import Table
-from ..metadata.bedrock.column import to_sql_col
-from ..metadata.bedrock.complete_id import CompleteId, CompleteIdBase
-from ..metadata.bedrock.conversion import FeatConverter, table_id_to_dtype_map
-from ..metadata.bedrock.namespace_metadata import NamespaceMetadata
+from ..metadata.atoms import EntityClass
+from ..metadata.namespace_metadata import NamespaceMetadata
+from ..metadata.scrutable import ScruTable, feats_to_cols, to_sa_col
 from ..utils import is_postgres
 
 if TYPE_CHECKING:
@@ -31,7 +32,7 @@ class SqlLoader:
 
     """
 
-    def __init__(self, constr, env, echo=False, batch_size=2000):
+    def __init__(self, constr, echo=False, batch_size=2000):
         """start up a loader
 
         Parameters
@@ -41,7 +42,6 @@ class SqlLoader:
             but needs to be postgres for foreign keys to be validated
         """
 
-        self.env = env
         self.runtime = get_runtime()
         self.engine = sa.create_engine(constr, echo=echo)
         self.sql_meta = sa.MetaData()
@@ -53,15 +53,17 @@ class SqlLoader:
             nsm.create_schema()
         self.sql_meta.create_all(self.engine)
 
-    def load_data(self):
-        with self._Session() as session:
-            for nsm in self._ns_mappers:
-                nsm.load_data(session, self.env)
-            session.commit()
+    def load_data(self, env):
+        with RunConfig(read_env=env):
+            with self._Session() as session:
+                for nsm in self._ns_mappers:
+                    nsm.load_data(session)
+                session.commit()
 
-    def validate_data(self):
-        for nsm in self._ns_mappers:
-            nsm.validate_data(self.env)
+    def validate_data(self, env):
+        with RunConfig(read_env=env):
+            for nsm in self._ns_mappers:
+                nsm.validate_data()
 
     def purge(self):
         self.sql_meta.drop_all(self.engine)
@@ -71,13 +73,14 @@ class SqlLoader:
         f_args = (self.runtime, self.sql_meta, self.engine, self._batch_size)
         for ns in self.runtime.metadata.namespaces.values():
             yield NamespaceMapper(self.runtime.name, ns, *f_args)
+        _mapped = set()
         for data_env in self.runtime.data_to_load:
-            art_name = data_env.project
-            resolved_env = self.runtime.config.resolve_ns_env(art_name, self.env)
-            if data_env.env != resolved_env:
+            proj_name, ext_ns_name = _id = (data_env.project, data_env.ns)
+            ext_ns = self.runtime.metadata_dic[proj_name].namespaces[ext_ns_name]
+            if _id in _mapped:
                 continue
-            ext_ns = self.runtime.ext_metas[art_name].namespaces[data_env.ns]
-            yield NamespaceMapper(art_name, ext_ns, *f_args)
+            _mapped.add(_id)
+            yield NamespaceMapper(proj_name, ext_ns, *f_args)
 
 
 @dataclass
@@ -94,46 +97,32 @@ class NamespaceMapper:
         for table in self.ns_meta.tables:
             SqlTableConverter(table, self).create()
 
-    def load_data(self, session, env):
+    def load_data(self, session):
         for table in self.ns_meta.tables:
-            self._load_table(table, session, env)
+            self._load_table(table, session)
 
-    def validate_data(self, env):
+    def validate_data(self):
         for table in self.ns_meta.tables:
-            self._validate_table(table, env)
+            self._validate_table(table)
 
-    def sql_id(self, table_name):
-        return _get_sql_id(table_name, self.id_base)
+    def _load_table(self, table: ScruTable, session):
+        ins = self.sql_meta.tables[table.id_.sql_id].insert()
+        logger.info("loading", table=table.name)
+        for df in table.dfs:
+            self._partition(df.reset_index() if table.index else df, ins, session)
 
-    @property
-    def id_base(self):
-        return CompleteIdBase(self.project_name, self.ns_meta.name)
-
-    def _load_table(self, table: Table, session, env):
-        trepo = self.runtime.config.table_to_trepo(table, self.id_base, env)
-        ins = self._get_sql_table(table.name).insert()
-        has_ind = table.index
-        _log = partial(logger.info, table=table.name)
-        _log("loading")
-        for df in trepo.dfs:
-            self._partition(df.reset_index() if has_ind else df, ins, session)
-
-    def _validate_table(self, table: Table, env):
+    def _validate_table(self, table: ScruTable):
         dt_map = {}
-        table_id = self.sql_id(table.name)
-        logger.info("validating table", table=table_id, env=env)
+        table_id = table.id_.sql_id
+        logger.info("validating table", table=table_id)
         if not is_postgres(self.engine):
-            comp_tid = self.id_base.to_id(table.name)
-            dt_map = table_id_to_dtype_map(comp_tid, self.runtime)
-        df_sql = pd.read_sql(
-            f"SELECT * FROM {table_id}",
-            con=self.engine,
-        ).astype(dt_map)
-        trepo = self.runtime.config.table_to_trepo(table, self.id_base, env)
-        df = trepo.get_full_df()
+            dt_map = table.dtype_map
+        df_sql = pd.read_sql(f"SELECT * FROM {table_id}", con=self.engine).astype(
+            dt_map
+        )
+        df = table.get_full_df()
         if table.index:
-            sql_conv = SqlTableConverter(table, self)
-            ind_cols = [ic.name for ic in sql_conv.ind_cols]
+            ind_cols = table.index_cols
             if len(ind_cols) > 1:
                 ind_cols = [ind_cols[ind_cols.index(inc)] for inc in df.index.names]
             df_sql = df_sql.set_index(ind_cols).reindex(df.index)
@@ -143,7 +132,7 @@ class NamespaceMapper:
                 for _df in [df, df_sql]
             ]
         if df.empty and df_sql.empty:
-            logger.warn("empty data frames", table=table_id, env=env)
+            logger.warn("empty data frames", table=table_id)
 
         pd.testing.assert_frame_equal(df.loc[:, df_sql.columns], df_sql)
 
@@ -153,20 +142,15 @@ class NamespaceMapper:
             recs = df.iloc[sind:eind, :].to_dict("records")
             session.execute(ins.values([*map(_parse_d, recs)]))
 
-    def _get_sql_table(self, table_name):
-        return self.sql_meta.tables[self.sql_id(table_name)]
-
 
 class SqlTableConverter:
-    def __init__(self, bedrock_table: Table, parent_mapper: NamespaceMapper):
-        self._table = bedrock_table
+    def __init__(self, scrutable: ScruTable, parent_mapper: NamespaceMapper):
+        self._table = scrutable
         self._mapper = parent_mapper
+        self._sql_id = scrutable.id_.sql_id
         self.fk_constraints = []
-        col_conversion_fun = FeatConverter(
-            self._mapper.runtime, self._mapper.id_base, to_sql_col, self._add_fk
-        ).feats_to_cols
-        self.ind_cols = col_conversion_fun(self._table.index)
-        self.feat_cols = col_conversion_fun(self._table.features)
+        self.ind_cols = self._get_sa_cols(scrutable.index, True)
+        self.feat_cols = self._get_sa_cols(scrutable.features, False)
 
     def create(self):
         sa.Table(
@@ -175,18 +159,19 @@ class SqlTableConverter:
             *self._schema_items,
         )
 
-    @property
-    def pk_constraints(self):
-        if self.ind_cols:
-            ind = sa.Index(f"_{self._sql_id}_i", *self.ind_cols, unique=True)
-            return [ind]
-        return []
-
-    def _add_fk(self, sql_cols: List[sa.Column], table_id: CompleteId, prefix_arr):
+    def _add_fk(
+        self,
+        sql_cols: List[sa.Column],
+        entity: EntityClass,
+        prefix_arr,
+    ):
+        target_table = self._mapper.runtime.get_table_for_entity(
+            entity, self._table, prefix_arr
+        )
         pref_str = PREFIX_SEP.join(prefix_arr) + PREFIX_SEP
-        tab_id_str = _get_sql_id(table_id.obj_id, table_id.base) + "."
-        matching_cols = [c.name.replace(pref_str, tab_id_str) for c in sql_cols]
-
+        matching_cols = [
+            c.name.replace(pref_str, f"{target_table.id_.sql_id}.") for c in sql_cols
+        ]
         defer_kws = {}
         if is_postgres(self._mapper.engine):
             defer_kws["initially"] = "DEFERRED"
@@ -199,22 +184,92 @@ class SqlTableConverter:
         )
         self.fk_constraints.append(fk)
 
+    def _get_sa_cols(self, feats, pk):
+        return feats_to_cols(feats, self._add_fk, partial(to_sa_col, pk=pk))
+
     @property
     def _schema_items(self):
         return [
             *self.feat_cols,
             *self.ind_cols,
             *self.fk_constraints,
-            *self.pk_constraints,
         ]
 
-    @property
-    def _sql_id(self):
-        return self._mapper.sql_id(self._table.name)
+
+@contextmanager
+def tmp_constr(v=False):
+    sqlpath = Path("__tmp.db")
+    constr = f"sqlite:///{sqlpath.name}"
+    loader = SqlLoader(constr, echo=v)
+    try:
+        loader.setup_schema()
+        yield constr
+    finally:
+        loader.purge()
+        sqlpath.unlink()
 
 
-def _get_sql_id(table_name, id_base: CompleteIdBase):
-    return "__".join([id_base.project, id_base.namespace, table_name])
+@dataclass
+class SqlFilter:
+    project: str
+    namespace: str
+    tables: list
+    col_renamer: dict
+
+    @contextmanager
+    def filter(self, constr):
+        engine = sa.create_engine(constr)
+        meta = sa.MetaData(bind=engine)
+        sa.MetaData.reflect(meta)
+        new_meta = self._convert(meta)
+        db_file = Path("_filtered.db")
+        new_constr = f"sqlite:///{db_file}"
+        engine = sa.create_engine(new_constr)
+        new_meta.create_all(engine)
+        yield new_constr
+        db_file.unlink()
+
+    def _convert(self, meta: sa.MetaData):
+        new_meta = sa.MetaData()
+        for table in meta.tables.values():
+            new_table_name = self._get_new_table_name(table.name)
+            if not new_table_name:
+                continue
+            new_cols = []
+            for col in table.columns:
+                new_col_name = self._get_new_col_name(col.name, new_table_name)
+                fks = filter(None, map(self._get_fk, col.foreign_keys))
+                new_cols.append(
+                    sa.Column(
+                        new_col_name,
+                        col.type,
+                        *fks,
+                        primary_key=col.primary_key,
+                        nullable=col.nullable,
+                    ),
+                )
+            sa.Table(new_table_name, new_meta, *new_cols)
+        return new_meta
+
+    def _get_fk(self, old_fk: sa.ForeignKey):
+        old_fk_table_name, fk_colname = old_fk.target_fullname.split(".")
+        new_fk_table_name = self._get_new_table_name(old_fk_table_name)
+        if not new_fk_table_name:
+            return
+        fk_col = self._get_new_col_name(fk_colname, new_fk_table_name)
+        return sa.ForeignKey(f"{new_fk_table_name}.{fk_col}")
+
+    def _get_new_table_name(self, name):
+        pid, nsid, tname = name.split(PREFIX_SEP)
+        if (
+            (pid == self.project)
+            and (nsid == self.namespace)
+            and (tname in self.tables)
+        ):
+            return tname
+
+    def _get_new_col_name(self, colname, tablename):
+        return self.col_renamer.get(tablename, self.col_renamer).get(colname, colname)
 
 
 def _parse_d(d):

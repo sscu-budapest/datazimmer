@@ -1,15 +1,17 @@
 from functools import reduce
-from typing import Type, Union
+from typing import Type, TypeVar, Union
 
 from colassigner import ColAccessor, ColAssigner
 from colassigner.type_hinting import get_return_hint
 
+T = TypeVar("T")
 
-class BaseEntity:
+
+class SourceUrl(str):
     pass
 
 
-class IndexBase(ColAccessor):
+class AbstractEntity(ColAssigner):
     pass
 
 
@@ -17,19 +19,27 @@ class CompositeTypeBase(ColAccessor):
     pass
 
 
-class TableFeaturesBase(ColAssigner):
-    pass
-
-
 class Nullable(type):
-
     base: Type
 
     def __new__(cls, dtype):
         return super().__new__(cls, dtype.__name__, (), {"base": dtype})
 
 
-def get_feature_dict(cls: Union[CompositeTypeBase, TableFeaturesBase]):
+class _IMeta(type):
+    def __and__(cls, other: T) -> T:
+        return type(other.__name__, (other, IndexIndicator), {})
+
+
+class Index(metaclass=_IMeta):
+    pass
+
+
+class IndexIndicator:
+    pass
+
+
+def get_feature_dict(cls: Union[CompositeTypeBase, AbstractEntity]):
 
     base_items = reduce(or_, [c.__dict__ for c in [*cls.__bases__, cls]]).items()
     out = {k: _get_feat_type(v) for k, v in base_items if not k.startswith("_")}

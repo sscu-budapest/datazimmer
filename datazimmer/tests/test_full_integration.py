@@ -2,16 +2,19 @@ import os
 from pathlib import Path
 
 from datazimmer.config_loading import Config
+from datazimmer.metadata.atoms import _GLOBAL_CLS_MAP
 from datazimmer.naming import BASE_CONF_PATH, MAIN_MODULE_NAME
 from datazimmer.typer_commands import (
     build_explorer,
     build_meta,
     cleanup,
+    draw,
     load_external_data,
     publish_data,
     publish_meta,
     run,
     run_cronjobs,
+    update,
     validate,
 )
 from datazimmer.utils import cd_into, get_git_diffs, git_run, reset_meta_module
@@ -25,7 +28,10 @@ def test_full_dogshow(tmp_path: Path, pytestconfig):
     ds_cc = DogshowContextCreator.load(mode, tmp_path)
 
     pg_host = os.environ.get("POSTGRES_HOST", "localhost")
-    constr = f"postgresql://postgres:postgres@{pg_host}:5432/postgres"
+    if pg_host == "sqlite":  # pragma: no cover
+        constr = "sqlite:///_db.sqlite"
+    else:
+        constr = f"postgresql://postgres:postgres@{pg_host}:5432/postgres"
     try:
         for ds in ds_cc.all_contexts:
             run_project_test(ds, constr)
@@ -44,12 +50,14 @@ def run_project_test(dog_context, constr):
         init_version = Config.load().version
         _complete(constr)
         for testv in versions:
+            [_GLOBAL_CLS_MAP.pop(k) for k in [*_GLOBAL_CLS_MAP.keys()]]
             modify_to_version(testv)
             if testv == init_version:
                 # should warn and just try install
                 build_meta()
                 continue
             _complete(constr)
+            build_meta()
         for cronexpr in crons:
             # TODO: warn if same data is tagged differently
             run_cronjobs(cronexpr)
@@ -58,6 +66,7 @@ def run_project_test(dog_context, constr):
 
 
 def _complete(constr):
+    draw()
     build_meta()
     git_run(add=[MAIN_MODULE_NAME, BASE_CONF_PATH])
     get_git_diffs(True) and git_run(msg="build")
@@ -67,4 +76,5 @@ def _complete(constr):
     publish_meta()
     reset_meta_module()
     publish_data()
+    update()
     reset_meta_module()

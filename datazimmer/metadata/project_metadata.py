@@ -1,16 +1,14 @@
 import datetime as dt
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import total_ordering
 from typing import Dict, List
 
-from yaml import safe_load
+from datazimmer.metadata.atoms import EntityClass
 
-from ...module_tree import InstalledPaths
-from ...naming import VERSION_SEPARATOR
-from .atoms import NS_ATOM_TYPE
-from .complete_id import CompleteId
+from ..naming import VERSION_SEPARATOR
 from .namespace_metadata import NamespaceMetadata
+from .scrutable import ScruTable
 
 
 @dataclass
@@ -18,25 +16,16 @@ class ProjectMetadata:
 
     uri: str
     tags: List[str]
-    namespaces: Dict[str, NamespaceMetadata]
+    namespaces: Dict[str, NamespaceMetadata] = field(default_factory=dict)
 
-    def get_atom(self, id_: CompleteId) -> NS_ATOM_TYPE:
-        return self.namespaces[id_.namespace].get(id_.obj_id)
+    def table_of_ec(self, ec: EntityClass) -> ScruTable:
+        for ns in self.namespaces.values():
+            _tab = ns.get_table_of_ec(ec)
+            if _tab:
+                return _tab
 
     def latest_tag_of(self, env):
         return sorted(self._tags_by_v.items())[-1][1][env]
-
-    def get_used_projects(self):
-        projids = set()
-        for ns in self.namespaces.values():
-            for table in ns.tables:
-                _add_feats(table.features + table.index, projids)
-            for ctype in ns.composite_types:
-                _add_feats(ctype.features, projids)
-            for enclass in ns.entity_classes:
-                for parent in enclass.parents:
-                    projids.add(parent.project)
-        return filter(None, projids)
 
     @property
     def next_data_v(self):
@@ -49,12 +38,6 @@ class ProjectMetadata:
     @property
     def data_namespaces(self):
         return [ns.name for ns in self.namespaces.values() if ns.tables]
-
-    @classmethod
-    def load_installed(cls, name_to_load: str, name_loading_from: str = None):
-        paths = InstalledPaths(name_to_load, name_loading_from or name_to_load)
-        ns_dic = {d.name: NamespaceMetadata.load_serialized(d) for d in paths.ns_paths}
-        return cls(**safe_load(paths.info_yaml.read_text()), namespaces=ns_dic)
 
     @property
     def _tags_by_v(self) -> Dict["DataVersion", Dict[str, str]]:
@@ -105,8 +88,3 @@ class DataVersion:
     @property
     def _args(self):
         return (self.year, self.month, self.day, self.num)
-
-
-def _add_feats(feats, a_set: set):
-    for feat in feats:
-        a_set.add(feat.val_id.project)

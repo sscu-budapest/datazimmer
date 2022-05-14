@@ -1,32 +1,11 @@
 from datetime import datetime
 
 import pandas as pd
-from metazimmer.dogshowbase import core
+from metazimmer.dogshowbase.core import ns_meta
 
 import datazimmer as dz
 
-
-class DogSizeIndex(dz.IndexBase):
-    dogsize_name = str
-
-
-class DogIndex(dz.IndexBase):
-    canine_id = str
-
-
-class CompetitionIndex(dz.IndexBase):
-    competition_id = str
-
-
-class DogCategory(dz.CompositeTypeBase):
-    pure = bool
-    neutered = bool
-
-
-class DogOfTheMonthIndex(dz.IndexBase):
-    dog_type = DogCategory
-    year = int
-    month = int
+# TODO: self referencing!!
 
 
 class IntLimitType(dz.CompositeTypeBase):
@@ -34,33 +13,42 @@ class IntLimitType(dz.CompositeTypeBase):
     max = int
 
 
-class DogSizeFeatures(dz.TableFeaturesBase):
+class DogCategory(dz.CompositeTypeBase):
+    pure = bool
+    neutered = bool
+
+
+class DogSize(dz.AbstractEntity):
+    dogsize_name = dz.Index & str
     waist_limit = IntLimitType
     weight_limit = IntLimitType
 
 
-class DogFeatures(dz.TableFeaturesBase):
-    name = str
+class SizedDog(ns_meta.Creature, ns_meta.Pet):
     color = dz.Nullable(str)
-    size = DogSizeIndex
+    size = DogSize
 
 
-class CompetitionFeatures(dz.TableFeaturesBase):
+class Competition(dz.AbstractEntity):
+    competition_id = dz.Index & str
+
     held_date = datetime
     fastest_time = float
-    champion = DogIndex
+    champion = SizedDog
 
 
-class DogOfTheMonthFeatures(dz.TableFeaturesBase):
-    winner = DogIndex
+class DogOfTheMonth(dz.AbstractEntity):
+    dog_type = dz.Index & DogCategory
+    year = dz.Index & int
+    month = dz.Index & int
+
+    winner = SizedDog
 
 
-dog_size_table = dz.ScruTable(DogSizeFeatures, DogSizeIndex)
-dog_table = dz.ScruTable(DogFeatures, DogIndex, subject_of_records=core.Dog)
-competition_table = dz.ScruTable(CompetitionFeatures, CompetitionIndex)
-dog_of_the_month_table = dz.ScruTable(
-    DogOfTheMonthFeatures, DogOfTheMonthIndex, max_partition_size=3
-)
+dog_size_table = dz.ScruTable(DogSize)
+dog_table = dz.ScruTable(SizedDog)
+competition_table = dz.ScruTable(Competition)
+dog_of_the_month_table = dz.ScruTable(DogOfTheMonth, max_partition_size=3)
 
 
 @dz.register_data_loader
@@ -70,8 +58,8 @@ def create_data(data_root):
     dog_df = pd.read_csv(f"{data_root}/dog2.csv")
     comp_df = (
         pd.read_csv(f"{data_root}/race.csv")
-        .set_index(CompetitionIndex.competition_id)
-        .astype({CompetitionFeatures.held_date: "datetime64"})
+        .set_index(Competition.competition_id)
+        .astype({Competition.held_date: "datetime64"})
     )
     dotm_df = pd.read_csv(f"{data_root}/dog_of_the_month.csv")
     dz.dump_dfs_to_tables(
@@ -90,13 +78,13 @@ def create_environments(dog_sizes):
     dog_size_set = set(dog_sizes)
     dogsize_df = dog_size_table.get_full_df().loc[dog_sizes, :]
     dog_df = dog_table.get_full_df().loc[
-        lambda df: df[DogFeatures.size].isin(dog_size_set), :
+        lambda df: df[SizedDog.size.dogsize_name].isin(dog_size_set), :
     ]
     comp_df = competition_table.get_full_df().loc[
-        lambda df: df[CompetitionFeatures.champion].isin(dog_df.index), :
+        lambda df: df[Competition.champion.cid].isin(dog_df.index), :
     ]
     dotm_df = dog_of_the_month_table.get_full_df().loc[
-        lambda df: df[DogOfTheMonthFeatures.winner].isin(dog_df.index), :
+        lambda df: df[DogOfTheMonth.winner.cid].isin(dog_df.index), :
     ]
 
     dz.dump_dfs_to_tables(

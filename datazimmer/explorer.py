@@ -4,7 +4,6 @@ from datetime import datetime
 from hashlib import md5
 from itertools import groupby
 from pathlib import Path
-from shutil import rmtree
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, List, Optional, Union
 
@@ -13,13 +12,14 @@ import yaml
 from botocore.exceptions import ClientError
 from bs4 import BeautifulSoup, Tag
 from cookiecutter.main import cookiecutter
+from cron_descriptor import ExpressionDescriptor
+from sqlmermaid import get_mermaid
 
 from .config_loading import Config, ImportedProject, ProjectEnv, RunConfig
 from .full_auth import ZimmerAuth
 from .get_runtime import get_runtime
 from .gh_actions import write_book_actions
-from .metaprogramming import camel_to_snake
-from .module_tree import load_scrutable
+from .metadata.scrutable import ScruTable
 from .naming import (
     DEFAULT_ENV_NAME,
     DEFAULT_REGISTRY,
@@ -28,11 +28,13 @@ from .naming import (
     repo_link,
 )
 from .registry import Registry
-from .utils import reset_meta_module
+from .sql.loader import SqlFilter, tmp_constr
+from .utils import camel_to_snake, gen_rmtree, reset_meta_module
 from .validation_functions import sandbox_project
 
-if TYPE_CHECKING:
-    from .project_runtime import ProjectRuntime  # pragma: no cover
+if TYPE_CHECKING:  # pragma: no cover
+    from .pipeline_registry import PipelineRegistry
+    from .project_runtime import ProjectRuntime
 
 CC_DIR = repo_link("explorer-template")
 BOOK_DIR = Path("book")
@@ -94,13 +96,17 @@ class ExplorerDataset:
     env: str = DEFAULT_ENV_NAME
     version: str = ""
     minimal: bool = False
+    erd: bool = True
+    col_renamer: dict = field(default_factory=dict)
     cc_context: dict = field(init=False, default_factory=dict)
     to_write: list = field(init=False, default_factory=list)
 
     def set_from_project(self, remote: S3Remote, runtime: "ProjectRuntime", book_root):
-        meta = runtime.ext_metas[self.project]
+        meta = runtime.metadata_dic[self.project]
         ns_meta = meta.namespaces[self.namespace]
-        table_list = self.tables or [t.name for t in ns_meta.tables]
+        scrutable_list = ns_meta.tables
+        if self.tables:
+            scrutable_list = [t for t in ns_meta.tables if t.name in self.tables]
         self.cc_context.update(
             {
                 "project_url": meta.uri,
@@ -108,11 +114,13 @@ class ExplorerDataset:
                 "name": self.name,
                 "source_urls": ns_meta.source_urls,
                 "tables": [],
-                "n_tables": len(table_list),
+                "n_tables": len(scrutable_list),
+                "update_str": self._get_cron_desc(runtime.pipereg),
+                "erd_mermaid": self._get_erd(scrutable_list),
             }
         )
         with RunConfig(read_env=self.env):
-            for table in table_list:
+            for table in scrutable_list:
                 self.cc_context["tables"].append(
                     self._get_table_cc(table, remote, book_root)
                 )
@@ -129,13 +137,14 @@ class ExplorerDataset:
     def v_str(self):
         return f"=={self.version}" if self.version else ""
 
-    def _get_table_cc(self, table, remote: S3Remote, book_root):
+    def _get_table_cc(self, scrutable: ScruTable, remote: S3Remote, book_root):
         # slow import...
         from pandas_profiling import ProfileReport
 
-        scrutable = load_scrutable(self.project, self.namespace, table)
-        df = scrutable.get_full_df()
-        csv_str = df.to_csv(index=any(df.index.names))
+        df = scrutable.get_full_df(env=self.env)
+        if scrutable.index_cols:
+            df = df.reset_index()
+        csv_str = df.to_csv(index=None)
         profile_str = _shorten(ProfileReport(df, minimal=self.minimal))
         name = scrutable.name
 
@@ -146,7 +155,6 @@ class ExplorerDataset:
         mod_date = remote.push(csv_str, csv_key)
         self.to_write.append((csv_path, csv_str))
         return {
-            "entity": _title(scrutable.subject.__name__),
             "name": _title(scrutable.name),
             "slug": scrutable.name,
             "profile_url": remote.full_link(profile_key),
@@ -155,7 +163,30 @@ class ExplorerDataset:
             "n_rows": df.shape[0],
             "csv_url": remote.full_link(csv_key),
             "csv_filename": csv_path.name,
+            "csv_filesize": _get_filesize(csv_str),
         }
+
+    def _get_cron_desc(self, pipereg: "PipelineRegistry"):
+        raw_cron = pipereg.get_external_cron(self.project, self.namespace)
+        if not raw_cron:
+            return ""
+        return (
+            ExpressionDescriptor(
+                raw_cron, locale_code="en", throw_exception_on_parse_error=False
+            )
+            .get_description()
+            .lower()
+        )
+
+    def _get_erd(self, scrutables: List[ScruTable]):
+        if not self.erd:
+            return ""
+        names = [st.name for st in scrutables]
+        sql_filter = SqlFilter(self.project, self.namespace, names, self.col_renamer)
+        with tmp_constr() as constr:
+            with sql_filter.filter(constr) as new_constr:
+                mm_str = get_mermaid(new_constr)
+        return mm_str
 
     @property
     def _slug(self):
@@ -181,7 +212,7 @@ class ExplorerContext:
     @classmethod
     def load(cls):
         conf_dic = yaml.safe_load(EXPLORE_CONF_PATH.read_text())
-        tdirs = [ExplorerDataset(**tdkw) for tdkw in conf_dic.pop("tables")]
+        tdirs = [ExplorerDataset(**tdkw) for tdkw in conf_dic.pop("datasets")]
         remote_raw = conf_dic.pop("remote", "")
         if remote_raw and (not remote_raw.startswith("/")):
             remote = S3Remote(remote_raw)
@@ -211,6 +242,7 @@ class ExplorerContext:
         for dataset in datasets:
             dataset.set_from_project(self.remote, runtime, self.book_root)
         reset_meta_module()
+        test_reg.purge()
 
 
 def build_explorer(cron: str = "0 15 * * *"):
@@ -246,7 +278,7 @@ def save_edits():
     ]
     for _save_path in paths:
         outs.append((_save_path, _save_path.read_text()))
-    rmtree(BOOK_DIR, ignore_errors=True)
+    gen_rmtree(BOOK_DIR)
     yield
     for _path, nbstr in outs:
         if _path.parent.exists():
@@ -279,3 +311,10 @@ def _shorten(profile):
 
 def _title(s):
     return camel_to_snake(s).replace("_", " ").title()
+
+
+def _get_filesize(file_str):
+    kb_size = len(file_str.encode("utf-8")) / 2**10
+    if kb_size > 1000:
+        return f"{kb_size / 2 ** 10:0.2f} MB"
+    return f"{kb_size:0.2f} kB"

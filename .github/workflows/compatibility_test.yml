@@ -1,28 +1,19 @@
-name: Python Test
+name: OS Compatibility Test
 
 on:
   pull_request:
     branches: 
-      - main
+      - someday
   push:
     branches:
-      - main
+      - so-close
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
+  comp_test:
+    strategy:
+      matrix:
+        os: [windows-2022, windows-2019, macos-11, macos-10.15]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v1
     - name: Set up Python
@@ -41,10 +32,6 @@ jobs:
         git config --global user.name "Leo Dumbarton"
     - name: Test
       env:
-        POSTGRES_HOST: localhost
+        POSTGRES_HOST: sqlite
       run: |
         branb test
-    - name: "Upload coverage to Codecov"
-      uses: codecov/codecov-action@v2
-      with:
-        fail_ci_if_error: true

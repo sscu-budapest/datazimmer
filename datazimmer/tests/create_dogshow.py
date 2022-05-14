@@ -2,7 +2,6 @@ import json
 import os
 from contextlib import contextmanager
 from pathlib import Path
-from shutil import rmtree
 from subprocess import check_call
 
 from cookiecutter.main import generate_files
@@ -16,7 +15,7 @@ from datazimmer.naming import (
     MAIN_MODULE_NAME,
     TEMPLATE_REPO,
 )
-from datazimmer.utils import cd_into, git_run, package_root
+from datazimmer.utils import cd_into, gen_rmtree, git_run, package_root
 
 logger = get_logger()
 
@@ -39,7 +38,7 @@ class DogshowContextCreator:
         explore_remote=None,
     ):
         self.local_root = Path(local_root)
-        rmtree(self.local_root, ignore_errors=True)
+        gen_rmtree(self.local_root)
         self.local_root.mkdir()
         self.ran_dirs = []
         self.remote_root = Path(remote_root or self.local_root / "remotes")

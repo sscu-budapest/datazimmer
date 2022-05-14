@@ -1,71 +1,82 @@
 from dataclasses import dataclass
-from shutil import rmtree
+from functools import partial
 from typing import Dict, List
 
 from dvc.repo import Repo
+from structlog import get_logger
 
 from .config_loading import Config
-from .metadata import ProjectMetadata
-from .metadata.bedrock.complete_id import CompleteId
+from .exceptions import ProjectSetupException
+from .metadata.atoms import EntityClass
+from .metadata.project_metadata import ProjectMetadata
+from .metadata.scrutable import ScruTable
 from .module_tree import ModuleTree
-from .naming import get_data_path
+from .naming import PREFIX_SEP, get_data_path
 from .pipeline_registry import get_global_pipereg
 from .registry import Registry
+from .utils import gen_rmtree, reset_meta_module, reset_src_module
+
+logger = get_logger()
 
 
 class ProjectRuntime:
     def __init__(self) -> None:
         self.config: Config = Config.load()
         self.name = self.config.name
-        self.metadata: ProjectMetadata = ProjectMetadata.load_installed(self.name)
-        self.ext_metas: Dict[str, ProjectMetadata] = {}
-        self._fill_ext_meta()
-        self.data_to_load: List[DataEnvironmentToLoad] = self._get_data_envs()
-        self.pipereg = get_global_pipereg(reset=True)
-        self.module_tree = ModuleTree()
         self.registry = Registry(self.config)
+        self.pipereg = get_global_pipereg(reset=True)
+        reset_src_module()
+        reset_meta_module()
+        module_tree = ModuleTree(self.config, self.registry)
 
-    def get_atom(self, id_: CompleteId):
-        if (id_.project is None) or (id_.project == self.name):
-            meta = self.metadata
-        else:
-            meta = self.ext_metas[id_.project]
-        return meta.get_atom(id_)
+        self.metadata: ProjectMetadata = module_tree.project_meta
+        self.metadata_dic: Dict[str, ProjectMetadata] = module_tree._project_meta_dic
+        self.data_to_load: List[DataEnvironmentToLoad] = self._get_data_envs()
 
     def load_all_data(self):
         dvc_repo = Repo()
         posixes = []
         for data_env in self.data_to_load:
-            rmtree(data_env.path, ignore_errors=True)  # brave thing...
+            gen_rmtree(data_env.path)  # brave thing...
             data_env.path.parent.mkdir(exist_ok=True, parents=True)
             data_env.load_data(dvc_repo)
             posixes.append(data_env.posix)
         return posixes
 
-    def _fill_ext_meta(self):
-        for a_imp in self.config.imported_projects:
-            self._add_a_meta(a_imp.name)
+    def get_table_for_entity(
+        self, ec: EntityClass, base_table: ScruTable, feat_elems
+    ) -> ScruTable:
+        fixed = base_table.key_map.get(PREFIX_SEP.join(feat_elems))
+        if fixed is not None:
+            return fixed
+        my_proj = self.metadata_dic[base_table.id_.project]
+        ns_table = my_proj.namespaces[base_table.id_.namespace].get_table_of_ec(ec)
+        if ns_table:
+            return ns_table
+        _log = partial(logger.warning, table=base_table.id_, feat=feat_elems)
+        _log("couldn't find FK source in namespace, looking in project")
+        proj_table = my_proj.table_of_ec(ec)
+        if proj_table:
+            return proj_table
+        _log("couldn't find FK source in project, looking everywhere")
+        for proj in self.metadata_dic.values():
+            ext_tab = proj.table_of_ec(ec)
+            if ext_tab:
+                return ext_tab
+        msg = f"couldn't find table for {feat_elems} in {base_table.id_}"
+        raise ProjectSetupException(msg)
 
     def _get_data_envs(self):
         arg_set = set()
         for env in self.config.envs:
             for project_name, data_env in env.import_envs.items():
                 a_imp = self.config.get_import(project_name)
-                meta = self.ext_metas[project_name]
+                meta = self.metadata_dic[project_name]
                 tag = meta.latest_tag_of(data_env)
                 nss = a_imp.data_namespaces or meta.data_namespaces
                 for ns in nss:
                     arg_set.add((project_name, meta.uri, ns, data_env, tag))
         return [DataEnvironmentToLoad(*args) for args in arg_set]
-
-    def _add_a_meta(self, a_meta_name):
-        if a_meta_name in self.ext_metas.keys():
-            return
-        a_meta = ProjectMetadata.load_installed(a_meta_name, self.name)
-        self.ext_metas[a_meta_name] = a_meta
-        for sub_meta in a_meta.get_used_projects():
-            self._add_a_meta(sub_meta)
-        # TODO: do this (optionally) for data importing as well
 
 
 @dataclass

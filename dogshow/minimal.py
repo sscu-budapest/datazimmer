@@ -3,16 +3,14 @@ import datetime as dt
 import datazimmer as dz
 
 
-class TableFeatures(dz.TableFeaturesBase):
+class Thing(dz.AbstractEntity):
     d = dt.datetime
     num = float
 
-
-class ThingIndex(dz.IndexBase):
-    ind = int
+    ind = dz.Index & int
 
 
-scrutable = dz.ScruTable(TableFeatures, index=ThingIndex)
+scrutable = dz.ScruTable(Thing)
 
 
 @dz.register

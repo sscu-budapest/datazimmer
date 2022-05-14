@@ -1,18 +1,16 @@
 import os
+import stat
 import sys
 from contextlib import contextmanager
-from functools import partial
 from inspect import ismodule
 from itertools import chain
 from pathlib import Path
+from shutil import rmtree
 from subprocess import check_call, check_output
 from typing import List, Type, TypeVar, Union
 
-import isort
-from black import Mode, format_file_contents
-from black.report import NothingChanged
+from colassigner.util import camel_to_snake  # noqa: F401
 from sqlalchemy.dialects.postgresql import dialect as postgres_dialect
-from yaml import safe_load
 
 from .naming import MAIN_MODULE_NAME, META_MODULE_NAME
 
@@ -43,17 +41,11 @@ def get_instances_from_module(module, cls):
     return out
 
 
-def get_modules_from_module(module, root_name: str):
-    out = {}
+def get_modules_from_module(module):
     for obj_name in dir(module):
         obj = getattr(module, obj_name)
-        if ismodule(obj) and obj.__name__.startswith(root_name):
-            out[obj_name] = obj
-    return out
-
-
-def is_repo(s):
-    return any(map(str(s).startswith, ["git@", "http://", "https://"]))
+        if ismodule(obj):
+            yield obj
 
 
 def git_run(add=(), msg=None, pull=False, push=False, wd=None):
@@ -88,24 +80,6 @@ def cd_into(dirpath: Union[str, Path]):
         # sys.path.pop(0)
 
 
-def format_code(code_str):
-    try:
-        mode = Mode(line_length=LINE_LEN)
-        blacked = format_file_contents(code_str, fast=True, mode=mode)
-    except NothingChanged:
-        blacked = code_str
-
-    return isort.code(blacked, profile="black")
-
-
-def load_named_dict_to_list(
-    path: Path,
-    cls: Type[T],
-    key_name="name",
-) -> List[T]:
-    return named_dict_to_list(safe_load(path.read_text()) or {}, cls, key_name)
-
-
 def named_dict_to_list(
     named_dict: dict,
     cls: Type[T],
@@ -117,29 +91,29 @@ def named_dict_to_list(
     return out
 
 
-def get_dict_factory(key_name: str):
-    return partial(_dicfac, att_name=key_name)
-
-
 def reset_src_module():
-    for m_id in filter(
-        lambda k: k.startswith(f"{MAIN_MODULE_NAME}.") or (k == MAIN_MODULE_NAME),
-        [*sys.modules.keys()],
-    ):
-        sys.modules.pop(m_id)
+    _reset_modules(MAIN_MODULE_NAME)
 
 
-def reset_meta_module():
-    for m_id in [*sys.modules.keys()]:
-        if m_id.startswith(f"{META_MODULE_NAME}."):
-            sys.modules.pop(m_id)
+def gen_rmtree(path: Path):
+    if Path(path).exists():
+        try:
+            rmtree(path, onerror=_onerror)
+        except PermissionError:  # pragma: no cover
+            pass  # stupid windows
 
 
-def is_type_hint_origin(hint, cls):
-    try:
-        return hint.__origin__ is cls
-    except AttributeError:
-        return False
+def _onerror(func, path, exc_info):  # pragma: no cover
+    if not os.access(path, os.W_OK):
+        os.chmod(path, stat.S_IWUSR)
+        func(path)
+    else:
+        raise  # still stupid windows
+
+
+def reset_meta_module(name=None):
+    mod = META_MODULE_NAME if name is None else f"{META_MODULE_NAME}.{name}"
+    _reset_modules(mod)
 
 
 def chainmap(fun, iterable) -> list:
@@ -150,5 +124,20 @@ def is_postgres(engine):
     return isinstance(engine.dialect, postgres_dialect)
 
 
-def _dicfac(items, att_name):
-    return {k: v for k, v in items if v and k != att_name}
+def get_simplified_mro(cls: Type):
+    return _simplify_mro(cls.mro()[1:])
+
+
+def _simplify_mro(parent_list: List[Type]):
+    out = []
+    for cls in parent_list:
+        if any(map(lambda added_cls: cls in added_cls.mro(), out)):
+            continue
+        out.append(cls)
+    return out
+
+
+def _reset_modules(root_module):
+    for m_id in [*sys.modules.keys()]:
+        if m_id.startswith(f"{root_module}.") or (m_id == root_module):
+            sys.modules.pop(m_id)

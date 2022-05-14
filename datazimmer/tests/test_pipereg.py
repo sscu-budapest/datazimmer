@@ -1,10 +1,10 @@
-from importlib import import_module
 from pathlib import Path
 
 from pytest import raises
 
 from datazimmer.naming import DEFAULT_ENV_NAME
 from datazimmer.pipeline_registry import PipelineRegistry
+from datazimmer.utils import reset_src_module
 
 
 def test_pipereg_basics(running_template):
@@ -30,14 +30,16 @@ def test_pipereg_basics(running_template):
 
 def test_pipereg_parse_elems(in_template):
 
-    mod = import_module("src.core")
+    reset_src_module()
+    from src import core
+
     _env = DEFAULT_ENV_NAME
     pipereg = PipelineRegistry()
-    _module_file_path = Path(mod.__file__).relative_to(Path.cwd()).as_posix()
+    _module_file_path = Path("src", "core.py").as_posix()
 
     maps = [
         (["sss", Path("sss")], "sss"),
-        ([mod, mod.template_proc], _module_file_path),
+        ([core, core.template_proc], _module_file_path),
     ]
     for _ss, target in maps:
         for _s in _ss:

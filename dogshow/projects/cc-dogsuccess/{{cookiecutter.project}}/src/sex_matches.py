@@ -1,33 +1,27 @@
-import metazimmer.dogshowbase.core as dogfirst
-from colassigner import Col, ColAssigner
-from colassigner.meta_base import get_all_cols
+import metazimmer.dogshowbase.core.ns_meta as dogfirst
+from colassigner import Col
 
 import datazimmer as dz
 
 
-class SexMatchIndex(ColAssigner):
+class SexMatch(dz.AbstractEntity):
     def __init__(self, dog_df) -> None:
         self.dog_df = dog_df
 
-    def sex_1(self, df) -> Col[str]:
-        return self._get_sex(df, dogfirst.SpotFeatures.dog_1.dog_id)
+    def count(self, df) -> Col[int]:
+        return 1
 
-    def sex_2(self, df) -> Col[str]:
-        return self._get_sex(df, dogfirst.SpotFeatures.dog_2.dog_id)
+    def sex_1(self, df) -> Col[dz.Index & str]:
+        return self._get_sex(df, dogfirst.Spotting.dog_1.cid)
+
+    def sex_2(self, df) -> Col[dz.Index & str]:
+        return self._get_sex(df, dogfirst.Spotting.dog_2.cid)
 
     def _get_sex(self, spot_df, spot_ind):
-        return (
-            self.dog_df[dogfirst.DogFeatures.sex]
-            .reindex(spot_df[spot_ind].values)
-            .values
-        )
+        return self.dog_df[dogfirst.Dog.sex].reindex(spot_df[spot_ind].values).values
 
 
-class SexMatchFeatures(dz.TableFeaturesBase):
-    count = int
-
-
-sex_match_table = dz.ScruTable(SexMatchFeatures, SexMatchIndex)
+sex_match_table = dz.ScruTable(SexMatch)
 
 
 @dz.register(
@@ -43,9 +37,8 @@ def calculate_sex_match():
     dog_df = dogfirst.dog_table.get_full_df()
 
     sm_df = (
-        spot_df.assign(**{SexMatchFeatures.count: 1})
-        .pipe(SexMatchIndex(dog_df))
-        .groupby(get_all_cols(SexMatchIndex))[[SexMatchFeatures.count]]
+        spot_df.pipe(SexMatch(dog_df))
+        .groupby(sex_match_table.index_cols)[[SexMatch.count]]
         .sum()
     )
 

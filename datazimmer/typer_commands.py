@@ -1,7 +1,6 @@
 import datetime as dt
 import os
 from dataclasses import asdict
-from shutil import rmtree
 from subprocess import check_call
 
 import typer
@@ -18,12 +17,13 @@ from .naming import (
     CRON_ENV_VAR,
     MAIN_MODULE_NAME,
     SANDBOX_DIR,
-    SANDBOX_NAME,
     TEMPLATE_REPO,
 )
 from .pipeline_registry import get_global_pipereg
 from .registry import Registry
-from .utils import get_git_diffs, git_run
+from .sql.draw import dump_graph
+from .sql.loader import tmp_constr
+from .utils import gen_rmtree, get_git_diffs, git_run
 from .validation_functions import validate, validate_importable
 
 logger = get_logger(ctx="CLI command")
@@ -64,6 +64,12 @@ def update():
 
 
 @app.command()
+def draw(v: bool = False):
+    with tmp_constr(v) as constr:
+        dump_graph(constr)
+
+
+@app.command()
 def publish_data(validate: bool = False):
     # TODO: current meta should be built and published
     _validate_empty_vc("publishing data")
@@ -99,12 +105,6 @@ def build_meta():
 
 
 @app.command()
-def update_meta():
-    get_global_pipereg(reset=True)
-    Registry(Config.load()).update_meta()
-
-
-@app.command()
 def load_external_data(git_commit: bool = False):
     """watch out, this deletes everything
 
@@ -123,13 +123,8 @@ def load_external_data(git_commit: bool = False):
 @app.command()
 def cleanup():
     conf = Config.load()
-    aname = conf.name
-    reg = Registry(conf, True)
-    check_call(["pip", "uninstall", aname, "-y"])
-    reg.purge()
-    if SANDBOX_DIR.exists():
-        check_call(["pip", "uninstall", SANDBOX_NAME, "-y"])
-        rmtree(SANDBOX_DIR.as_posix())
+    Registry(conf).purge()
+    gen_rmtree(SANDBOX_DIR)
 
 
 @app.command()
@@ -146,7 +141,7 @@ def run(
     stage: bool = True, profile: bool = False, env: str = None, commit: bool = False
 ):
     dvc_repo = Repo(config={"core": {"autostage": stage}})
-    runtime = get_runtime()
+    runtime = get_runtime(True)
     stage_names = []
     for step in runtime.pipereg.steps:
         logger.info("adding step", step=step)

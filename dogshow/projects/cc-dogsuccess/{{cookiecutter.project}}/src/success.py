@@ -2,20 +2,15 @@ from itertools import chain
 from typing import Type
 
 import metazimmer.dogracebase.core as doglast
-import metazimmer.dogshowbase.core as dogfirst
+import metazimmer.dogshowbase.core.ns_meta as dogfirst
 import numpy as np
 import pandas as pd
-from colassigner import Col
-from metazimmer.dogshowbase.core import DogIndex
+from metazimmer.dogracebase.core import SizedDog
 
 import datazimmer as dz
 
 
-def fit_to_limit(
-    series,
-    df_w_limits,
-    LimitFeat: Type[doglast.IntLimitType] = doglast.IntLimitType,
-):
+def fit_to_limit(series, df_w_limits, LimitFeat: Type[doglast.IntLimitType]):
     out = pd.Series(dtype=df_w_limits.index.dtype, index=series.index)
     for cat, catrow in df_w_limits.iterrows():
         # the ~ bc of nan's
@@ -25,32 +20,13 @@ def fit_to_limit(
     return out
 
 
-class StatusIndex(dz.IndexBase):
-    status_name = str
-
-
-class StatusFeatures(dz.TableFeaturesBase):
+class Status(dz.AbstractEntity):
+    status_name = dz.Index & str
     wins = doglast.IntLimitType
 
 
-class SizedDogFeatures(dz.TableFeaturesBase):
-    def __init__(self) -> None:
-        self.limit_df = doglast.dog_size_table.get_full_df()
-
-    def size(self, dog_df) -> Col[doglast.DogSizeIndex]:
-        return fit_to_limit(
-            dog_df[dogfirst.DogFeatures.waist],
-            self.limit_df,
-            doglast.DogSizeFeatures.waist_limit,
-        )
-
-
-status_table = dz.ScruTable(StatusFeatures, StatusIndex)
-sized_dog_table = dz.ScruTable(
-    SizedDogFeatures,
-    index=DogIndex,
-    subject_of_records=dogfirst.Dog,
-)
+status_table = dz.ScruTable(Status)
+sized_dog_table = dz.ScruTable(SizedDog)
 
 status_md = dz.ReportFile("status_table.md")
 
@@ -66,7 +42,7 @@ status_md = dz.ReportFile("status_table.md")
         sized_dog_table,
     ],
     outputs_nocache=[status_md],
-    cron="0 1 13 * 5"
+    cron="0 1 13 * 5",
 )
 def proc(top_status_multiplier: int):
 
@@ -81,8 +57,8 @@ def proc(top_status_multiplier: int):
     # one way to fill a table
     # using featuresbase class for naming
     comp_df = dogfirst.competition_table.get_full_df()
-    win_count = comp_df.groupby(dogfirst.CompetitionFeatures.winner.pet.dog_id)[
-        dogfirst.CompetitionFeatures.prize_pool
+    win_count = comp_df.groupby(dogfirst.Competition.winner.pet.cid)[
+        dogfirst.Competition.prize_pool
     ].count()
     q_arr = np.quantile(win_count, sorted(ends))
     q_arr[-1] = q_arr[-1] * top_status_multiplier
@@ -90,19 +66,25 @@ def proc(top_status_multiplier: int):
     status_df = pd.DataFrame(
         [
             {
-                StatusIndex.status_name: lname,
-                StatusFeatures.wins.min: q_map[lminq],
-                StatusFeatures.wins.max: q_map[lmaxq],
+                Status.status_name: lname,
+                Status.wins.min: q_map[lminq],
+                Status.wins.max: q_map[lmaxq],
             }
             for lname, (lminq, lmaxq) in limits.items()
         ]
-    ).set_index(StatusIndex.status_name)
+    )
     status_table.replace_all(status_df)
     status_md.write_text(status_df.to_markdown())
 
-    # other way is with colassigners
-    # type hinted with Col[...]
-    # (merging data from two sources)
-    dogfirst.dog_table.get_full_df().pipe(SizedDogFeatures()).loc[
-        :, [SizedDogFeatures.size]
-    ].pipe(sized_dog_table.replace_all)
+    dog1_df = dogfirst.dog_table.get_full_df()
+    dog1_size_cat = fit_to_limit(
+        dog1_df[dogfirst.Dog.waist],
+        doglast.dog_size_table.get_full_df(),
+        doglast.DogSize.waist_limit,
+    )
+
+    sized_dog_table.replace_all(
+        dog1_df.assign(
+            **{SizedDog.size.dogsize_name: dog1_size_cat, SizedDog.color: None}
+        )
+    )
