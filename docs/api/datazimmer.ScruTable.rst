@@ -10,7 +10,7 @@ ScruTable
 
    .. autosummary::
 
-      ~ScruTable.name
+      ~ScruTable.dfs
       ~ScruTable.paths
 
    .. rubric:: Methods Summary
@@ -18,12 +18,14 @@ ScruTable
    .. autosummary::
 
       ~ScruTable.env_ctx
+      ~ScruTable.purge
 
    .. rubric:: Attributes Documentation
 
-   .. autoattribute:: name
+   .. autoattribute:: dfs
    .. autoattribute:: paths
 
    .. rubric:: Methods Documentation
 
    .. automethod:: env_ctx
+   .. automethod:: purge

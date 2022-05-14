@@ -1,7 +1,7 @@
-IndexBase
-=========
+Index
+=====
 
 .. currentmodule:: datazimmer
 
-.. autoclass:: IndexBase
+.. autoclass:: Index
    :show-inheritance:
