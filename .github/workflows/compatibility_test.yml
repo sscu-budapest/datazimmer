@@ -3,10 +3,10 @@ name: OS Compatibility Test
 on:
   pull_request:
     branches: 
-      - main
+      - someday
   push:
     branches:
-      - main
+      - so-close
 
 jobs:
   comp_test:
