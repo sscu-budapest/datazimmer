@@ -71,7 +71,7 @@ def draw(v: bool = False):
 
 @app.command()
 def publish_data(validate: bool = False):
-    # TODO: current meta should be built and published
+    build_meta()
     _validate_empty_vc("publishing data")
     runtime = get_runtime(True)
     dvc_repo = Repo()
