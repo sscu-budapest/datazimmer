@@ -77,10 +77,10 @@ class LocalRemote:
         self.root = root or TemporaryDirectory().name
         Path(self.root).mkdir(exist_ok=True)
 
-    def push(self, content, key):
+    def push(self, content: str, key):
         ppath = Path(self.root, key)
         ppath.parent.mkdir(exist_ok=True, parents=True)
-        ppath.write_text(content)
+        ppath.write_bytes(content.encode("utf-8"))
         return datetime.now()
 
     def full_link(self, key):
