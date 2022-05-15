@@ -13,7 +13,7 @@ from .config_loading import Config, RunConfig
 from .exceptions import ProjectSetupException
 from .metadata.complete_id import CompleteIdBase
 from .metadata.scrutable import ScruTable
-from .naming import BASE_CONF_PATH, CLI, PROFILES_PATH, get_data_path
+from .naming import BASE_CONF_PATH, CLI, MAIN_MODULE_NAME, PROFILES_PATH, get_data_path
 from .reporting import ReportFile
 
 logger = get_logger()
@@ -257,7 +257,13 @@ def _type_or_fun_elem(elem):
 
 
 def _parse_abs_paths(abs_paths):
-    return [Path(ap).relative_to(Path.cwd()).as_posix() for ap in abs_paths]
+    return [*map(_parse_abs_path, abs_paths)]
+
+
+def _parse_abs_path(some_path):
+    _parts = Path(some_path).parts
+    _srcind = _parts.index(MAIN_MODULE_NAME)
+    return Path(*_parts[_srcind:]).as_posix()
 
 
 @contextmanager
