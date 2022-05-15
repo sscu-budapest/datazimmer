@@ -200,6 +200,7 @@ class ExplorerContext:
     registry: str = DEFAULT_REGISTRY
     book_root: Path = field(init=False, default_factory=Path.cwd)
     cc_template: str = CC_DIR
+    cc_checkout: Optional[str] = None
 
     def load_data(self):
         # to avoid dependency clashes, it is slower but simpler
@@ -260,6 +261,7 @@ def load_explorer_data():
         for ds in ctx.datasets:
             cookiecutter(
                 ctx.cc_template,
+                checkout=ctx.cc_checkout,
                 no_input=True,
                 extra_context={**cc_dic, "main": ds.cc_context},
                 overwrite_if_exists=True,
