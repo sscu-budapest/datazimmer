@@ -92,9 +92,11 @@ class Registry:
 
     def purge(self):
         gen_rmtree(self.posix)
-        if not self.requires:
+        freeze_comm = [sys.executable, "-m", "pip", "freeze"]
+        all_dz_projects = [*_command_out_w_prefix(freeze_comm, f"{META_MODULE_NAME}-")]
+        if not all_dz_projects:
             return
-        check_call([sys.executable, "-m", "pip", "uninstall", *self.requires, "-y"])
+        check_call([sys.executable, "-m", "pip", "uninstall", *all_dz_projects, "-y"])
 
     def _package(self):
         pack_paths = self._dump_meta()
@@ -129,14 +131,8 @@ class Registry:
         return pack_paths
 
     def _get_tags(self):
-        out = []
         tagpref = VERSION_SEPARATOR.join([VERSION_PREFIX, self.conf.version])
-        for tagbytes in check_output(["git", "tag"]).strip().split():
-            tag = tagbytes.decode("utf-8").strip()
-            if not tag.startswith(tagpref):
-                continue
-            out.append(tag)
-        return out
+        return [*_command_out_w_prefix(["git", "tag"], tagpref)]
 
     def _get_info(self):
         remote_comm = ["git", "config", "--get", "remote.origin.url"]
@@ -204,3 +200,11 @@ class PackPaths:
         _meta_root = self.dir / META_MODULE_NAME
         self.toml_path = self.dir / "pyproject.toml"
         self.project_meta = _meta_root / name
+
+
+def _command_out_w_prefix(comm, prefix):
+    for tagbytes in check_output(comm).strip().split():
+        tag = tagbytes.decode("utf-8").strip()
+        if not tag.startswith(prefix):
+            continue
+        yield tag
