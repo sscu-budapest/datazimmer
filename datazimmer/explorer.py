@@ -236,14 +236,15 @@ class ExplorerContext:
         test_conf.dump()
         test_reg = Registry(test_conf, True)
         test_reg.update()
-        test_reg.full_build()
-        # TODO: cleanup
-        runtime = get_runtime(True)
-        runtime.load_all_data()
-        for dataset in datasets:
-            dataset.set_from_project(self.remote, runtime, self.book_root)
-        reset_meta_module()
-        test_reg.purge()
+        try:
+            test_reg.full_build()
+            runtime = get_runtime(True)
+            runtime.load_all_data()
+            for dataset in datasets:
+                dataset.set_from_project(self.remote, runtime, self.book_root)
+            reset_meta_module()
+        finally:
+            test_reg.purge()
 
 
 def build_explorer(cron: str = "0 15 * * *"):
