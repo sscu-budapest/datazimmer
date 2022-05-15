@@ -316,7 +316,7 @@ def _title(s):
 
 
 def _get_filesize(file_str):
-    kb_size = len(file_str.encode("utf-8")) / 2 ** 10
+    kb_size = len(file_str.encode("utf-8")) / 2**10
     if kb_size > 1000:
         return f"{kb_size / 2 ** 10:0.2f} MB"
     return f"{kb_size:0.2f} kB"
