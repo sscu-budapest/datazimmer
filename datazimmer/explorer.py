@@ -141,9 +141,7 @@ class ExplorerDataset:
         # slow import...
         from pandas_profiling import ProfileReport
 
-        df = scrutable.get_full_df(env=self.env)
-        if scrutable.index_cols:
-            df = df.reset_index()
+        df = self._get_df(scrutable)
         csv_str = df.to_csv(index=None)
         profile_str = _shorten(ProfileReport(df, minimal=self.minimal))
         name = scrutable.name
@@ -187,6 +185,13 @@ class ExplorerDataset:
             with sql_filter.filter(constr) as new_constr:
                 mm_str = get_mermaid(new_constr)
         return mm_str
+
+    def _get_df(self, scrutable: ScruTable):
+        has_ind = bool(scrutable.index_cols)
+        df_base = scrutable.get_full_df(env=self.env).reset_index(drop=not has_ind)
+        renamer_base = {k: v for k, v in self.col_renamer.items() if isinstance(v, str)}
+        full_renamer = {**self.col_renamer.get(scrutable.name, {}), **renamer_base}
+        return df_base.rename(columns=full_renamer)
 
     @property
     def _slug(self):
