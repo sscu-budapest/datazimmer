@@ -57,7 +57,7 @@ class Registry:
         self._port = 8087
         self.requires = [
             get_package_name(p.name) + p.version for p in conf.imported_projects
-        ]
+        ]  # TODO: get others from req.txt, add backup index pypi
         self._git_run = partial(git_run, wd=self.posix)
 
     def dump_info(self):
