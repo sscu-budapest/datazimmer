@@ -1,4 +1,3 @@
-from functools import reduce
 from typing import Type, TypeVar, Union
 
 from colassigner import ColAssigner, get_att_value
@@ -40,15 +39,10 @@ class IndexIndicator:
 
 
 def get_feature_dict(cls: Union[CompositeTypeBase, AbstractEntity]):
-    # FIXME: h3 and camel to snake thing
-    base_items = reduce(or_, [c.__dict__ for c in [*cls.__bases__, cls]]).items()
-    out = {k: _get_feat_type(v) for k, v in base_items if not k.startswith("_")}
-    return out
-
-
-def _get_feat_type(attval):
-    return get_return_hint(attval) or attval
-
-
-def or_(d1, d2):
-    return {**d1, **d2}
+    feat_dict = {}
+    for attid in dir(cls):
+        if attid.startswith("_"):
+            continue
+        att_val = get_att_value(cls, attid)
+        feat_dict[attid] = get_return_hint(att_val) or att_val
+    return feat_dict

@@ -4,7 +4,13 @@ from typing import List, Optional, Union
 
 from ..primitive_types import PrimitiveType
 from ..utils import PRIMITIVE_MODULES, get_simplified_mro
-from .datascript import AbstractEntity, IndexIndicator, Nullable, get_feature_dict
+from .datascript import (
+    AbstractEntity,
+    CompositeTypeBase,
+    IndexIndicator,
+    Nullable,
+    get_feature_dict,
+)
 
 _GLOBAL_CLS_MAP = {}
 
@@ -88,20 +94,23 @@ def _ds_cls_to_feat_dicts(ds_cls: Union[EntityClass, CompositeType]):
     for k, cls in feature_dict.items():
         nullable = False
         to_l = props
+        bases = getattr(cls, "mro", list)()
         if isinstance(cls, Nullable):
             cls = cls.base
             nullable = True
-        if IndexIndicator in cls.mro():
+        if IndexIndicator in bases:
             to_l = ids
-            cls = cls.mro()[1]
+            cls = bases[1]
         if cls.__module__ in PRIMITIVE_MODULES:
             parsed_feat = PrimitiveFeature(name=k, dtype=cls, nullable=nullable)
-        elif AbstractEntity in cls.mro():
+        elif AbstractEntity in bases:
             entity_class = EntityClass.from_cls(cls)
             parsed_feat = ObjectProperty(prefix=k, target=entity_class)
-        else:
+        elif CompositeTypeBase in bases:
             composite_type = CompositeType.from_cls(cls)
             parsed_feat = CompositeFeature(prefix=k, dtype=composite_type)
+        else:
+            continue  # maybe some other col to assign
 
         to_l.append(parsed_feat)
     return ids, props
