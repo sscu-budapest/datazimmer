@@ -4,11 +4,14 @@ from dataclasses import dataclass, field
 from functools import total_ordering
 from typing import Dict, List
 
-from datazimmer.metadata.atoms import EntityClass
+from structlog import get_logger
 
 from ..naming import VERSION_SEPARATOR
+from .atoms import EntityClass
 from .namespace_metadata import NamespaceMetadata
 from .scrutable import ScruTable
+
+logger = get_logger()
 
 
 @dataclass
@@ -25,7 +28,10 @@ class ProjectMetadata:
                 return _tab
 
     def latest_tag_of(self, env):
-        return sorted(self._tags_by_v.items())[-1][1][env]
+        try:
+            return sorted(self._tags_by_v.items())[-1][1][env]
+        except IndexError:
+            logger.warning(f"no tagged data release for {self}")
 
     @property
     def next_data_v(self):
