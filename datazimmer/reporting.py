@@ -21,4 +21,11 @@ class ReportFile:
         return self.env_path(env).as_posix()
 
     def write_text(self, text):
-        self.env_path(RunConfig.load().write_env).write_text(text)
+        self.current_path.write_text(text)
+
+    def write_bytes(self, blob):
+        self.current_path.write_bytes(blob)
+
+    @property
+    def current_path(self) -> Path:
+        return self.env_path(RunConfig.load().write_env)
