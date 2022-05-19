@@ -230,8 +230,27 @@ def get_global_pipereg(reset=False) -> PipelineRegistry:
     return _GLOBAL_PIPEREG
 
 
-def register(*args, **kwargs):
-    return get_global_pipereg().register(*args, **kwargs)
+def register(
+    procfun=None,
+    *,
+    dependencies: Optional[list] = None,
+    outputs: Optional[list] = None,
+    outputs_nocache: Optional[list] = None,
+    outputs_persist: Optional[list] = None,
+    write_env: Optional[str] = None,
+    read_env: Optional[str] = None,
+    cron="",
+):
+    return get_global_pipereg().register(
+        procfun,
+        dependencies=dependencies,
+        outputs=outputs,
+        outputs_nocache=outputs_nocache,
+        outputs_persist=outputs_persist,
+        write_env=write_env,
+        read_env=read_env,
+        cron=cron,
+    )
 
 
 def register_env_creator(fun=None, *, extra_deps=None, cron=""):
