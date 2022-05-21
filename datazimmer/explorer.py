@@ -1,18 +1,25 @@
-from contextlib import contextmanager
+import base64
+import json
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from hashlib import md5
 from itertools import groupby
 from pathlib import Path
+from shutil import copytree
+from subprocess import check_call
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, List, Optional, Union
 
 import boto3
+import nbformat
+import pandas as pd
 import yaml
 from botocore.exceptions import ClientError
 from bs4 import BeautifulSoup, Tag
 from cookiecutter.main import cookiecutter
 from cron_descriptor import ExpressionDescriptor
+from nbconvert.preprocessors import ExecutePreprocessor
 from sqlmermaid import get_mermaid
 
 from .config_loading import Config, ImportedProject, ProjectEnv, RunConfig
@@ -27,6 +34,7 @@ from .naming import (
     SANDBOX_NAME,
     repo_link,
 )
+from .nb_generator import get_nb_string
 from .registry import Registry
 from .sql.loader import SqlFilter, tmp_constr
 from .utils import camel_to_snake, gen_rmtree, reset_meta_module
@@ -38,7 +46,9 @@ if TYPE_CHECKING:  # pragma: no cover
 
 CC_DIR = repo_link("explorer-template")
 BOOK_DIR = Path("book")
-HOMES, DATASETS = [BOOK_DIR / sd for sd in ["homes", "datasets"]]
+SETUP_DIR = Path("dec-setup")
+CC_BASE_FILE = SETUP_DIR / "cc_base.yaml"
+DATASETS = BOOK_DIR / "datasets"
 
 
 class S3Remote:
@@ -99,7 +109,7 @@ class ExplorerDataset:
     erd: bool = True
     col_renamer: dict = field(default_factory=dict)
     cc_context: dict = field(init=False, default_factory=dict)
-    to_write: list = field(init=False, default_factory=list)
+    csv_blobs: dict = field(init=False, default_factory=dict)
 
     def set_from_project(self, remote: S3Remote, runtime: "ProjectRuntime", book_root):
         meta = runtime.metadata_dic[self.project]
@@ -112,8 +122,9 @@ class ExplorerDataset:
                 "project_url": meta.uri,
                 "slug": self._slug,
                 "name": self.name,
-                "source_urls": ns_meta.source_urls,
+                "source_urls": [*map(str, ns_meta.source_urls)],
                 "tables": [],
+                "notebooks": [],
                 "n_tables": len(scrutable_list),
                 "update_str": self._get_cron_desc(runtime.pipereg),
                 "erd_mermaid": self._get_erd(scrutable_list),
@@ -125,10 +136,21 @@ class ExplorerDataset:
                     self._get_table_cc(table, remote, book_root)
                 )
 
-    def dump(self):
-        for path, text in self.to_write:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(text)
+    def dump(self, reset):
+        _root = SETUP_DIR / self._slug
+        _root.mkdir(parents=True, exist_ok=True)
+        for name, blob in self.csv_blobs.items():
+            (_root / f"{name}.csv").write_bytes(blob)
+
+        if reset:
+            desc = f"A dataset of {len(self.csv_blobs)} tables"
+            (_root / "description.md").write_text(desc)
+            read_lines = [
+                f'df_{tab} = pd.read_csv("{tab}.csv")\n'
+                for tab in self.csv_blobs.keys()
+            ]
+            nb_str = get_nb_string("Look", (["import pandas as pd"], read_lines))
+            (_root / "init.ipynb").write_text(nb_str)
 
     def id_(self):
         return (self.project, self.v_str)
@@ -148,10 +170,9 @@ class ExplorerDataset:
 
         profile_key = f"{self._slug}/{name}-profile.html"
         csv_key = f"{self._slug}/{name}.csv"
-        csv_path = book_root / DATASETS / self._slug / f"{name}.csv"
         remote.push(profile_str, profile_key)
         mod_date = remote.push(csv_str, csv_key)
-        self.to_write.append((csv_path, csv_str))
+        self.csv_blobs[scrutable.name] = csv_str.encode("utf-8")
         return {
             "name": _title(scrutable.name),
             "slug": scrutable.name,
@@ -160,8 +181,8 @@ class ExplorerDataset:
             "n_cols": df.shape[1],
             "n_rows": df.shape[0],
             "csv_url": remote.full_link(csv_key),
-            "csv_filename": csv_path.name,
             "csv_filesize": _get_filesize(csv_str),
+            "head_html": df.head()._repr_html_(),
         }
 
     def _get_cron_desc(self, pipereg: "PipelineRegistry"):
@@ -186,7 +207,7 @@ class ExplorerDataset:
                 mm_str = get_mermaid(new_constr)
         return mm_str
 
-    def _get_df(self, scrutable: ScruTable):
+    def _get_df(self, scrutable: ScruTable) -> pd.DataFrame:
         has_ind = bool(scrutable.index_cols)
         df_base = scrutable.get_full_df(env=self.env).reset_index(drop=not has_ind)
         renamer_base = {k: v for k, v in self.col_renamer.items() if isinstance(v, str)}
@@ -252,45 +273,93 @@ class ExplorerContext:
             test_reg.purge()
 
 
-def build_explorer(cron: str = "0 15 * * *"):
+def init_explorer(cron: str = "0 15 * * *"):
     write_book_actions(cron)
-    load_explorer_data()
+    load_explorer_data(True)
 
 
-def load_explorer_data():
+def load_explorer_data(reset_all: bool = False):
+    if reset_all:
+        gen_rmtree(SETUP_DIR)
     ZimmerAuth().dump_dvc(local=False)
     ctx = ExplorerContext.load()
     ctx.load_data()
+    for ds in ctx.datasets:
+        ds.dump(reset_all)
     cc_datasets = {"datasets": {"datasets": [ds.cc_context for ds in ctx.datasets]}}
     cc_dic = {"cookiecutter": {"slug": BOOK_DIR.as_posix()}, **cc_datasets}
-    with save_edits():
-        for ds in ctx.datasets:
-            cookiecutter(
-                ctx.cc_template,
-                checkout=ctx.cc_checkout,
-                no_input=True,
-                extra_context={**cc_dic, "main": ds.cc_context},
-                overwrite_if_exists=True,
-            )
-            ds.dump()
+    CC_BASE_FILE.write_text(yaml.safe_dump(cc_dic))
 
 
-@contextmanager
-def save_edits():
-    outs = []
-    paths = [
-        *DATASETS.glob("**/*.ipynb"),
-        *BOOK_DIR.glob("*.txt"),
-        # *BOOK_DIR.glob("*.md"),
-        *HOMES.glob("**/*.md"),
-    ]
-    for _save_path in paths:
-        outs.append((_save_path, _save_path.read_text()))
+def build_explorer():
     gen_rmtree(BOOK_DIR)
-    yield
-    for _path, nbstr in outs:
-        if _path.parent.exists():
-            _path.write_text(nbstr)
+    cc_base = yaml.safe_load(CC_BASE_FILE.read_text())
+    copytree(SETUP_DIR, DATASETS)
+    _extend_with_notebooks(cc_base)
+    ctx = ExplorerContext.load()
+    for ds_cc in cc_base["datasets"]["datasets"]:
+        cookiecutter(
+            ctx.cc_template,
+            checkout=ctx.cc_checkout,
+            no_input=True,
+            extra_context={**cc_base, "main": ds_cc},
+            overwrite_if_exists=True,
+        )
+    check_call(["jupyter-book", "build", BOOK_DIR.as_posix()])
+
+
+def _extend_with_notebooks(cc_dic):
+    for nb_path in DATASETS.glob("**/*.ipynb"):
+        if ".ipynb_checkpoints" in nb_path.parts:
+            continue
+        dataset_slug = nb_path.parts[-2]
+        for ds_dic in cc_dic["datasets"]["datasets"]:
+            if ds_dic["slug"] == dataset_slug:
+                ds_dic["notebooks"].append(_NBParser(nb_path).cc_dic)
+                continue
+
+
+class _NBParser:
+    def __init__(self, nb_path: Path) -> None:
+        self.ds_root = nb_path.parent
+        name = nb_path.name.split(".")[0]
+        self.asset_root = self.ds_root / name / "assets"
+        self.asset_root.mkdir(exist_ok=True, parents=True)
+        self.cc_dic = {
+            "name": name,
+            "title": _title(name),
+            "figures": [],
+            "output_html": [],
+        }
+
+        nb_text = nb_path.read_text()
+        nb_v = json.loads(nb_text)["nbformat"]
+        nb_obj = nbformat.reads(nb_text, as_version=nb_v)
+        ep = ExecutePreprocessor(
+            timeout=600, kernel_name=nb_obj.metadata.kernelspec.name
+        )
+        ep.preprocess(nb_obj, {"metadata": {"path": self.ds_root}})
+        nb_path.write_bytes(nbformat.writes(nb_obj).encode("utf-8"))
+        title_rex = re.compile("^# (.*)")
+
+        for ci, cell in enumerate(nb_obj.cells):
+            for out in cell.get("outputs", []):
+                data = out.get("data", {})
+                self._parse_out(data, "image/png", "figures", base64.decodebytes, ci)
+                self._parse_out(data, "text/html", "output_html", lambda x: x, ci)
+            if cell.get("cell_type", "") == "markdown":
+                for line in cell["source"]:
+                    ptitle = title_rex.findall(line)
+                    if ptitle:
+                        self.cc_dic["title"] = ptitle[0]
+
+    def _parse_out(self, data, data_key, out_key, decode_wrap, ind):
+        file_suffix = data_key.split("/")[-1]
+        out_str = data.get(data_key)
+        if out_str:
+            out_path = self.asset_root / f"out-{ind}.{file_suffix}"
+            out_path.write_bytes(decode_wrap(out_str.encode("utf-8")))
+            self.cc_dic[out_key].append(out_path.relative_to(self.ds_root).as_posix())
 
 
 def _shorten(profile):
