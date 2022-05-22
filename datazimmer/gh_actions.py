@@ -2,7 +2,13 @@ from pathlib import Path
 
 import yaml
 
-from .naming import AUTH_ENV_VAR, CLI, CRON_ENV_VAR, GIT_TOKEN_ENV_VAR
+from .naming import (
+    AUTH_ENV_VAR,
+    CLI,
+    CRON_ENV_VAR,
+    GIT_TOKEN_ENV_VAR,
+    REQUIREMENTS_FILE,
+)
 
 _GHA_PATH = Path(".github", "workflows")
 
@@ -27,8 +33,8 @@ _env_keys = [AUTH_ENV_VAR, GIT_TOKEN_ENV_VAR]
 _env = {k: r"${{ secrets." + k + r" }}" for k in _env_keys}
 
 
-def _get_base(req_file):
-    instr = f"python -m pip install --upgrade pip; pip install -r {req_file}"
+def _get_base_steps():
+    instr = f"python -m pip install --upgrade pip; pip install -r {REQUIREMENTS_FILE}"
     uconfs = ['user.email "leo@dumbartonserum.com"', 'user.name "Leo Dumbarton"']
     confs = ["init.defaultBranch main", *uconfs]
     git_comm = ";".join([f"git config --global {c}" for c in confs])
@@ -40,45 +46,37 @@ def _get_base(req_file):
     ]
 
 
+def _get_jobs_dic(name, add_steps):
+    return {name: {"runs-on": "ubuntu-latest", "steps": _get_base_steps() + add_steps}}
+
+
 def _get_cron_dic(cron_exprs):
+    step = {
+        "name": "Bump crons",
+        "env": {CRON_ENV_VAR: r"${{ github.event.schedule }}", **_env},
+        "run": cron_comm,
+    }
     return {
         "name": "Scheduled Run",
         "on": {"schedule": [{"cron": cexspr} for cexspr in cron_exprs]},
-        "jobs": {
-            "cron_run": {
-                "runs-on": "ubuntu-latest",
-                "steps": [
-                    *_get_base("requirements.txt"),
-                    {
-                        "name": "Bump crons",
-                        "env": {CRON_ENV_VAR: r"${{ github.event.schedule }}", **_env},
-                        "run": cron_comm,
-                    },
-                ],
-            }
-        },
+        "jobs": _get_jobs_dic("cron-run", [step]),
     }
 
 
 def _get_book_dic(cron):
+    steps = [
+        {"name": "Build the book", "run": book_comm, "env": _env},
+        {
+            "name": "GitHub Pages action",
+            "uses": "peaceiris/actions-gh-pages@v3",
+            "with": {
+                "github_token": "${{ secrets.GITHUB_TOKEN }}",
+                "publish_dir": "book/_build/html",
+            },
+        },
+    ]
     return {
         "name": "Build and Deploy Book",
         "on": {"push": {"branches": ["main"]}, "schedule": [{"cron": cron}]},
-        "jobs": {
-            "build-and-deploy-book": {
-                "runs-on": "ubuntu-latest",
-                "steps": [
-                    *_get_base("book/requirements.txt"),
-                    {"name": "Build the book", "run": book_comm, "env": _env},
-                    {
-                        "name": "GitHub Pages action",
-                        "uses": "peaceiris/actions-gh-pages@v3",
-                        "with": {
-                            "github_token": "${{ secrets.GITHUB_TOKEN }}",
-                            "publish_dir": "book/_build/html",
-                        },
-                    },
-                ],
-            }
-        },
+        "jobs": _get_jobs_dic("build-and-deploy-book", steps),
     }

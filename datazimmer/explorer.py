@@ -31,6 +31,8 @@ from .naming import (
     DEFAULT_ENV_NAME,
     DEFAULT_REGISTRY,
     EXPLORE_CONF_PATH,
+    PACKAGE_NAME,
+    REQUIREMENTS_FILE,
     SANDBOX_NAME,
     repo_link,
 )
@@ -49,6 +51,8 @@ BOOK_DIR = Path("book")
 SETUP_DIR = Path("dec-setup")
 CC_BASE_FILE = SETUP_DIR / "cc_base.yaml"
 DATASETS = BOOK_DIR / "datasets"
+
+_REQS = ["jupyter-book", "matplotlib", "sphinxcontrib-mermaid", PACKAGE_NAME]
 
 
 class S3Remote:
@@ -275,6 +279,7 @@ class ExplorerContext:
 
 def init_explorer(cron: str = "0 15 * * *"):
     write_book_actions(cron)
+    REQUIREMENTS_FILE.write_text("\n".join(_REQS))
     load_explorer_data(True)
 
 

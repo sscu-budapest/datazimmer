@@ -12,6 +12,7 @@ VERSION_SEPARATOR = "/"
 RUN_CONF_PATH = Path("__run_conf.yaml")
 BASE_CONF_PATH = Path("zimmer.yaml")
 EXPLORE_CONF_PATH = Path("dec.yaml")
+REQUIREMENTS_FILE = Path("requirements.txt")
 
 DATA_PATH = Path("data")
 PROFILES_PATH = Path("run-profiles")
@@ -20,8 +21,8 @@ SANDBOX_DIR = Path.home() / "zimmer-sandbox"
 SANDBOX_NAME = "zimmersandboxproject"
 MAIN_MODULE_NAME = "src"
 META_MODULE_NAME = "metazimmer"
-PACKAGE_SHORTHAND = "dz"
-CLI = "datazimmer"
+PACKAGE_NAME = "datazimmer"
+CLI = "dz"
 
 CRON_ENV_VAR = "CRON_TRIGGER"
 GIT_TOKEN_ENV_VAR = "GIT_HTTPS_TOKEN"
