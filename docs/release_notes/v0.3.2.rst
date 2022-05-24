@@ -1,0 +1,4 @@
+v0.3.2
+------
+
+requirement and explorer updates
