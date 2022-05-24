@@ -33,7 +33,9 @@ dependencies = [
     "html5lib",
     "sqlmermaid",
     "cron-descriptor",
-    "metazimmer"
+    "metazimmer",
+    "jupyter-book",
+    "sphinxcontrib-mermaid"
 ]
 
 [project.optional-dependencies]

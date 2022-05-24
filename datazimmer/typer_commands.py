@@ -9,7 +9,7 @@ from structlog import get_logger
 
 from .config_loading import Config, RunConfig, get_tag
 from .exceptions import ProjectSetupException
-from .explorer import build_explorer, load_explorer_data
+from .explorer import build_explorer, init_explorer, load_explorer_data
 from .get_runtime import get_runtime
 from .gh_actions import write_cron_actions
 from .naming import (
@@ -30,6 +30,7 @@ logger = get_logger(ctx="CLI command")
 app = typer.Typer()
 
 app.command()(validate)
+app.command()(init_explorer)
 app.command()(build_explorer)
 app.command()(load_explorer_data)
 

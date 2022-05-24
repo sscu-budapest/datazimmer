@@ -24,6 +24,7 @@ from .naming import (
     MAIN_MODULE_NAME,
     META_MODULE_NAME,
     PYV,
+    REQUIREMENTS_FILE,
     VERSION_PREFIX,
     VERSION_SEPARATOR,
     VERSION_VAR_NAME,
@@ -57,7 +58,7 @@ class Registry:
         self._port = 8087
         self.requires = [
             get_package_name(p.name) + p.version for p in conf.imported_projects
-        ]  # TODO: get others from req.txt, add backup index pypi
+        ]
         self._git_run = partial(git_run, wd=self.posix)
 
     def dump_info(self):
@@ -100,13 +101,14 @@ class Registry:
 
     def _package(self):
         pack_paths = self._dump_meta()
+        reqs_from_txt = REQUIREMENTS_FILE.read_text().strip().split("\n")
         proj_conf = {
             "project": {
                 "name": get_package_name(self.name),
                 "version": self.conf.version,
                 "description": "zimmer project",
                 "requires-python": PYV,
-                "dependencies": self.requires,
+                "dependencies": self.requires + reqs_from_txt,
             },
             "tool": {"flit": {"module": {"name": f"{META_MODULE_NAME}.{self.name}"}}},
         }
@@ -115,12 +117,11 @@ class Registry:
         copy(ns.sdist.file, self.paths.dist_dir)
         return True
 
-    def _install(self, packages: list, upgrade=False):
+    def _install(self, packages: list):
         comm = [sys.executable, "-m", "pip", "install", "-i", self._index_addr]
         extras = ["--no-cache", "--no-build-isolation"]
-        if upgrade:
-            extras += ["--upgrade"]
-        check_call(comm + extras + packages)
+        backup_ind = ["--extra-index-url", "https://pypi.org/simple"]
+        check_call(comm + backup_ind + extras + packages)
 
     def _dump_meta(self):
         pack_paths = PackPaths(self.name)

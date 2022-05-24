@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 from datazimmer.config_loading import Config
+from datazimmer.explorer import init_explorer
 from datazimmer.metadata.atoms import _GLOBAL_CLS_MAP
 from datazimmer.naming import BASE_CONF_PATH, MAIN_MODULE_NAME
 from datazimmer.typer_commands import (
@@ -37,6 +38,7 @@ def test_full_dogshow(tmp_path: Path, pytestconfig):
             run_project_test(ds, constr)
         ds_cc.check_sdists()
         with ds_cc.explorer():
+            init_explorer()
             build_explorer()
     finally:
         for ran_dir in ds_cc.ran_dirs:
