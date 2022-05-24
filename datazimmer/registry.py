@@ -117,12 +117,11 @@ class Registry:
         copy(ns.sdist.file, self.paths.dist_dir)
         return True
 
-    def _install(self, packages: list, upgrade=False):
+    def _install(self, packages: list):
         comm = [sys.executable, "-m", "pip", "install", "-i", self._index_addr]
         extras = ["--no-cache", "--no-build-isolation"]
-        if upgrade:
-            extras += ["--upgrade"]
-        check_call(comm + extras + packages)
+        backup_ind = ["--extra-index-url", "https://pypi.org/simple"]
+        check_call(comm + backup_ind + extras + packages)
 
     def _dump_meta(self):
         pack_paths = PackPaths(self.name)
