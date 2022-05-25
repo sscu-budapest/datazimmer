@@ -16,7 +16,6 @@ import nbformat
 import pandas as pd
 import yaml
 from botocore.exceptions import ClientError
-from bs4 import BeautifulSoup, Tag
 from cookiecutter.main import cookiecutter
 from cron_descriptor import ExpressionDescriptor
 from nbconvert.preprocessors import ExecutePreprocessor
@@ -51,8 +50,6 @@ BOOK_DIR = Path("book")
 SETUP_DIR = Path("dec-setup")
 CC_BASE_FILE = SETUP_DIR / "cc_base.yaml"
 DATASETS = BOOK_DIR / "datasets"
-
-_REQS = ["jupyter-book", "matplotlib", "sphinxcontrib-mermaid", PACKAGE_NAME]
 
 
 class S3Remote:
@@ -279,7 +276,7 @@ class ExplorerContext:
 
 def init_explorer(cron: str = "0 15 * * *"):
     write_book_actions(cron)
-    REQUIREMENTS_FILE.write_text("\n".join(_REQS))
+    REQUIREMENTS_FILE.write_text(f"{PACKAGE_NAME}[explorer]")
     load_explorer_data(True)
 
 
@@ -368,6 +365,8 @@ class _NBParser:
 
 
 def _shorten(profile):
+    from bs4 import BeautifulSoup, Tag
+
     soup = BeautifulSoup(profile.to_html(), "html5lib")
     bs_root = "https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist"
 

@@ -24,22 +24,24 @@ dependencies = [
     "sqlalchemy",
     "toml",
     "pyinstrument",
-    "pandas_profiling",
     "tqdm",
     "typer",
     "pandas<1.4.0",
     "cookiecutter",
-    "beautifulsoup4",
-    "html5lib",
     "sqlmermaid",
     "cron-descriptor",
-    "metazimmer",
-    "jupyter-book",
-    "sphinxcontrib-mermaid"
+    "metazimmer"
 ]
 
 [project.optional-dependencies]
 full = ["psycopg2"]
+explorer = [
+    "pandas_profiling", 
+    "jupyter-book", 
+    "sphinxcontrib-mermaid", 
+    "beautifulsoup4",
+    "html5lib"
+]
 test = ["branthebuilder"]
 doc = [
     "sphinx",
