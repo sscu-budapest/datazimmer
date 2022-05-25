@@ -295,7 +295,7 @@ def load_explorer_data(reset_all: bool = False):
 
 def build_explorer():
     gen_rmtree(BOOK_DIR)
-    cc_base = yaml.safe_load(CC_BASE_FILE.read_text())
+    cc_base = yaml.safe_load(CC_BASE_FILE.read_bytes())
     copytree(SETUP_DIR, DATASETS)
     _extend_with_notebooks(cc_base)
     ctx = ExplorerContext.load()
@@ -334,7 +334,7 @@ class _NBParser:
             "output_html": [],
         }
 
-        nb_text = nb_path.read_text()
+        nb_text = nb_path.read_bytes().decode("utf-8")
         nb_v = json.loads(nb_text)["nbformat"]
         nb_obj = nbformat.reads(nb_text, as_version=nb_v)
         ep = ExecutePreprocessor(
