@@ -12,13 +12,11 @@ from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, List, Optional, Union
 
 import boto3
-import nbformat
 import pandas as pd
 import yaml
 from botocore.exceptions import ClientError
 from cookiecutter.main import cookiecutter
 from cron_descriptor import ExpressionDescriptor
-from nbconvert.preprocessors import ExecutePreprocessor
 from sqlmermaid import get_mermaid
 
 from .config_loading import Config, ImportedProject, ProjectEnv, RunConfig
@@ -324,6 +322,9 @@ def _extend_with_notebooks(cc_dic):
 
 class _NBParser:
     def __init__(self, nb_path: Path) -> None:
+        import nbformat
+        from nbconvert.preprocessors import ExecutePreprocessor
+
         self.ds_root = nb_path.parent
         name = nb_path.name.split(".")[0]
         self.asset_root = self.ds_root / name / "assets"
