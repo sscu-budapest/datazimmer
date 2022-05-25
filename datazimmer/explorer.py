@@ -137,21 +137,24 @@ class ExplorerDataset:
                     self._get_table_cc(table, remote, book_root)
                 )
 
-    def dump(self, reset):
+    def dump(self):
         _root = SETUP_DIR / self._slug
         _root.mkdir(parents=True, exist_ok=True)
         for name, blob in self.csv_blobs.items():
             (_root / f"{name}.csv").write_bytes(blob)
 
-        if reset:
+        desc_file = _root / "description.md"
+        if not desc_file.exists():
             desc = f"A dataset of {len(self.csv_blobs)} tables"
-            (_root / "description.md").write_text(desc)
-            read_lines = [
-                f'df_{tab} = pd.read_csv("{tab}.csv")\n'
-                for tab in self.csv_blobs.keys()
-            ]
-            nb_str = get_nb_string("Look", (["import pandas as pd"], read_lines))
-            (_root / "init.ipynb").write_text(nb_str)
+            desc_file.write_text(desc)
+        nb_paths = _root.glob("*.ipynb")
+        if [*nb_paths]:
+            return
+        read_lines = [
+            f'df_{tab} = pd.read_csv("{tab}.csv")\n' for tab in self.csv_blobs.keys()
+        ]
+        nb_str = get_nb_string("Look", (["import pandas as pd"], read_lines))
+        (_root / "init.ipynb").write_text(nb_str)
 
     def id_(self):
         return (self.project, self.v_str)
@@ -277,17 +280,15 @@ class ExplorerContext:
 def init_explorer(cron: str = "0 15 * * *"):
     write_book_actions(cron)
     REQUIREMENTS_FILE.write_text(f"{PACKAGE_NAME}[explorer]")
-    load_explorer_data(True)
+    load_explorer_data()
 
 
-def load_explorer_data(reset_all: bool = False):
-    if reset_all:
-        gen_rmtree(SETUP_DIR)
+def load_explorer_data():
     ZimmerAuth().dump_dvc(local=False)
     ctx = ExplorerContext.load()
     ctx.load_data()
     for ds in ctx.datasets:
-        ds.dump(reset_all)
+        ds.dump()
     cc_datasets = {"datasets": {"datasets": [ds.cc_context for ds in ctx.datasets]}}
     cc_dic = {"cookiecutter": {"slug": BOOK_DIR.as_posix()}, **cc_datasets}
     CC_BASE_FILE.write_text(yaml.safe_dump(cc_dic))
