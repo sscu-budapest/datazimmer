@@ -352,7 +352,8 @@ class _NBParser:
                 self._parse_out(data, "image/png", "figures", base64.decodebytes, ci)
                 self._parse_out(data, "text/html", "output_html", lambda x: x, ci)
             if cell.get("cell_type", "") == "markdown":
-                for line in cell["source"]:
+                source = cell["source"]
+                for line in source if isinstance(source, list) else [source]:
                     ptitle = title_rex.findall(line)
                     if ptitle:
                         self.cc_dic["title"] = ptitle[0]
