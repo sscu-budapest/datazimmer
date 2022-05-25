@@ -1,0 +1,4 @@
+v0.3.4
+------
+
+nb requirement fix
