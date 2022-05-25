@@ -1,0 +1,4 @@
+v0.3.5
+------
+
+title detection fix
