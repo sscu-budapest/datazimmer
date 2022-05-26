@@ -128,7 +128,7 @@ class Column:
     nullable: bool = False
 
 
-def feats_to_cols(feats, proc_fk=None, wrap=lambda x: x) -> List:
+def feats_to_cols(feats, proc_fk=None, wrap=lambda x: x) -> List[Column]:
     return chainmap(partial(feat_to_cols, proc_fk=proc_fk, wrap=wrap), feats)
 
 
@@ -162,7 +162,7 @@ def feat_to_cols(feat, proc_fk, wrap, init_prefix=(), open_to_fk=True) -> List:
 
 
 def to_dt_map(feats):
-    return {c.name: get_np_type(c.dtype) for c in feats_to_cols(feats)}
+    return {c.name: get_np_type(c.dtype, c.nullable) for c in feats_to_cols(feats)}
 
 
 def to_sa_col(col: Column, pk=False):
