@@ -301,7 +301,7 @@ def build_explorer():
     for ds_cc in cc_base["datasets"]["datasets"]:
         cookiecutter(
             ctx.cc_template,
-            checkout=ctx.cc_checkout,
+            checkout='analytics',
             no_input=True,
             extra_context={**cc_base, "main": ds_cc},
             overwrite_if_exists=True,
