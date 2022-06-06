@@ -32,7 +32,7 @@ VERSION_VAR_NAME = "__version__"
 
 
 def repo_link(slug):
-    return f"https://github.com/papsebestyen/{slug}"
+    return f"https://github.com/sscu-budapest/{slug}"
 
 
 TEMPLATE_REPO = os.environ.get("ZIMMER_TEMPLATE", repo_link("project-template"))
