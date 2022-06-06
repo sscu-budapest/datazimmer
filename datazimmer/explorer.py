@@ -229,6 +229,7 @@ class ExplorerContext:
     book_root: Path = field(init=False, default_factory=Path.cwd)
     cc_template: str = CC_DIR
     cc_checkout: Optional[str] = None
+    analytics_id: Optional[str] = None
 
     def load_data(self):
         # to avoid dependency clashes, it is slower but simpler
@@ -288,7 +289,11 @@ def load_explorer_data():
     for ds in ctx.datasets:
         ds.dump()
     cc_datasets = {"datasets": {"datasets": [ds.cc_context for ds in ctx.datasets]}}
-    cc_dic = {"cookiecutter": {"slug": BOOK_DIR.as_posix()}, **cc_datasets}
+    cc_dic = {
+        "cookiecutter": {"slug": BOOK_DIR.as_posix()},
+        "analytics_id": ctx.analytics_id,
+        **cc_datasets,
+    }
     CC_BASE_FILE.write_text(yaml.safe_dump(cc_dic))
 
 
@@ -301,7 +306,7 @@ def build_explorer():
     for ds_cc in cc_base["datasets"]["datasets"]:
         cookiecutter(
             ctx.cc_template,
-            checkout='analytics',
+            checkout=ctx.cc_checkout,
             no_input=True,
             extra_context={**cc_base, "main": ds_cc},
             overwrite_if_exists=True,
