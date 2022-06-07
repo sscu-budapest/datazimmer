@@ -290,7 +290,6 @@ def load_explorer_data():
         ds.dump()
     cc_datasets = {"datasets": {"datasets": [ds.cc_context for ds in ctx.datasets]}}
     cc_dic = {
-        "cookiecutter": {"slug": BOOK_DIR.as_posix()},
         "analytics_id": ctx.analytics_id,
         **cc_datasets,
     }
