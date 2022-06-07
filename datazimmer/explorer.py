@@ -344,7 +344,9 @@ class _NBParser:
         nb_v = json.loads(nb_text)["nbformat"]
         nb_obj = nbformat.reads(nb_text, as_version=nb_v)
         ep = ExecutePreprocessor(
-            timeout=600, kernel_name=nb_obj.metadata.kernelspec.name
+            timeout=600,
+            kernel_name=nb_obj.metadata.kernelspec.name,
+            extra_arguments=["--matplotlib=inline"],
         )
         ep.preprocess(nb_obj, {"metadata": {"path": self.ds_root}})
         nb_path.write_bytes(nbformat.writes(nb_obj).encode("utf-8"))
