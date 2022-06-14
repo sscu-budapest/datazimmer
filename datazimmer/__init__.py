@@ -13,4 +13,4 @@ from .project_runtime import dump_dfs_to_tables
 from .reporting import ReportFile
 from .typer_commands import app
 
-__version__ = "0.3.6"
+__version__ = "0.3.7"

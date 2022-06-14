@@ -37,7 +37,7 @@ dependencies = [
 full = ["psycopg2"]
 explorer = [
     "pandas_profiling", 
-    "jupyter-book", 
+    "jupyter-book==0.12.2", 
     "sphinxcontrib-mermaid", 
     "beautifulsoup4",
     "html5lib"
