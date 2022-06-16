@@ -43,9 +43,10 @@ class DogshowContextCreator:
         self.ran_dirs = []
         self.remote_root = Path(remote_root or self.local_root / "remotes")
         self.dvc_remotes = [*self._get_dvc_remotes(dvc_remotes)]
+        _reg = self.remote_root / "dogshow-registry"
         self.cc_context = {
             "csv_path": csv_path,
-            "test_registry": self._init_if_local(self.remote_root / "dogshow-registry"),
+            "test_registry": self._init_if_local(_reg, True),
             "explore_remote": json.dumps(explore_remote),
             "remote2": self.dvc_remotes[1][0],
         }
@@ -114,10 +115,13 @@ class DogshowContextCreator:
             dvc_dir.mkdir(parents=True)
             yield f"dog-remote{i}", dvc_dir.absolute().as_posix()
 
-    def _init_if_local(self, repo_path):
+    def _init_if_local(self, repo_path, touch=False):
         if not str(repo_path).startswith("git@"):
             repo_path.mkdir(parents=True, exist_ok=True)
             check_call(["git", "init"], cwd=repo_path)
+            if touch:
+                (repo_path / "T").write_text("touch")
+                git_run(add=["*"], msg="touch", wd=repo_path)
         return str(repo_path)
 
 
