@@ -4,11 +4,10 @@ AU_DIC = {
     "keys": {
         "main": {"key": "a", "secret": "b"},
     },
-        "rsa_keys": {"xkey": "y"},
-        "ssh": {"host1": {"key": "xkey"}},
-        "ssh_remote": {"url": "ssh://foo/742"},
-        "s3_remote": {"key": "main"}
-
+    "rsa_keys": {"xkey": "y"},
+    "ssh": {"host1": {"key": "xkey"}},
+    "ssh_remote": {"url": "ssh://foo/742"},
+    "s3_remote": {"key": "main"},
 }
 
 

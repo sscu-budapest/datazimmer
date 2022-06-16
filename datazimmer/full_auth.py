@@ -38,6 +38,7 @@ class Remote:
 class ZimmerAuth:
     def __init__(self, au_dic=None) -> None:
         dic = au_dic or toml.loads(os.environ.get(AUTH_ENV_VAR, ""))
+
         def _pop(key):
             return dic.pop(key, {})
 
