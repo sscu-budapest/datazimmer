@@ -19,7 +19,7 @@ def get_sa_type(dtype: Type):
     return sa_type_map[dtype]
 
 
-def get_np_type(dtype: Type, nullable:bool):
+def get_np_type(dtype: Type, nullable: bool):
     if nullable and (dtype == str):
         dtype = object
     return {datetime: "datetime64"}.get(dtype, dtype)
