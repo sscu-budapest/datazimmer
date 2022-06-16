@@ -89,7 +89,7 @@ class Registry:
     def publish(self):
         self.dump_info()
         msg = f"push {self.name}-{self.conf.version}"
-        self._git_run(add=self.paths.publish_paths, msg=msg, push=True)
+        self._git_run(add=self.paths.publish_paths, msg=msg, push=True, pull=True)
 
     def purge(self):
         gen_rmtree(self.posix)

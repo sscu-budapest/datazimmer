@@ -50,9 +50,9 @@ def get_modules_from_module(module):
 
 def git_run(add=(), msg=None, pull=False, push=False, wd=None):
     for k, git_cmd in [
+        (pull, ["pull"]),
         (add, ["add", *add]),
         (msg, ["commit", "-m", msg]),
-        (pull, ["pull"]),
         (push, ["push"]),
     ]:
         if k:
