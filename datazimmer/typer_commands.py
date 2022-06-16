@@ -106,7 +106,7 @@ def build_meta():
 
 
 @app.command()
-def load_external_data(git_commit: bool = False):
+def load_external_data(git_commit: bool = False, env: str = None):
     """watch out, this deletes everything
 
     should probably be a bit more clever,
@@ -114,7 +114,7 @@ def load_external_data(git_commit: bool = False):
     """
     runtime = get_runtime(True)
     logger.info("loading external data", envs=runtime.data_to_load)
-    posixes = runtime.load_all_data()
+    posixes = runtime.load_all_data(env=env)
     if git_commit and posixes:
         git_run(add=["*.gitignore", *[f"{p}.dvc" for p in posixes]])
         if get_git_diffs(True):
@@ -161,7 +161,7 @@ def run(
     rconf = RunConfig(profile=profile)
     with rconf:
         logger.info("running repro", targets=targets, **asdict(rconf))
-        runs = dvc_repo.reproduce(targets=targets)
+        runs = dvc_repo.reproduce(targets=targets, pull=True)
     git_run(add=["dvc.yaml", "dvc.lock", BASE_CONF_PATH])
     if commit and get_git_diffs(True):
         now = dt.datetime.now().isoformat(" ", "minutes")

@@ -33,13 +33,16 @@ class ProjectRuntime:
         self.metadata_dic: Dict[str, ProjectMetadata] = module_tree._project_meta_dic
         self.data_to_load: List[DataEnvironmentToLoad] = self._get_data_envs()
 
-    def load_all_data(self):
+    def load_all_data(self, env=None):
         dvc_repo = Repo()
         posixes = []
         for data_env in self.data_to_load:
             gen_rmtree(data_env.path)  # brave thing...
             data_env.path.parent.mkdir(exist_ok=True, parents=True)
-            data_env.load_data(dvc_repo)
+            pull = (env is None) or (
+                data_env.env == self.config.resolve_ns_env(data_env.project, env)
+            )
+            data_env.load_data(dvc_repo, pull)
             posixes.append(data_env.posix)
         return posixes
 
@@ -100,13 +103,14 @@ class DataEnvironmentToLoad:
     def path(self):
         return get_data_path(self.project, self.ns, self.env)
 
-    def load_data(self, dvc_repo):
+    def load_data(self, dvc_repo: Repo, pull=False):
         dvc_repo.imp(
             url=self.uri,
             path=self.posix,
             out=self.posix,
             rev=self.tag,
             fname=None,
+            no_exec=not pull,
         )
 
 
