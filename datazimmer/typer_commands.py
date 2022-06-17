@@ -95,9 +95,9 @@ def publish_data(validate: bool = False):
 
 
 @app.command()
-def build_meta():
+def build_meta(global_conf: bool = False):
     get_global_pipereg(reset=True)  # used when building meta from script
-    Registry(Config.load()).full_build()
+    Registry(Config.load()).full_build(global_conf)
     runtime = get_runtime(True)
     crons = set(filter(None, [s.cron for s in runtime.pipereg.steps]))
     if crons:

@@ -73,9 +73,9 @@ class Registry:
             return yaml.safe_load(ypath.read_text())
         logger.warning(f"info for {project_name} {version} requested but not found")
 
-    def full_build(self):
+    def full_build(self, global_conf=False):
         self.dump_info()
-        ZimmerAuth().dump_dvc()
+        ZimmerAuth().dump_dvc(not global_conf)
         if not self._is_released():
             self._package()
         if not self.requires:
