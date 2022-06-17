@@ -48,7 +48,7 @@ def publish_meta():
 
 @app.command()
 def update_registry():
-    get_runtime(True).registry.update()
+    Registry(Config.load()).update()
 
 
 @app.command()
