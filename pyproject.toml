@@ -15,7 +15,7 @@ dependencies = [
     "requests",
     "dvc[s3,ssh]",
     "paramiko",
-    "parquetranger>=0.1.0",
+    "parquetranger>=0.2.3",
     "colassigner>=0.2.2",
     "pyyaml",
     "structlog",

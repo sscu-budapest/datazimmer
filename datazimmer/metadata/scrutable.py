@@ -61,6 +61,15 @@ class ScruTable:
         self.replace_records = self._write_wrap(self.trepo.replace_records)
         self.replace_groups = self._write_wrap(self.trepo.replace_groups)
 
+    def purge(self):
+        with self.env_ctx(RunConfig.load().write_env):
+            self.trepo.purge()
+
+    def get_partition_paths(self, partition_col, env=None):
+        with self.env_ctx(env or RunConfig.load().read_env):
+            for _, _paths in self.trepo.get_partition_paths(partition_col):
+                yield _paths
+
     @property
     def paths(self):
         with self.env_ctx(RunConfig.load().read_env):
@@ -72,10 +81,6 @@ class ScruTable:
         with self.env_ctx(RunConfig.load().read_env):
             for _df in self.trepo.dfs:
                 yield _df
-
-    def purge(self):
-        with self.env_ctx(RunConfig.load().write_env):
-            self.trepo.purge()
 
     @contextmanager
     def env_ctx(self, env):
