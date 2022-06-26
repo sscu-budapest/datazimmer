@@ -70,9 +70,10 @@ class SqlLoader:
 
     def _get_ns_mappers(self, data_only=True):
         f_args = (self.runtime, self.sql_meta, self.engine, self._batch_size)
-        for ns in self.runtime.metadata.namespaces.values():
-            yield NamespaceMapper(self.runtime.name, ns, *f_args)
         _mapped = set()
+        for ns in self.runtime.metadata.namespaces.values():
+            _mapped.add((self.runtime.name, ns.name))
+            yield NamespaceMapper(self.runtime.name, ns, *f_args)
         for data_env in self.runtime.data_to_load:
             proj_name, ext_ns_name = _id = (data_env.project, data_env.ns)
             ext_ns = self.runtime.metadata_dic[proj_name].namespaces[ext_ns_name]
