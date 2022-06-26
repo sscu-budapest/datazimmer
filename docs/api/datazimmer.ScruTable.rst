@@ -18,6 +18,7 @@ ScruTable
    .. autosummary::
 
       ~ScruTable.env_ctx
+      ~ScruTable.get_partition_paths
       ~ScruTable.purge
 
    .. rubric:: Attributes Documentation
@@ -28,4 +29,5 @@ ScruTable
    .. rubric:: Methods Documentation
 
    .. automethod:: env_ctx
+   .. automethod:: get_partition_paths
    .. automethod:: purge
