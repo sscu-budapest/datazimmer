@@ -49,27 +49,26 @@ class SqlLoader:
         self._batch_size = batch_size
 
     def setup_schema(self):
-        for nsm in self._ns_mappers:
+        for nsm in self._get_ns_mappers(False):
             nsm.create_schema()
         self.sql_meta.create_all(self.engine)
 
     def load_data(self, env):
         with RunConfig(read_env=env):
             with self._Session() as session:
-                for nsm in self._ns_mappers:
+                for nsm in self._get_ns_mappers():
                     nsm.load_data(session)
                 session.commit()
 
     def validate_data(self, env):
         with RunConfig(read_env=env):
-            for nsm in self._ns_mappers:
+            for nsm in self._get_ns_mappers():
                 nsm.validate_data()
 
     def purge(self):
         self.sql_meta.drop_all(self.engine)
 
-    @property
-    def _ns_mappers(self):
+    def _get_ns_mappers(self, data_only=True):
         f_args = (self.runtime, self.sql_meta, self.engine, self._batch_size)
         for ns in self.runtime.metadata.namespaces.values():
             yield NamespaceMapper(self.runtime.name, ns, *f_args)
@@ -81,6 +80,15 @@ class SqlLoader:
                 continue
             _mapped.add(_id)
             yield NamespaceMapper(proj_name, ext_ns, *f_args)
+        if data_only:
+            return
+        for proj_name, ext_proj in self.runtime.metadata_dic.items():
+            for ns in ext_proj.namespaces.values():
+                _id = (proj_name, ns.name)
+                if _id in _mapped:
+                    continue
+                _mapped.add(_id)
+                yield NamespaceMapper(proj_name, ns, *f_args)
 
 
 @dataclass
