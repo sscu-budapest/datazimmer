@@ -26,13 +26,13 @@ CLI = "dz"
 
 CRON_ENV_VAR = "CRON_TRIGGER"
 GIT_TOKEN_ENV_VAR = "GIT_HTTPS_TOKEN"
-AUTH_ENV_VAR = "ZIMMER_FULL_AUTH"
+AUTH_HEX_ENV_VAR = "ZIMMER_AUTH_HEX"
+AUTH_PASS_ENV_VAR = "ZIMMER_PHRASE"
 
 VERSION_VAR_NAME = "__version__"
 
 
-def repo_link(slug):
-    return f"https://github.com/sscu-budapest/{slug}"
+repo_link = "https://github.com/sscu-budapest/{}".format
 
 
 TEMPLATE_REPO = os.environ.get("ZIMMER_TEMPLATE", repo_link("project-template"))

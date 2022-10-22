@@ -31,7 +31,8 @@ dependencies = [
     "cookiecutter",
     "sqlmermaid",
     "cron-descriptor",
-    "metazimmer"
+    "metazimmer",
+    "zimmauth"
 ]
 
 [project.optional-dependencies]
@@ -43,7 +44,7 @@ explorer = [
     "beautifulsoup4",
     "html5lib"
 ]
-test = ["branthebuilder"]
+test = ["branthebuilder", "zimmauth[test]"]
 doc = [
     "sphinx",
     "pandoc",

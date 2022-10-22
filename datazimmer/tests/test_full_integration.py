@@ -23,7 +23,7 @@ from datazimmer.utils import cd_into, get_git_diffs, git_run, reset_meta_module
 from .create_dogshow import DogshowContextCreator, modify_to_version
 
 
-def test_full_dogshow(tmp_path: Path, pytestconfig):
+def test_full_dogshow(tmp_path: Path, pytestconfig, proper_env, test_bucket):
     # TODO: turn this into documentation
     mode = pytestconfig.getoption("mode")
     ds_cc = DogshowContextCreator.load(mode, tmp_path)
@@ -37,9 +37,10 @@ def test_full_dogshow(tmp_path: Path, pytestconfig):
         for ds in ds_cc.all_contexts:
             run_project_test(ds, constr)
         ds_cc.check_sdists()
-        with ds_cc.explorer():
-            init_explorer()
-            build_explorer()
+        for explorer in [ds_cc.explorer, ds_cc.explorer2]:
+            with explorer():
+                init_explorer()
+                build_explorer()
     finally:
         for ran_dir in ds_cc.ran_dirs:
             with cd_into(ran_dir):

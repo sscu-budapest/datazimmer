@@ -17,8 +17,8 @@ from flit.build import main
 from requests.exceptions import ConnectionError
 from structlog import get_logger
 
+from .config_loading import get_full_auth
 from .exceptions import ProjectSetupException
-from .full_auth import ZimmerAuth
 from .naming import (
     GIT_TOKEN_ENV_VAR,
     MAIN_MODULE_NAME,
@@ -75,7 +75,7 @@ class Registry:
 
     def full_build(self, global_conf=False):
         self.dump_info()
-        ZimmerAuth().dump_dvc(not global_conf)
+        get_full_auth().dump_dvc(local=not global_conf)
         if not self._is_released():
             self._package()
         if not self.requires:
@@ -118,6 +118,7 @@ class Registry:
         return True
 
     def _install(self, packages: list):
+        # try -f option...
         comm = [sys.executable, "-m", "pip", "install", "-i", self._index_addr]
         extras = ["--no-cache", "--no-build-isolation"]
         backup_ind = ["--extra-index-url", "https://pypi.org/simple"]
