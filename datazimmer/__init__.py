@@ -1,5 +1,6 @@
 """sscu-budapest utilities for scientific data engineering"""
 # flake8: noqa
+from .metadata.atoms import EntityClass
 from .metadata.datascript import (
     AbstractEntity,
     CompositeTypeBase,
