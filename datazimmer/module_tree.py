@@ -44,7 +44,7 @@ class ModuleTree:
     def _walk_id(self, module_id):
         mod = import_module(module_id)
         src_dir = Path(mod.__file__).parent.as_posix()
-        for _info in walk_packages([src_dir], f"{module_id}."):
+        for _info in walk_packages([src_dir], f"{mod.__package__}."):
             _m = import_module(_info.name)
             self._module_dic[_info.name] = _m
 
@@ -83,6 +83,7 @@ class ModuleTree:
             ns_meta.entity_classes.append(EntityClass.from_cls(entity))
 
         for ext_mod_name in oc.dz_module_names:
+            self._walk_id(ext_mod_name)
             _newcheck(ext_mod_name)
 
     def _is_new_module(self, new_base_module: str, current_module: str):
