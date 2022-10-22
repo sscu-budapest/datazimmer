@@ -115,7 +115,9 @@ class ExplorerDataset:
         ns_meta = meta.namespaces[self.namespace]
         scrutable_list = ns_meta.tables
         if self.tables:
-            scrutable_list = [t for t in ns_meta.tables if t.name in self.tables]
+            ns_tables = ns_meta.tables
+            scrutable_list = [t for t in ns_tables if t.name in self.tables]
+            assert all(map(lambda t: t in [_t.name for _t in ns_tables], self.tables))
         self.cc_context.update(
             {
                 "project_url": meta.uri,
