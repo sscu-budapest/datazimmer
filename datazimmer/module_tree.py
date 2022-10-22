@@ -30,19 +30,18 @@ class ModuleTree:
         self._module_dic = {}
         self._collected_modules = set()
         self._ns_meta_dic: Dict[CompleteIdBase, NamespaceMetadata] = {}
-        self._project_meta_dic: Dict[str, ProjectMetadata] = {}
+        self.project_meta_dic: Dict[str, ProjectMetadata] = {}
 
         sys.path.insert(0, Path.cwd().as_posix())
         self._walk_id(MAIN_MODULE_NAME)
-        self._walk_id(META_MODULE_NAME, True)
+        # self._walk_id(META_MODULE_NAME, True) simpler but bloating
         while self._module_dic.keys() != self._collected_modules:
             self._collect_metas()
         sys.path.pop(0)
         self._fill_projects()
+        self.project_meta = self.project_meta_dic[self._project_name]
 
-        self.project_meta = self._project_meta_dic[self._project_name]
-
-    def _walk_id(self, module_id, allow_fail=False):
+    def _walk_id(self, module_id):
         mod = import_module(module_id)
         src_dir = Path(mod.__file__).parent.as_posix()
         for _info in walk_packages([src_dir], f"{module_id}."):
@@ -51,7 +50,7 @@ class ModuleTree:
 
     def _collect_metas(self):
         # TODO: do this (optionally) for data importing as well
-        for ns_module_id, module in self._module_dic.items():
+        for ns_module_id, module in list(self._module_dic.items()):
             if ns_module_id in self._collected_modules:
                 continue
             self._parse_module(module)
@@ -98,12 +97,12 @@ class ModuleTree:
                 proj_v = self._conf.version
             else:
                 proj_v = _get_v_of_ext_project(proj_id)
-            if proj_id not in self._project_meta_dic.keys():
+            if proj_id not in self.project_meta_dic.keys():
                 init_kwargs = self._registry.get_project_meta_base(proj_id, proj_v)
                 if not init_kwargs:
                     continue
-                self._project_meta_dic[proj_id] = ProjectMetadata(**init_kwargs)
-            self._project_meta_dic[proj_id].namespaces[base_id.namespace] = ns_meta
+                self.project_meta_dic[proj_id] = ProjectMetadata(**init_kwargs)
+            self.project_meta_dic[proj_id].namespaces[base_id.namespace] = ns_meta
 
 
 @dataclass
