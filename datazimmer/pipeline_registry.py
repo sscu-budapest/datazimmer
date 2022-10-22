@@ -6,7 +6,6 @@ from functools import partial
 from pathlib import Path
 from typing import Dict, Iterable, Optional
 
-from pyinstrument import Profiler
 from structlog import get_logger
 
 from .config_loading import Config, RunConfig
@@ -290,6 +289,8 @@ def _profile(run: bool, name: str):
     if not run:
         yield
         return
+    from pyinstrument import Profiler
+
     profiler = Profiler()
     profiler.start()
     yield

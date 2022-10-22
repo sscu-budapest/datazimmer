@@ -1,24 +1,19 @@
 import os
 import re
 import sys
-from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
 from shutil import copy, copytree
-from subprocess import CalledProcessError, Popen, check_call, check_output
+from subprocess import CalledProcessError, check_call, check_output
 from tempfile import TemporaryDirectory
-from time import sleep
 from typing import TYPE_CHECKING
 
-import requests
 import toml
 import yaml
 from flit.build import main
-from requests.exceptions import ConnectionError
 from structlog import get_logger
 
 from .config_loading import get_full_auth
-from .exceptions import ProjectSetupException
 from .naming import (
     GIT_TOKEN_ENV_VAR,
     MAIN_MODULE_NAME,
@@ -55,7 +50,6 @@ class Registry:
                 check_call(["git", "clone", _de_auth(conf.registry, True), self.posix])
 
             self.paths.ensure()
-        self._port = 8087
         self.requires = [
             get_package_name(p.name) + p.version for p in conf.imported_projects
         ]
@@ -80,8 +74,7 @@ class Registry:
             self._package()
         if not self.requires:
             return
-        with self._index_server():
-            self._install(self.requires)
+        self._install_no_server(self.requires)
 
     def update(self):
         self._git_run(pull=True)
@@ -113,13 +106,14 @@ class Registry:
             "tool": {"flit": {"module": {"name": f"{META_MODULE_NAME}.{self.name}"}}},
         }
         pack_paths.toml_path.write_text(toml.dumps(proj_conf))
-        ns = main(pack_paths.toml_path, formats={"sdist"})
-        copy(ns.sdist.file, self.paths.dist_dir)
+        ns = main(pack_paths.toml_path)
+        copy(ns.sdist.file, self.paths.index_dir)
+        copy(ns.wheel.file, self.paths.index_dir)
         return True
 
-    def _install(self, packages: list):
-        # try -f option...
-        comm = [sys.executable, "-m", "pip", "install", "-i", self._index_addr]
+    def _install_no_server(self, packages: list):
+        addr = self.paths.index_dir.as_posix()
+        comm = [sys.executable, "-m", "pip", "install", f"--find-links={addr}"]
         extras = ["--no-cache", "--no-build-isolation"]
         backup_ind = ["--extra-index-url", "https://pypi.org/simple"]
         check_call(comm + backup_ind + extras + packages)
@@ -150,38 +144,6 @@ class Registry:
             return True
         except CalledProcessError:
             return False
-
-    @contextmanager
-    def _index_server(self):
-        index_root = self.paths.index_dir.as_posix()
-        comm = ["twistd", "-n", "web"]
-        if os.name != "nt":
-            comm.insert(1, "--pidfile=")
-        opts = ["--path", index_root, "--listen", f"tcp:{self._port}"]
-        server_popen = Popen(comm + opts)
-        for attempt in range(40):
-            sleep(0.01 * attempt)
-            try:
-                resp = requests.get(self._index_addr)
-            except ConnectionError:
-                if attempt > 10:
-                    logger.info("failed index server")  # pragma: no cover
-                continue
-            if resp.ok or (resp.status_code == 404):
-                break
-            logger.warning("bad response", code=resp.status_code)  # pragma: no cover
-        else:  # pragma: no cover
-            server_popen.kill()
-            raise ProjectSetupException("can't start index server")
-        logger.info("running index server", pid=server_popen.pid)
-        try:
-            yield
-        finally:
-            server_popen.kill()
-
-    @property
-    def _index_addr(self):
-        return f"http://localhost:{self._port}"
 
 
 def _de_auth(url, re_auth=False):

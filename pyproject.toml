@@ -8,11 +8,9 @@ requires-python = ">=3.8"
 scripts = {datazimmer = "datazimmer:app", dz = "datazimmer:app"}
 dependencies = [
     "flit",
-    "twisted",
     "wheel>=0.37.0",
     "pip>=22.0.0",
     "setuptools>=60.0.0",
-    "requests",
     "dvc[s3,ssh]",
     "paramiko",
     "parquetranger>=0.2.3",
@@ -24,7 +22,6 @@ dependencies = [
     "flake8",
     "sqlalchemy",
     "toml",
-    "pyinstrument",
     "tqdm",
     "typer",
     "pandas<1.4.0",
@@ -36,7 +33,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-full = ["psycopg2"]
+full = ["psycopg2", "pyinstrument"]
 explorer = [
     "pandas_profiling", 
     "jupyter-book==0.12.2", 

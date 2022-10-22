@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Iterable
 
 from colassigner.constants import PREFIX_SEP  # noqa: F401
 
@@ -48,19 +49,18 @@ class RegistryPaths:
         package_name = get_package_name(name)
 
         self.index_dir = self.dir / "index"
-        self.dist_dir = self.index_dir / package_name
         self.info_yaml = self.info_yaml_of(name, version)
-        self.publish_paths = self._relpos([self.dist_dir, self.info_yaml])
-        self.dist_gitpath = f"index/{package_name}/{package_name}-{version}.tar.gz"
+        self.publish_paths = self._relpos([self.index_dir, self.info_yaml])
+        self.dist_gitpath = f"index/{package_name}-{version}.tar.gz"
 
     def info_yaml_of(self, name, version) -> Path:
         return self._info_dir / f"{name}-{version}.yaml"
 
     def ensure(self):
-        for d in [self.dist_dir, self._info_dir]:
+        for d in [self.index_dir, self._info_dir]:
             d.mkdir(exist_ok=True, parents=True)
 
-    def _relpos(self, dirlist):
+    def _relpos(self, dirlist: Iterable[Path]):
         return [d.relative_to(self.dir).as_posix() for d in dirlist]
 
 
