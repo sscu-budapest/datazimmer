@@ -2,6 +2,7 @@ import json
 import os
 from contextlib import contextmanager
 from pathlib import Path
+from shutil import copytree
 from subprocess import check_call
 
 from cookiecutter.main import generate_files
@@ -9,6 +10,7 @@ from jinja2 import Template
 from structlog import get_logger
 from yaml import safe_load
 
+from datazimmer.explorer import SETUP_DIR
 from datazimmer.naming import (
     BASE_CONF_PATH,
     EXPLORE_CONF_PATH,
@@ -88,8 +90,11 @@ class DogshowContextCreator:
         root_dir = self.local_root / name
         root_dir.mkdir()
         conf_template = dogshow_root / name / EXPLORE_CONF_PATH
+        setup_dir = dogshow_root / name / SETUP_DIR
         cc_ctx = {**self.cc_context, **extras}
         conf_str = Template(conf_template.read_text()).render(cc_ctx)
+        if setup_dir.exists():
+            copytree(setup_dir, root_dir / SETUP_DIR)
         with cd_into(root_dir):
             EXPLORE_CONF_PATH.write_text(conf_str)
             yield
