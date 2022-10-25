@@ -54,7 +54,6 @@ class ScruTable:
             self.max_partition_size,
         )
         self.get_full_df = self._read_wrap(self.trepo.get_full_df)
-        self.get_full_ddf = self._read_wrap(self.trepo.get_full_ddf)
         self.map_partitions = self._read_wrap(self.trepo.map_partitions)
 
         self.extend = self._write_wrap(self.trepo.extend)
