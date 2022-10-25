@@ -12,34 +12,31 @@ dependencies = [
     "pip>=22.0.0",
     "setuptools>=60.0.0",
     "dvc[s3,ssh]",
-    "paramiko",
     "parquetranger>=0.2.3",
     "colassigner>=0.2.2",
     "pyyaml",
     "structlog",
-    "black>=21.5b0",
-    "isort",
-    "flake8",
     "sqlalchemy",
     "toml",
     "tqdm",
     "typer",
-    "pandas<1.4.0",
+    "pandas",
     "cookiecutter",
     "sqlmermaid",
-    "cron-descriptor",
     "metazimmer",
     "zimmauth"
 ]
 
 [project.optional-dependencies]
-full = ["psycopg2", "pyinstrument"]
+postgres = ["psycopg2"]
+profile = ["pyinstrument"]
 explorer = [
     "pandas_profiling", 
     "jupyter-book==0.12.2", 
     "sphinxcontrib-mermaid", 
     "beautifulsoup4",
-    "html5lib"
+    "html5lib",
+    "cron-descriptor",
 ]
 test = ["branthebuilder", "zimmauth[test]"]
 doc = [

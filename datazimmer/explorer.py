@@ -15,7 +15,6 @@ import pandas as pd
 import yaml
 from botocore.exceptions import ClientError
 from cookiecutter.main import cookiecutter
-from cron_descriptor import ExpressionDescriptor
 from sqlmermaid import get_mermaid
 
 from .config_loading import (
@@ -190,6 +189,8 @@ class ExplorerDataset:
         }
 
     def _get_cron_desc(self, pipereg: "PipelineRegistry"):
+        from cron_descriptor import ExpressionDescriptor
+
         raw_cron = pipereg.get_external_cron(self.project, self.namespace)
         if not raw_cron:
             return ""
