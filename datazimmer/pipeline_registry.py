@@ -124,7 +124,7 @@ class PipelineRegistry:
             return [elem.env_posix(env)]
         if isinstance(elem, ScruTable):
             with elem.env_ctx(env):
-                return [elem.trepo.full_path]
+                return [elem.trepo.vc_path.as_posix()]
         if inspect.ismodule(elem):
             try:
                 abs_paths = elem.__path__

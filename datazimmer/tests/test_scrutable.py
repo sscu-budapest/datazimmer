@@ -22,7 +22,7 @@ def test_scrutable_parsing(running_template):
         parsed_df,
     )
     for fp in scrutable.paths:
-        assert DEFAULT_ENV_NAME in fp
+        assert DEFAULT_ENV_NAME in fp.as_posix()
     scrutable.purge()
     assert scrutable.get_full_df().empty
 
