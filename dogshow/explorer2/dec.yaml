@@ -1,0 +1,10 @@
+registry: {{test_registry}}
+remote: {{explore_remote}}
+datasets:
+  - name: Dog One
+    project: dogshowbase
+    namespace: core
+    tables: 
+      - person
+    version: v0.1
+    erd: false

@@ -11,16 +11,19 @@ from subprocess import check_call
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, List, Optional, Union
 
-import boto3
 import pandas as pd
 import yaml
 from botocore.exceptions import ClientError
 from cookiecutter.main import cookiecutter
-from cron_descriptor import ExpressionDescriptor
 from sqlmermaid import get_mermaid
 
-from .config_loading import Config, ImportedProject, ProjectEnv, RunConfig
-from .full_auth import ZimmerAuth
+from .config_loading import (
+    Config,
+    ImportedProject,
+    ProjectEnv,
+    RunConfig,
+    get_full_auth,
+)
 from .get_runtime import get_runtime
 from .gh_actions import write_book_actions
 from .metadata.scrutable import ScruTable
@@ -28,6 +31,7 @@ from .naming import (
     DEFAULT_ENV_NAME,
     DEFAULT_REGISTRY,
     EXPLORE_CONF_PATH,
+    META_MODULE_NAME,
     PACKAGE_NAME,
     REQUIREMENTS_FILE,
     SANDBOX_NAME,
@@ -52,33 +56,28 @@ DATASETS = BOOK_DIR / "datasets"
 
 class S3Remote:
     # TODO: cover s3
-    def __init__(self, rem_id):
+    def __init__(self, remote_id):
 
-        auth = ZimmerAuth().get_auth(rem_id)
-        self.bucket = rem_id
+        z_auth = get_full_auth()
+        self.bucket = z_auth.get_boto_bucket(remote_id)
+        auth = z_auth.get_auth(remote_id)
+        self.bucket_name = remote_id
         self.endpoint = auth.endpoint
-        self.s3 = boto3.resource(
-            "s3",
-            endpoint_url=self.endpoint,
-            aws_access_key_id=auth.key,
-            aws_secret_access_key=auth.secret,
-        )
 
     def push(self, content, key):
         new_md5 = md5(content.encode("utf-8")).hexdigest()
-        bucket = self.s3.Bucket(self.bucket)
-        last = bucket.Object(key)
+        last = self.bucket.Object(key)
         try:
             if last.e_tag[1:-1] == new_md5:
                 return last.last_modified
         except ClientError:
             pass
-        return bucket.put_object(Body=content, Key=key).last_modified
+        return self.bucket.put_object(Body=content, Key=key).last_modified
 
     def full_link(self, key):
         if self.endpoint is None:
-            return f"https://{self.bucket}.s3.amazonaws.com/{key}"
-        return f"{self.endpoint}/{self.bucket}/{key}"
+            return f"https://{self.bucket_name}.s3.amazonaws.com/{key}"
+        return f"{self.endpoint}/{self.bucket_name}/{key}"
 
 
 class LocalRemote:
@@ -115,7 +114,9 @@ class ExplorerDataset:
         ns_meta = meta.namespaces[self.namespace]
         scrutable_list = ns_meta.tables
         if self.tables:
-            scrutable_list = [t for t in ns_meta.tables if t.name in self.tables]
+            ns_tables = ns_meta.tables
+            scrutable_list = [t for t in ns_tables if t.name in self.tables]
+            assert all(map(lambda t: t in [_t.name for _t in ns_tables], self.tables))
         self.cc_context.update(
             {
                 "project_url": meta.uri,
@@ -188,6 +189,8 @@ class ExplorerDataset:
         }
 
     def _get_cron_desc(self, pipereg: "PipelineRegistry"):
+        from cron_descriptor import ExpressionDescriptor
+
         raw_cron = pipereg.get_external_cron(self.project, self.namespace)
         if not raw_cron:
             return ""
@@ -234,10 +237,13 @@ class ExplorerContext:
     def load_data(self):
         # to avoid dependency clashes, it is slower but simpler
         # to setup a sandbox one by one
-        with sandbox_project(self.registry):
+        with sandbox_project(self.registry) as core_path:
             # TODO: avoid recursive data imports here
             for (pname, pv), ds_gen in groupby(self.datasets, ExplorerDataset.id_):
-                self._set_from_project([*ds_gen], pname, pv)
+                ds_list = list(ds_gen)
+                names = ", ".join([ds.namespace for ds in ds_list])
+                core_path.write_text(f"from {META_MODULE_NAME}.{pname} import {names}")
+                self._set_from_project(ds_list, pname, pv)
 
     @classmethod
     def load(cls):
@@ -283,7 +289,7 @@ def init_explorer(cron: str = "0 15 * * *"):
 
 
 def load_explorer_data():
-    ZimmerAuth().dump_dvc(local=False)
+    get_full_auth().dump_dvc(local=False)
     ctx = ExplorerContext.load()
     ctx.load_data()
     for ds in ctx.datasets:

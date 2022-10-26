@@ -1,5 +1,6 @@
 import re
 from contextlib import contextmanager
+from pathlib import Path
 from subprocess import check_call
 from typing import TYPE_CHECKING
 
@@ -7,7 +8,15 @@ from structlog import get_logger
 
 from .config_loading import Config, ImportedProject, ProjectEnv
 from .get_runtime import get_runtime
-from .naming import CONSTR, DEFAULT_REGISTRY, SANDBOX_DIR, SANDBOX_NAME, TEMPLATE_REPO
+from .naming import (
+    CONSTR,
+    DEFAULT_REGISTRY,
+    MAIN_MODULE_NAME,
+    META_MODULE_NAME,
+    SANDBOX_DIR,
+    SANDBOX_NAME,
+    TEMPLATE_REPO,
+)
 from .registry import Registry
 from .sql.draw import dump_graph
 from .sql.loader import SqlLoader
@@ -70,7 +79,7 @@ def sql_validation(constr, env, draw=False, batch_size=2000):
 def validate_importable(runtime: "ProjectRuntime"):
     name = runtime.config.name
     envs = runtime.config.validation_envs
-    with sandbox_project(runtime.config.registry):
+    with sandbox_project(runtime.config.registry) as core_path:
         test_conf = Config(
             name=SANDBOX_NAME,
             version="v0.0",
@@ -81,6 +90,7 @@ def validate_importable(runtime: "ProjectRuntime"):
         test_reg = Registry(test_conf)
         test_reg.full_build()
         test_conf.dump()
+        core_path.write_text(f"from {META_MODULE_NAME} import {name}")
         type(runtime)().load_all_data()
         # TODO: assert this data matches local
         test_reg.purge()
@@ -107,7 +117,7 @@ def sandbox_project(registry=DEFAULT_REGISTRY):
             conf.dump()
             Registry(conf, reset=True).full_build()
     with cd_into(SANDBOX_DIR):
-        yield
+        yield Path(MAIN_MODULE_NAME, "core.py")
 
 
 def _check_match(bc, s, nums_ok=True):

@@ -30,7 +30,7 @@ class ProjectRuntime:
         module_tree = ModuleTree(self.config, self.registry)
 
         self.metadata: ProjectMetadata = module_tree.project_meta
-        self.metadata_dic: Dict[str, ProjectMetadata] = module_tree._project_meta_dic
+        self.metadata_dic: Dict[str, ProjectMetadata] = module_tree.project_meta_dic
         self.data_to_load: List[DataEnvironmentToLoad] = self._get_data_envs()
 
     def load_all_data(self, env=None):
@@ -74,6 +74,8 @@ class ProjectRuntime:
         for env in self.config.envs:
             for project_name, data_env in env.import_envs.items():
                 a_imp = self.config.get_import(project_name)
+                # TODO: KeyError here means module tree parser
+                # did not find something that was needed by config
                 meta = self.metadata_dic[project_name]
                 tag = meta.latest_tag_of(data_env)
                 nss = a_imp.data_namespaces or meta.data_namespaces

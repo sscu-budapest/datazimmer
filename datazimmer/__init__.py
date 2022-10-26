@@ -1,5 +1,6 @@
 """sscu-budapest utilities for scientific data engineering"""
 # flake8: noqa
+from .metadata.atoms import EntityClass
 from .metadata.datascript import (
     AbstractEntity,
     CompositeTypeBase,
@@ -13,4 +14,4 @@ from .project_runtime import dump_dfs_to_tables
 from .reporting import ReportFile
 from .typer_commands import app
 
-__version__ = "0.3.9"
+__version__ = "0.3.10"

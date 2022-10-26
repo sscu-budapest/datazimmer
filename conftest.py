@@ -1,16 +1,26 @@
+import os
 import sys
 from pathlib import Path
 from subprocess import check_call
 from tempfile import TemporaryDirectory
 
 import pytest
+import moto
+import boto3
 
 from datazimmer.config_loading import RunConfig
 from datazimmer.get_runtime import get_runtime
-from datazimmer.naming import DEFAULT_ENV_NAME, MAIN_MODULE_NAME, TEMPLATE_REPO
+from datazimmer.naming import (
+    AUTH_HEX_ENV_VAR,
+    AUTH_PASS_ENV_VAR,
+    DEFAULT_ENV_NAME,
+    MAIN_MODULE_NAME,
+    TEMPLATE_REPO,
+)
 from datazimmer.tests.create_dogshow import dogshow_root
 from datazimmer.typer_commands import cleanup
 from datazimmer.utils import cd_into, gen_rmtree, reset_meta_module
+from zimmauth import ZimmAuth
 
 CORE_PY = dogshow_root / "minimal.py"
 
@@ -49,3 +59,33 @@ def running_template(in_template):
         reset_meta_module()
         get_runtime(reset=True)
         yield
+
+
+@pytest.fixture(scope="session")
+def test_bucket():
+
+    with moto.mock_s3():
+        conn = boto3.resource("s3")
+        conn.create_bucket(Bucket="bucket-1")
+        conn.create_bucket(Bucket="bucket-2")
+        conn.create_bucket(Bucket="bucket-3")
+        yield conn
+
+
+@pytest.fixture
+def proper_env():
+
+    my_pw = "ldb-siu"
+
+    dic = {
+        "keys": {
+            "s3-key-name-1": {"key": "XYZ", "secret": "XXX"},
+            "s3-key-name-2": {"key": "AB", "secret": "X", "endpoint": "http://sg.co"},
+        },
+        "bucket-1": {"key": "s3-key-name-1"},
+        "bucket-2": {"key": "s3-key-name-2"},
+        "bucket-3": {"key": "s3-key-name-1"},
+    }
+
+    os.environ[AUTH_HEX_ENV_VAR] = ZimmAuth.dumps_dict(dic, my_pw)
+    os.environ[AUTH_PASS_ENV_VAR] = my_pw

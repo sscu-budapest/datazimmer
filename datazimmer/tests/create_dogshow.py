@@ -2,6 +2,7 @@ import json
 import os
 from contextlib import contextmanager
 from pathlib import Path
+from shutil import copytree
 from subprocess import check_call
 
 from cookiecutter.main import generate_files
@@ -9,6 +10,7 @@ from jinja2 import Template
 from structlog import get_logger
 from yaml import safe_load
 
+from datazimmer.explorer import SETUP_DIR
 from datazimmer.naming import (
     BASE_CONF_PATH,
     EXPLORE_CONF_PATH,
@@ -76,16 +78,29 @@ class DogshowContextCreator:
             git_run(add=["*"], msg="setup project")
             yield _VERSIONS.get(name, []), _CRONS.get(name, [])
 
-    @contextmanager
     def explorer(self):
-        root_dir = self.local_root / "explorer"
+        return self._explorer("explorer")
+
+    def explorer2(self):
+        # bucket is from conftest.py
+        return self._explorer("explorer2", {"explore_remote": "bucket-3"}, False)
+
+    @contextmanager
+    def _explorer(self, name: str, extras: dict = {}, push=True):
+        root_dir = self.local_root / name
         root_dir.mkdir()
-        conf_template = dogshow_root / "explorer" / EXPLORE_CONF_PATH
-        conf_str = Template(conf_template.read_text()).render(**self.cc_context)
+        conf_template = dogshow_root / name / EXPLORE_CONF_PATH
+        setup_dir = dogshow_root / name / SETUP_DIR
+        cc_ctx = {**self.cc_context, **extras}
+        conf_str = Template(conf_template.read_text()).render(cc_ctx)
+        if setup_dir.exists():
+            copytree(setup_dir, root_dir / SETUP_DIR)
         with cd_into(root_dir):
             EXPLORE_CONF_PATH.write_text(conf_str)
             yield
-            remote = self._init_if_local(self.remote_root / "dogshow-explorer")
+            if not push:
+                return
+            remote = self._init_if_local(self.remote_root / f"dogshow-{name}")
             check_call(["git", "init"])
             check_call(["git", "remote", "add", "origin", remote])
             git_run(add=["*"], msg="setup-dec")

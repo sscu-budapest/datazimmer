@@ -32,7 +32,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e .[test,full,explorer]
+        pip install -e .[test,profile,postgres,explorer]
     - name: Setup Git
       run: |
         git config --global receive.denyCurrentBranch updateInstead

@@ -4,6 +4,7 @@ from functools import partial
 from inspect import getmodule, stack
 from typing import Dict, List, Optional, Type
 
+import pandas as pd
 import sqlalchemy as sa
 from colassigner.constants import PREFIX_SEP
 from structlog import get_logger
@@ -53,7 +54,6 @@ class ScruTable:
             self.max_partition_size,
         )
         self.get_full_df = self._read_wrap(self.trepo.get_full_df)
-        self.get_full_ddf = self._read_wrap(self.trepo.get_full_ddf)
         self.map_partitions = self._read_wrap(self.trepo.map_partitions)
 
         self.extend = self._write_wrap(self.trepo.extend)
@@ -104,7 +104,7 @@ class ScruTable:
 
         return f
 
-    def _parse_df(self, df, verbose=True):
+    def _parse_df(self, df: pd.DataFrame, verbose=True):
         if verbose:
             logger.info("parsing", table=self.name, namespace=self.id_.namespace)
         full_dic = self.features_map.copy()

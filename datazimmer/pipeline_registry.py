@@ -6,7 +6,6 @@ from functools import partial
 from pathlib import Path
 from typing import Dict, Iterable, Optional
 
-from pyinstrument import Profiler
 from structlog import get_logger
 
 from .config_loading import Config, RunConfig
@@ -125,7 +124,7 @@ class PipelineRegistry:
             return [elem.env_posix(env)]
         if isinstance(elem, ScruTable):
             with elem.env_ctx(env):
-                return [elem.trepo.full_path]
+                return [elem.trepo.vc_path.as_posix()]
         if inspect.ismodule(elem):
             try:
                 abs_paths = elem.__path__
@@ -290,6 +289,8 @@ def _profile(run: bool, name: str):
     if not run:
         yield
         return
+    from pyinstrument import Profiler
+
     profiler = Profiler()
     profiler.start()
     yield

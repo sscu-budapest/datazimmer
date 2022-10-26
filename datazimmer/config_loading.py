@@ -6,10 +6,13 @@ import yaml
 from dvc.repo import Repo
 from parquetranger import TableRepo
 from structlog import get_logger
+from zimmauth import ZimmAuth
 
 from .exceptions import ProjectSetupException
 from .metadata.complete_id import CompleteId
 from .naming import (
+    AUTH_HEX_ENV_VAR,
+    AUTH_PASS_ENV_VAR,
     BASE_CONF_PATH,
     DEFAULT_ENV_NAME,
     DEFAULT_REGISTRY,
@@ -181,6 +184,10 @@ class UnavailableTrepo(TableRepo):
 
 def get_tag(meta_version, data_version, env):
     return VERSION_SEPARATOR.join([VERSION_PREFIX, meta_version, data_version, env])
+
+
+def get_full_auth():
+    return ZimmAuth.from_env(AUTH_HEX_ENV_VAR, AUTH_PASS_ENV_VAR)
 
 
 def _parse_version(v: str):

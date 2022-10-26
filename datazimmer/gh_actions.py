@@ -3,7 +3,8 @@ from pathlib import Path
 import yaml
 
 from .naming import (
-    AUTH_ENV_VAR,
+    AUTH_HEX_ENV_VAR,
+    AUTH_PASS_ENV_VAR,
     CLI,
     CRON_ENV_VAR,
     GIT_TOKEN_ENV_VAR,
@@ -29,7 +30,7 @@ def write_book_actions(cron):
 cron_comm = f"{CLI} build-meta && dvc pull && {CLI} run-cronjobs && {CLI} publish-data"
 book_comm = f"{CLI} load-explorer-data && {CLI} build-explorer"
 
-_env_keys = [AUTH_ENV_VAR, GIT_TOKEN_ENV_VAR]
+_env_keys = [AUTH_HEX_ENV_VAR, AUTH_PASS_ENV_VAR, GIT_TOKEN_ENV_VAR]
 _env = {k: r"${{ secrets." + k + r" }}" for k in _env_keys}
 
 
