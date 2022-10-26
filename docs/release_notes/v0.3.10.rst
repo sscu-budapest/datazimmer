@@ -1,0 +1,4 @@
+v0.3.10
+------
+
+flat index and improved secrets

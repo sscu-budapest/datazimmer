@@ -14,7 +14,7 @@ Metadata
 ~~~~~~~~
 
 -  ``[a-b]*_table`` table names based on singular form of entity
-   e.g. \ ``dog_table``
+   e.g. ``dog_table``
 -  see all in dogshow standard
 
 Rules
