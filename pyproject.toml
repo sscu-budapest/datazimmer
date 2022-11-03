@@ -4,7 +4,7 @@ dynamic = ["version", "description"]
 authors = [{name = "Social Science Computing Unit Budapest", email = "borza.endre@krtk.hu"}]
 license = {file = "LICENSE"}
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 scripts = {datazimmer = "datazimmer:app", dz = "datazimmer:app"}
 dependencies = [
     "flit",
@@ -39,18 +39,7 @@ explorer = [
     "cron-descriptor",
 ]
 test = ["branthebuilder", "zimmauth[test]"]
-doc = [
-    "sphinx",
-    "pandoc",
-    "graphviz",
-    "sphinx-automodapi",
-    "sphinx-rtd-theme",
-    "myst-parser",
-    "pygments",
-    "jupyter",
-    "toml"
-]
-
+doc = ["branthebuilder[doc]"]
 [project.urls]
 Homepage = "https://github.com/sscu-budapest/datazimmer"
 
