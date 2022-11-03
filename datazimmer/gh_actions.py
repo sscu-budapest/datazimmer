@@ -38,7 +38,7 @@ def _get_base_steps():
     git_comm = ";".join([f"git config --global {c}" for c in confs])
     return [
         {"uses": "actions/checkout@v3"},
-        {"uses": "actions/setup-python@v4", "with": {"python-version": "3.x"}},
+        {"uses": "actions/setup-python@v4", "with": {"python-version": "'3.10'"}},
         {"name": "Install dependencies", "run": instr},
         {"name": "Setup Git", "run": f"{git_comm};git pull --tags"},
     ]
