@@ -12,7 +12,13 @@ from .config_loading import Config, RunConfig
 from .exceptions import ProjectSetupException
 from .metadata.complete_id import CompleteIdBase
 from .metadata.scrutable import ScruTable
-from .naming import BASE_CONF_PATH, CLI, MAIN_MODULE_NAME, PROFILES_PATH, get_data_path
+from .naming import (
+    BASE_CONF_PATH,
+    MAIN_MODULE_NAME,
+    PROFILES_PATH,
+    cli_run,
+    get_data_path,
+)
 from .reporting import ReportFile
 
 logger = get_logger()
@@ -174,11 +180,13 @@ class PipelineElement:
             return self.runner(**kwargs)
 
     def add_as_stage(self, dvc_repo):
+        from . import typer_commands as tc
+
         param_ids, _ = self._get_params()
         if self.cron:
             param_ids.append(f"cron_bumps.{self.name}")
         dvc_repo.stage.add(
-            cmd=f"{CLI} run-step {self.name}",
+            cmd=f"{cli_run(tc.run_step)} {self.name}",
             name=self.name,
             outs_no_cache=self.out_nocache,
             outs=self.outputs,

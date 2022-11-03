@@ -5,10 +5,10 @@ import yaml
 from .naming import (
     AUTH_HEX_ENV_VAR,
     AUTH_PASS_ENV_VAR,
-    CLI,
     CRON_ENV_VAR,
     GIT_TOKEN_ENV_VAR,
     REQUIREMENTS_FILE,
+    cli_run,
 )
 
 _GHA_PATH = Path(".github", "workflows")
@@ -26,9 +26,6 @@ def write_cron_actions(cron_exprs):
 def write_book_actions(cron):
     write_action(_get_book_dic(cron), _GHA_PATH / "deploy.yml")
 
-
-cron_comm = f"{CLI} build-meta && dvc pull && {CLI} run-cronjobs && {CLI} publish-data"
-book_comm = f"{CLI} load-explorer-data && {CLI} build-explorer"
 
 _env_keys = [AUTH_HEX_ENV_VAR, AUTH_PASS_ENV_VAR, GIT_TOKEN_ENV_VAR]
 _env = {k: r"${{ secrets." + k + r" }}" for k in _env_keys}
@@ -52,6 +49,9 @@ def _get_jobs_dic(name, add_steps):
 
 
 def _get_cron_dic(cron_exprs):
+    from . import typer_commands as tc
+
+    cron_comm = cli_run(tc.build_meta, tc.update, tc.run_cronjobs, tc.publish_data)
     step = {
         "name": "Bump crons",
         "env": {CRON_ENV_VAR: r"${{ github.event.schedule }}", **_env},
@@ -65,6 +65,10 @@ def _get_cron_dic(cron_exprs):
 
 
 def _get_book_dic(cron):
+    from . import typer_commands as tc
+
+    book_comm = cli_run(tc.load_explorer_data, tc.build_explorer)
+
     steps = [
         {"name": "Build the book", "run": book_comm, "env": _env},
         {

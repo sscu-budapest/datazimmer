@@ -70,3 +70,7 @@ def get_data_path(project_name, namespace, env_name):
 
 def get_package_name(project_name):
     return f"{META_MODULE_NAME}-{project_name}"
+
+
+def cli_run(*funs):
+    return " && ".join(f'{CLI } {f.__name__.replace("_", "-")}' for f in funs)
