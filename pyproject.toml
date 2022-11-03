@@ -1,18 +1,22 @@
 [project]
-name = "sscutils"
-description = "sscu-budapest utilities for scientific data engineering"
-authors = [
-    "Social Science Computing Unit Budapest"
-]
-license = "MIT"
+name = "datazimmer"
+dynamic = ["version", "description"]
+authors = [{name = "Social Science Computing Unit Budapest", email = "borza.endre@krtk.hu"}]
+license = {file = "LICENSE"}
 readme = "README.md"
-python = ">=3.7"
-url = "https://github.com/sscu-budapest/sscutils"
-boilerplate_branch="master"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["branthebuilder"]
+doc = ["branthebuilder[doc]"]
+
+[project.urls]
+Homepage = "https://github.com/sscu-budapest/datazimmer"
+
 [build-system]
-requires = [
-    "toml >= 0.10.0",
-    "setuptools >= 38.6.0",
-    "wheel >= 0.31.0",
-    "setuptools_scm >= 2.0.0, <3"
-]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[tool.branb]
+line-length = 88
