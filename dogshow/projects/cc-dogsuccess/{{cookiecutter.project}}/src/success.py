@@ -37,10 +37,7 @@ status_md = dz.ReportFile("status_table.md")
         dogfirst.dog_table,
         doglast.dog_size_table,
     ],
-    outputs=[
-        status_table,
-        sized_dog_table,
-    ],
+    outputs=[status_table, sized_dog_table],
     outputs_nocache=[status_md],
     cron="0 1 13 * 5",
 )
