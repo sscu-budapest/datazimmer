@@ -9,7 +9,6 @@ import sqlalchemy as sa
 from colassigner.constants import PREFIX_SEP
 from sqlalchemy.orm import sessionmaker
 from structlog import get_logger
-from tqdm import tqdm
 
 from ..config_loading import RunConfig
 from ..get_runtime import get_runtime
@@ -146,7 +145,7 @@ class NamespaceMapper:
         pd.testing.assert_frame_equal(df.loc[:, df_sql.columns], df_sql)
 
     def _partition(self, df: pd.DataFrame, ins, session):
-        for sind in tqdm(range(0, df.shape[0], self.batch_size)):
+        for sind in range(0, df.shape[0], self.batch_size):
             eind = sind + self.batch_size
             recs = df.iloc[sind:eind, :].to_dict("records")
             session.execute(ins.values([*map(_parse_d, recs)]))
