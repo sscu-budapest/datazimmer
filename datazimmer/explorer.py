@@ -9,7 +9,7 @@ from pathlib import Path
 from shutil import copytree
 from subprocess import check_call
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import pandas as pd
 import yaml
@@ -55,7 +55,6 @@ DATASETS = BOOK_DIR / "datasets"
 
 
 class S3Remote:
-    # TODO: cover s3
     def __init__(self, remote_id):
 
         z_auth = get_full_auth()
@@ -64,8 +63,8 @@ class S3Remote:
         self.bucket_name = remote_id
         self.endpoint = auth.endpoint
 
-    def push(self, content, key):
-        new_md5 = md5(content.encode("utf-8")).hexdigest()
+    def push(self, content: bytes, key):
+        new_md5 = md5(content).hexdigest()
         last = self.bucket.Object(key)
         try:
             if last.e_tag[1:-1] == new_md5:
@@ -85,10 +84,10 @@ class LocalRemote:
         self.root = root or TemporaryDirectory().name
         Path(self.root).mkdir(exist_ok=True)
 
-    def push(self, content: str, key):
+    def push(self, content: bytes, key):
         ppath = Path(self.root, key)
         ppath.parent.mkdir(exist_ok=True, parents=True)
-        ppath.write_bytes(content.encode("utf-8"))
+        ppath.write_bytes(content)
         return datetime.now()
 
     def full_link(self, key):
@@ -100,7 +99,7 @@ class ExplorerDataset:
     name: str
     project: str
     namespace: str
-    tables: Optional[List[str]] = None
+    tables: Optional[list[str]] = None
     env: str = DEFAULT_ENV_NAME
     version: str = ""
     minimal: bool = False
@@ -163,28 +162,26 @@ class ExplorerDataset:
         return f"=={self.version}" if self.version else ""
 
     def _get_table_cc(self, scrutable: ScruTable, remote: S3Remote, book_root):
-        # slow import...
+
         from pandas_profiling import ProfileReport
 
         df = self._get_df(scrutable)
-        csv_str = df.to_csv(index=None)
-        profile_str = _shorten(ProfileReport(df, minimal=self.minimal))
         name = scrutable.name
-
+        self.csv_blobs[name] = csv_blob = df.to_csv(index=None)
+        profile_str = _shorten(ProfileReport(df, minimal=self.minimal))
         profile_key = f"{self._slug}/{name}-profile.html"
         csv_key = f"{self._slug}/{name}.csv"
         remote.push(profile_str, profile_key)
-        mod_date = remote.push(csv_str, csv_key)
-        self.csv_blobs[scrutable.name] = csv_str.encode("utf-8")
+        mod_date = remote.push(csv_blob, csv_key)
         return {
-            "name": _title(scrutable.name),
-            "slug": scrutable.name,
+            "name": _title(name),
+            "slug": name,
             "profile_url": remote.full_link(profile_key),
             "update_date": mod_date.isoformat(" ", "minutes")[:16],
             "n_cols": df.shape[1],
             "n_rows": df.shape[0],
             "csv_url": remote.full_link(csv_key),
-            "csv_filesize": _get_filesize(csv_str),
+            "csv_filesize": _get_filesize(csv_blob),
             "head_html": df.head()._repr_html_(),
         }
 
@@ -202,7 +199,7 @@ class ExplorerDataset:
             .lower()
         )
 
-    def _get_erd(self, scrutables: List[ScruTable]):
+    def _get_erd(self, scrutables: list[ScruTable]):
         if not self.erd:
             return ""
         names = [st.name for st in scrutables]
@@ -226,7 +223,7 @@ class ExplorerDataset:
 
 @dataclass
 class ExplorerContext:
-    datasets: List[ExplorerDataset]
+    datasets: list[ExplorerDataset]
     remote: Union[S3Remote, LocalRemote]
     registry: str = DEFAULT_REGISTRY
     book_root: Path = field(init=False, default_factory=Path.cwd)
@@ -257,7 +254,7 @@ class ExplorerContext:
         return cls(tdirs, remote, **conf_dic)
 
     def _set_from_project(
-        self, datasets: List[ExplorerDataset], project_name, project_v
+        self, datasets: list[ExplorerDataset], project_name, project_v
     ):
         envs = set([d.env for d in datasets])
         dnss = [*set([d.namespace for d in datasets])]
@@ -409,8 +406,8 @@ def _title(s):
     return camel_to_snake(s).replace("_", " ").title()
 
 
-def _get_filesize(file_str):
-    kb_size = len(file_str.encode("utf-8")) / 2**10
-    if kb_size > 1000:
-        return f"{kb_size / 2 ** 10:0.2f} MB"
+def _get_filesize(blob: bytes):
+    kb_size = len(blob) / 1000
+    if kb_size > 1000:  # pragma: no cover
+        return f"{kb_size / 1000:0.2f} MB"
     return f"{kb_size:0.2f} kB"
