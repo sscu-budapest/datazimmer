@@ -22,7 +22,8 @@ dependencies = [
     "cookiecutter",
     "sqlmermaid",
     "metazimmer",
-    "zimmauth"
+    "zimmauth",
+    "aswan"
 ]
 
 [project.optional-dependencies]
