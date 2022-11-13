@@ -25,7 +25,6 @@ META_MODULE_NAME = "metazimmer"
 PACKAGE_NAME = "datazimmer"
 CLI = "dz"
 
-CRON_ENV_VAR = "CRON_TRIGGER"
 GIT_TOKEN_ENV_VAR = "GIT_HTTPS_TOKEN"
 AUTH_HEX_ENV_VAR = "ZIMMER_AUTH_HEX"
 AUTH_PASS_ENV_VAR = "ZIMMER_PHRASE"
@@ -64,7 +63,7 @@ class RegistryPaths:
         return [d.relative_to(self.dir).as_posix() for d in dirlist]
 
 
-def get_data_path(project_name, namespace, env_name):
+def get_data_path(project_name, namespace, env_name) -> Path:
     return DATA_PATH / project_name / namespace / env_name
 
 
@@ -73,4 +72,12 @@ def get_package_name(project_name):
 
 
 def cli_run(*funs):
-    return " && ".join(f'{CLI } {f.__name__.replace("_", "-")}' for f in funs)
+    return " && ".join(f"{CLI} {_get_fun_name(f)}" for f in funs)
+
+
+def _get_fun_name(fun):
+    if isinstance(fun, str):
+        return fun
+    elif isinstance(fun, tuple):
+        return " ".join(map(_get_fun_name, fun))
+    return fun.__name__.replace("_", "-")

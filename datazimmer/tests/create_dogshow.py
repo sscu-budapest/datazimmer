@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 from contextlib import contextmanager
 from pathlib import Path
 from shutil import copytree
@@ -27,7 +28,6 @@ dec_src_root = dogshow_root / "explorer"
 
 _PROJECTS = ["dogshowbase", "dogracebase", "dogsuccess", "dogcombine"]
 _VERSIONS = {"dogshowbase": ["0.0", "0.1"], "dogsuccess": ["1.0"]}
-_CRONS = {"dogshowbase": ["0 0 1 * *"], "dogsuccess": ["0 1 13 * 5"]}
 
 
 class DogshowContextCreator:
@@ -71,12 +71,14 @@ class DogshowContextCreator:
         )
         self.ran_dirs.append(root_dir)
         with cd_into(root_dir):
+            sys.path.insert(0, Path.cwd().as_posix())
             _add_readme()
             for remote_name, remote_id in self.dvc_remotes:
                 check_call(["dvc", "remote", "add", remote_name, remote_id])
             check_call(["dvc", "remote", "default", self.dvc_remotes[0][0]])
             git_run(add=["*"], msg="setup project")
-            yield _VERSIONS.get(name, []), _CRONS.get(name, [])
+            yield name, _VERSIONS.get(name, [])
+            sys.path.pop(0)
 
     def explorer(self):
         return self._explorer("explorer")

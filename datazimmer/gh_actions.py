@@ -1,17 +1,20 @@
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import yaml
 
 from .naming import (
     AUTH_HEX_ENV_VAR,
     AUTH_PASS_ENV_VAR,
-    CRON_ENV_VAR,
     GIT_TOKEN_ENV_VAR,
     REQUIREMENTS_FILE,
     cli_run,
 )
 
-_GHA_PATH = Path(".github", "workflows")
+if TYPE_CHECKING:
+    from .aswan_integration import DzAswan
+
+_GHA = Path(".github", "workflows")
 
 
 def write_action(dic, path: Path):
@@ -19,12 +22,27 @@ def write_action(dic, path: Path):
     path.write_text(yaml.safe_dump(dic, sort_keys=False).replace("'on':", "on:"))
 
 
-def write_cron_actions(cron_exprs):
-    write_action(_get_cron_dic(cron_exprs), _GHA_PATH / "zimmer_crons.yml")
+def write_project_cron(cron):
+    from . import typer_commands as tc
+
+    funs = tc.build_meta, tc.update, (tc.run, "--commit"), tc.publish_data
+    cron_dic = _get_cron_dic(cron, "zimmer-project", *funs)
+    write_action(cron_dic, _GHA / "zimmer_schedule.yml")
+
+
+def write_aswan_crons(projects: list["DzAswan"]):
+    from . import typer_commands as tc
+
+    for project in projects:
+        if not project.cron:
+            continue
+        funs = [(tc.run_aswan_project, f"--project={project.name}")]
+        cron_dic = _get_cron_dic(project.cron, project.name, *funs)
+        write_action(cron_dic, _GHA / f"asw_{project.name}_schedule.yml")
 
 
 def write_book_actions(cron):
-    write_action(_get_book_dic(cron), _GHA_PATH / "deploy.yml")
+    write_action(_get_book_dic(cron), _GHA / "deploy.yml")
 
 
 _env_keys = [AUTH_HEX_ENV_VAR, AUTH_PASS_ENV_VAR, GIT_TOKEN_ENV_VAR]
@@ -48,19 +66,12 @@ def _get_jobs_dic(name, add_steps):
     return {name: {"runs-on": "ubuntu-latest", "steps": _get_base_steps() + add_steps}}
 
 
-def _get_cron_dic(cron_exprs):
-    from . import typer_commands as tc
-
-    cron_comm = cli_run(tc.build_meta, tc.update, tc.run_cronjobs, tc.publish_data)
-    step = {
-        "name": "Bump crons",
-        "env": {CRON_ENV_VAR: r"${{ github.event.schedule }}", **_env},
-        "run": cron_comm,
-    }
+def _get_cron_dic(cron, name, *funs):
+    step = {"name": f"Scheduled {name}", "env": _env, "run": cli_run(*funs)}
     return {
         "name": "Scheduled Run",
-        "on": {"schedule": [{"cron": cexspr} for cexspr in cron_exprs]},
-        "jobs": _get_jobs_dic("cron-run", [step]),
+        "on": {"schedule": [{"cron": cron}]},
+        "jobs": _get_jobs_dic(f"cron-run-{name}", [step]),
     }
 
 

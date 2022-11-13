@@ -4,9 +4,13 @@ from pathlib import Path
 from subprocess import check_call
 from tempfile import TemporaryDirectory
 
-import pytest
-import moto
 import boto3
+import moto
+import pytest
+from aswan.constants import DEFAULT_REMOTE_ENV_VAR, DEPOT_ROOT_ENV_VAR
+from aswan.depot import HEX_ENV, PW_ENV
+from zimmauth import ZimmAuth
+from zimmauth.core import LOCAL_HOST_NAMES_ENV_VAR
 
 from datazimmer.config_loading import RunConfig
 from datazimmer.get_runtime import get_runtime
@@ -19,8 +23,7 @@ from datazimmer.naming import (
 )
 from datazimmer.tests.create_dogshow import dogshow_root
 from datazimmer.typer_commands import cleanup
-from datazimmer.utils import cd_into, gen_rmtree, reset_meta_module
-from zimmauth import ZimmAuth
+from datazimmer.utils import cd_into, gen_rmtree
 
 CORE_PY = dogshow_root / "minimal.py"
 
@@ -56,8 +59,6 @@ def in_template(empty_template):
 def running_template(in_template):
     _env = DEFAULT_ENV_NAME
     with RunConfig(write_env=_env, read_env=_env, profile=True):
-        reset_meta_module()
-        get_runtime(reset=True)
         yield
 
 
@@ -74,9 +75,15 @@ def test_bucket():
 
 @pytest.fixture
 def proper_env():
+    tmp_dir = TemporaryDirectory()
+    tmp_path = Path(tmp_dir.name)
+    rem_path, local_path = tmp_path / "aswan-remote", tmp_path / "aswan-local"
+    rem_path.mkdir()
+    local_path.mkdir()
 
+    _CONN_NAME = "aswan-conn"
+    _HOST = "localhost"
     my_pw = "ldb-siu"
-
     dic = {
         "keys": {
             "s3-key-name-1": {"key": "XYZ", "secret": "XXX"},
@@ -85,7 +92,18 @@ def proper_env():
         "bucket-1": {"key": "s3-key-name-1"},
         "bucket-2": {"key": "s3-key-name-2"},
         "bucket-3": {"key": "s3-key-name-1"},
+        "rsa-keys": {"rand-key": "XYZ"},
+        "ssh": {"ssh-name-1": {"host": _HOST, "user": "suzer", "rsa_key": "rand-key"}},
+        _CONN_NAME: {"connection": "ssh-name-1", "path": rem_path.as_posix()},
     }
+    my_hex = ZimmAuth.dumps_dict(dic, my_pw)
 
-    os.environ[AUTH_HEX_ENV_VAR] = ZimmAuth.dumps_dict(dic, my_pw)
+    os.environ[AUTH_HEX_ENV_VAR] = my_hex
     os.environ[AUTH_PASS_ENV_VAR] = my_pw
+    os.environ[HEX_ENV] = my_hex
+    os.environ[PW_ENV] = my_pw
+    os.environ[LOCAL_HOST_NAMES_ENV_VAR] = _HOST
+    os.environ[DEFAULT_REMOTE_ENV_VAR] = _CONN_NAME
+    os.environ[DEPOT_ROOT_ENV_VAR] = local_path.as_posix()
+    yield
+    tmp_dir.cleanup()

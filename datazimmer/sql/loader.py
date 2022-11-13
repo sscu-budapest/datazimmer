@@ -13,7 +13,7 @@ from structlog import get_logger
 from ..config_loading import RunConfig
 from ..get_runtime import get_runtime
 from ..metadata.atoms import EntityClass
-from ..metadata.namespace_metadata import NamespaceMetadata
+from ..metadata.high_level import NamespaceMetadata
 from ..metadata.scrutable import ScruTable, feats_to_cols, to_sa_col
 from ..utils import is_postgres
 

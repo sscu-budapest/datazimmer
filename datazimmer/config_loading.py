@@ -1,6 +1,7 @@
 import re
+from abc import ABCMeta
 from dataclasses import asdict, dataclass, field
-from typing import List, Optional
+from typing import TYPE_CHECKING, Optional, Type, TypeVar, Union
 
 import yaml
 from dvc.repo import Repo
@@ -21,9 +22,14 @@ from .naming import (
     VERSION_SEPARATOR,
     get_data_path,
 )
-from .utils import named_dict_to_list
+
+if TYPE_CHECKING:
+    from .persistent_state import PersistentState
 
 logger = get_logger(ctx="config loading")
+
+
+T = TypeVar("T")
 
 
 @dataclass
@@ -52,15 +58,24 @@ class ImportedProject:
 
 
 @dataclass
+class AswanSpec:
+    name: str
+    processed_upto_by_ns: dict[str, str] = field(default_factory=dict)
+    current_leaf: Optional[str] = None
+
+
+@dataclass
 class Config:
     name: str
     version: str
+    cron: str = ""
     default_env: str = None
     registry: str = DEFAULT_REGISTRY
     validation_envs: list = None
-    envs: List[ProjectEnv] = None
-    imported_projects: List[ImportedProject] = field(default_factory=list)
-    cron_bumps: dict = field(default_factory=dict)
+    envs: list[ProjectEnv] = None
+    imported_projects: list[ImportedProject] = field(default_factory=list)
+    aswan_projects: list[AswanSpec] = field(default_factory=list)
+    persistent_states: dict[str, dict] = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.envs:
@@ -80,11 +95,15 @@ class Config:
     def get_import(self, project_name: str) -> ImportedProject:
         return _get(self.imported_projects, project_name)
 
+    def get_aswan_spec(self, name: str) -> AswanSpec:
+        try:
+            return _get(self.aswan_projects, name)
+        except KeyError:
+            self.aswan_projects.append(AswanSpec(name))
+            return _get(self.aswan_projects, name)
+
     def create_trepo(
-        self,
-        id_: CompleteId,
-        partitioning_cols=None,
-        max_partition_size=None,
+        self, id_: CompleteId, partitioning_cols=None, max_partition_size=None
     ):
 
         envs_of_ns = self.get_data_envs(id_.project, id_.namespace)
@@ -123,38 +142,60 @@ class Config:
             return env
         return self.get_data_env(env, project)
 
-    def init_cron_bump(self, pipe_elem_name):
-        if self.cron_bumps.get(pipe_elem_name) is None:
-            self.cron_bumps[pipe_elem_name] = -1
-            self.bump_cron(pipe_elem_name)
+    def dump_persistent_state(self, state: "PersistentState"):
+        self.persistent_states[state.get_full_name()] = asdict(state)
+        self._update_raw({CONF_KEYS.persistent_states: self.persistent_states})
 
-    def bump_cron(self, pipe_elem_name):
-        self.cron_bumps[pipe_elem_name] += 1
-        c_dic = yaml.safe_load(BASE_CONF_PATH.read_text())
-        new_conf = {**c_dic, "cron_bumps": self.cron_bumps}
-        BASE_CONF_PATH.write_text(yaml.dump(new_conf, sort_keys=False))
+    def update_aswan_spec(self, project_name, new_state):
+        logger.info("global aswan", name=project_name, latest=new_state)
+        self.get_aswan_spec(project_name).current_leaf = new_state
+        self._update_aswan_specs()
+
+    def update_aswan_for_step(self, project_name, namespace, new_state):
+        logger.info("aswan", name=project_name, processed=new_state, step=namespace)
+        spec = self.get_aswan_spec(project_name)
+        spec.processed_upto_by_ns[namespace] = new_state
+        self._update_aswan_specs()
 
     def dump(self):
         d = asdict(self)
-        for k in ["envs", "imported_projects"]:
+        for k in _DC_ATTRIBUTES.keys():
             d[k] = {e.pop("name"): e for e in d[k]}
-        d["version"] = f"v{d['version']}"
+        d[CONF_KEYS.version] = f"v{d[CONF_KEYS.version]}"
         BASE_CONF_PATH.write_text(yaml.safe_dump(d))
 
     @classmethod
     def load(cls):
-        dic = _yaml_or_err(BASE_CONF_PATH)
-        env_list = named_dict_to_list(dic.pop("envs", {}), ProjectEnv)
-        art_val = dic.pop("imported_projects", {})
-        if isinstance(art_val, list):
-            art_val = {k: {} for k in art_val}
-        art_list = named_dict_to_list(art_val, ImportedProject)
-        return cls(**dic, envs=env_list, imported_projects=art_list)
+        dic = cls._load_raw()
+        ldic = {k: _to_list(dic.pop(k, {}), v) for k, v in _DC_ATTRIBUTES.items()}
+        return cls(**dic, **ldic)
 
     @property
     def sorted_envs(self):
         _remote = self.get_env(self.default_env).remote
         return sorted(self.envs, key=lambda env: (env.remote == _remote, env.remote))
+
+    @property
+    def env_names(self):
+        return [e.name for e in self.envs]
+
+    def _update_aswan_specs(self):
+        raw_specs = {d.pop("name"): d for d in map(asdict, self.aswan_projects)}
+        self._update_raw({CONF_KEYS.aswan_projects: raw_specs})
+
+    def _update_raw(self, dic: dict):
+        BASE_CONF_PATH.write_text(yaml.dump(self._load_raw() | dic, sort_keys=False))
+
+    @classmethod
+    def _load_raw(cls):
+        return _yaml_or_err(BASE_CONF_PATH)
+
+
+_DC_ATTRIBUTES = {  # what attributes of config need parsing
+    k: v.__args__[0]
+    for k, v in Config.__annotations__.items()
+    if (list in v.mro()) and isinstance(getattr(v, "__args__", [None])[0], type)
+}
 
 
 @dataclass
@@ -182,12 +223,37 @@ class UnavailableTrepo(TableRepo):
         pass
 
 
+class _KeyMeta(ABCMeta):
+    def __getattribute__(cls, attid: str):
+        if attid.startswith("_"):
+            return super().__getattribute__(attid)
+        return attid
+
+
+class CONF_KEYS(Config, metaclass=_KeyMeta):
+    pass
+
+
+class SPEC_KEYS(AswanSpec, metaclass=_KeyMeta):
+    pass
+
+
+class ENV_KEYS(ProjectEnv, metaclass=_KeyMeta):
+    pass
+
+
 def get_tag(meta_version, data_version, env):
     return VERSION_SEPARATOR.join([VERSION_PREFIX, meta_version, data_version, env])
 
 
 def get_full_auth():
     return ZimmAuth.from_env(AUTH_HEX_ENV_VAR, AUTH_PASS_ENV_VAR)
+
+
+def _to_list(entities: Union[dict, list], cls: Type[T], key_name="name") -> list[T]:
+    if isinstance(entities, list):
+        entities = {k: {} for k in entities}
+    return [cls(**{key_name: k, **kwargs}) for k, kwargs in entities.items()]
 
 
 def _parse_version(v: str):

@@ -12,10 +12,8 @@ logger = get_logger()
 _GLOBAL_RUNTIME = None
 
 
-def get_runtime(reset=False) -> "ProjectRuntime":
+def get_runtime() -> "ProjectRuntime":
     global _GLOBAL_RUNTIME
-    if reset:
-        _GLOBAL_RUNTIME = None
     if _GLOBAL_RUNTIME is None:
         from .project_runtime import ProjectRuntime
 

@@ -2,13 +2,13 @@ from abc import abstractmethod
 from dataclasses import dataclass, field
 from typing import List, Optional, Union
 
-from ..primitive_types import PrimitiveType
 from ..utils import PRIMITIVE_MODULES, get_simplified_mro
 from .datascript import (
     AbstractEntity,
     CompositeTypeBase,
     IndexIndicator,
     Nullable,
+    PrimitiveType,
     get_feature_dict,
 )
 
