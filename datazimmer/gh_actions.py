@@ -46,6 +46,13 @@ def write_book_actions(cron):
 
 
 _env_keys = [AUTH_HEX_ENV_VAR, AUTH_PASS_ENV_VAR, GIT_TOKEN_ENV_VAR]
+try:
+    from aswan.depot import DEFAULT_REMOTE_ENV_VAR, HEX_ENV, PW_ENV
+
+    _env_keys.extend([PW_ENV, HEX_ENV, DEFAULT_REMOTE_ENV_VAR])
+except ImportError:
+    pass  # pragma: no cover
+
 _env = {k: r"${{ secrets." + k + r" }}" for k in _env_keys}
 
 
@@ -69,7 +76,7 @@ def _get_jobs_dic(name, add_steps):
 def _get_cron_dic(cron, name, *funs):
     step = {"name": f"Scheduled {name}", "env": _env, "run": cli_run(*funs)}
     return {
-        "name": "Scheduled Run",
+        "name": f"Scheduled {name}",
         "on": {"schedule": [{"cron": cron}]},
         "jobs": _get_jobs_dic(f"cron-run-{name}", [step]),
     }
