@@ -47,7 +47,6 @@ class ProjectRuntime:
         # self._walk_id(META_MODULE_NAME, True) simpler but bloating
         while self._module_dic.keys() != self._collected_modules:
             self._collect_metas()
-        sys.path.pop(0)
         self._fill_projects()
         self.metadata = self.metadata_dic[self.name]
         self.data_to_load: list[DataEnvironmentToLoad] = self._get_data_envs()
