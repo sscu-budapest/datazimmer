@@ -22,11 +22,11 @@ dependencies = [
     "cookiecutter",
     "sqlmermaid",
     "metazimmer",
-    "zimmauth",
-    "aswan"
+    "zimmauth"
 ]
 
 [project.optional-dependencies]
+collect = ["aswan>=0.4.2"]
 postgres = ["psycopg2"]
 profile = ["pyinstrument"]
 explorer = [
