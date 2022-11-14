@@ -14,7 +14,7 @@ class PersistentState:
 
     @classmethod
     def get_full_name(cls):
-        return f"{cls.__module__}.{cls.__name__}"
+        return f"{cls.__module__}.{cls.__name__}".replace(".", "-")
 
     @classmethod
     def get_conf(cls):

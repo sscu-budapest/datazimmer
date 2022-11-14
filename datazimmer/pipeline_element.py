@@ -19,6 +19,7 @@ from .naming import (
     cli_run,
     get_data_path,
 )
+from .persistent_state import PersistentState
 from .reporting import ReportFile
 
 logger = get_logger()
@@ -105,21 +106,22 @@ class PipelineElement:
         return self.runner.__module__
 
     def _get_params(self, env):
+        conf = Config.load()
         kwarg_keys = inspect.getfullargspec(self.runner).args
         parsed_params = {}
         param_ids = []
         for k in kwarg_keys:
-            param_id, val = self._get_param_id_val(self.ns, k, env)
+            param_id, val = self._get_param_id_val(self.ns, k, env, conf)
             parsed_params[k] = val
             param_ids.append(param_id)
         for a_name in self.aswan_dependencies:
             _id = ".".join([CONF_KEYS.aswan_projects, a_name, SPEC_KEYS.current_leaf])
             param_ids.append(_id)
+        for pstate_id in self._get_persistent_state_dependencies(conf):
+            param_ids.append(pstate_id)
         return param_ids, parsed_params
 
-    def _get_param_id_val(self, namespace, key, env):
-        # TODO: add possibly persistent states
-        conf = Config.load()
+    def _get_param_id_val(self, namespace, key, env, conf: Config):
         _envconf = conf.get_env(env)
         _level_params = _envconf.params.get(namespace, {})
         if key in _level_params.keys():
@@ -129,8 +131,15 @@ class PipelineElement:
         else:
             if _envconf.parent is None:
                 raise ProjectSetupException(f"no {namespace}.{key} in {env}")
-            return self._get_param_id_val(namespace, key, _envconf.parent)
+            return self._get_param_id_val(namespace, key, _envconf.parent, conf)
         return ".".join([CONF_KEYS.envs, env, ENV_KEYS.params, *_suff]), val
+
+    def _get_persistent_state_dependencies(self, conf: Config):
+        for dep in self.dependencies:
+            if isinstance(dep, type) and (PersistentState in dep.mro()):
+                base = [CONF_KEYS.persistent_states, dep.get_full_name()]
+                for k in conf.persistent_states.get(base[-1], {}).keys():
+                    yield ".".join([*base, k])
 
 
 def register(

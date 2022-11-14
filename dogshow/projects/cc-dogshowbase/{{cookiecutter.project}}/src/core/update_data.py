@@ -46,7 +46,7 @@ class PhotoProject(dz.DzAswan):
 
 
 # TODO: state as dependency
-@dz.register_data_loader(extra_deps=[ns, PhotoProject])
+@dz.register_data_loader(extra_deps=[ns, PhotoProject, PhotoState])
 def update_data(data_root):
 
     persons_df = pd.read_csv(f"{data_root}/people.csv")
