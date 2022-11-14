@@ -26,6 +26,7 @@ class DzAswan:
     def run(self):
         self.extend_starters()
         self._project.depot.pull()
+        self._project.cleanup_current_run()
         self._project.run(urls_to_overwrite=self.starters)
         latest = self._project.depot.save_current()
         self._project.depot.push()
