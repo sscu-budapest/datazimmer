@@ -1,15 +1,17 @@
 import base64
 import json
+import multiprocessing as mp
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from hashlib import md5
 from itertools import groupby
 from pathlib import Path
+from queue import Queue
 from shutil import copytree
 from subprocess import check_call
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import pandas as pd
 import yaml
@@ -17,13 +19,7 @@ from botocore.exceptions import ClientError
 from cookiecutter.main import cookiecutter
 from sqlmermaid import get_mermaid
 
-from .config_loading import (
-    Config,
-    ImportedProject,
-    ProjectEnv,
-    RunConfig,
-    get_full_auth,
-)
+from .config_loading import Config, ImportedProject, ProjectEnv, get_full_auth
 from .get_runtime import get_runtime
 from .gh_actions import write_book_actions
 from .metadata.scrutable import ScruTable
@@ -40,11 +36,10 @@ from .naming import (
 from .nb_generator import get_nb_string
 from .registry import Registry
 from .sql.loader import SqlFilter, tmp_constr
-from .utils import camel_to_snake, gen_rmtree, reset_meta_module
+from .utils import camel_to_snake, gen_rmtree
 from .validation_functions import sandbox_project
 
 if TYPE_CHECKING:  # pragma: no cover
-    from .pipeline_registry import PipelineRegistry
     from .project_runtime import ProjectRuntime
 
 CC_DIR = repo_link("explorer-template")
@@ -55,7 +50,6 @@ DATASETS = BOOK_DIR / "datasets"
 
 
 class S3Remote:
-    # TODO: cover s3
     def __init__(self, remote_id):
 
         z_auth = get_full_auth()
@@ -64,8 +58,8 @@ class S3Remote:
         self.bucket_name = remote_id
         self.endpoint = auth.endpoint
 
-    def push(self, content, key):
-        new_md5 = md5(content.encode("utf-8")).hexdigest()
+    def push(self, content: bytes, key):
+        new_md5 = md5(content).hexdigest()
         last = self.bucket.Object(key)
         try:
             if last.e_tag[1:-1] == new_md5:
@@ -85,10 +79,10 @@ class LocalRemote:
         self.root = root or TemporaryDirectory().name
         Path(self.root).mkdir(exist_ok=True)
 
-    def push(self, content: str, key):
+    def push(self, content: bytes, key):
         ppath = Path(self.root, key)
         ppath.parent.mkdir(exist_ok=True, parents=True)
-        ppath.write_bytes(content.encode("utf-8"))
+        ppath.write_bytes(content)
         return datetime.now()
 
     def full_link(self, key):
@@ -100,16 +94,16 @@ class ExplorerDataset:
     name: str
     project: str
     namespace: str
-    tables: Optional[List[str]] = None
+    tables: Optional[list[str]] = None
     env: str = DEFAULT_ENV_NAME
     version: str = ""
     minimal: bool = False
     erd: bool = True
     col_renamer: dict = field(default_factory=dict)
     cc_context: dict = field(init=False, default_factory=dict)
-    csv_blobs: dict = field(init=False, default_factory=dict)
+    dfs: dict[str, pd.DataFrame] = field(init=False, default_factory=dict)
 
-    def set_from_project(self, remote: S3Remote, runtime: "ProjectRuntime", book_root):
+    def set_from_project(self, runtime: "ProjectRuntime"):
         meta = runtime.metadata_dic[self.project]
         ns_meta = meta.namespaces[self.namespace]
         scrutable_list = ns_meta.tables
@@ -117,43 +111,52 @@ class ExplorerDataset:
             ns_tables = ns_meta.tables
             scrutable_list = [t for t in ns_tables if t.name in self.tables]
             assert all(map(lambda t: t in [_t.name for _t in ns_tables], self.tables))
-        self.cc_context.update(
-            {
-                "project_url": meta.uri,
-                "slug": self._slug,
-                "name": self.name,
-                "source_urls": [*map(str, ns_meta.source_urls)],
-                "tables": [],
-                "notebooks": [],
-                "n_tables": len(scrutable_list),
-                "update_str": self._get_cron_desc(runtime.pipereg),
-                "erd_mermaid": self._get_erd(scrutable_list),
-            }
-        )
-        with RunConfig(read_env=self.env):
-            for table in scrutable_list:
-                self.cc_context["tables"].append(
-                    self._get_table_cc(table, remote, book_root)
-                )
+        self.cc_context = {
+            "project_url": meta.uri,
+            "slug": self._slug,
+            "name": self.name,
+            "source_urls": list(map(str, ns_meta.source_urls)),
+            "tables": list(map(self._get_table_cc, scrutable_list)),
+            "notebooks": [],
+            "n_tables": len(scrutable_list),
+            "update_str": self._get_cron_desc(meta.cron),
+            "erd_mermaid": self._get_erd(scrutable_list),
+        }
 
-    def dump(self):
+    def dump(self, remote: LocalRemote):
         _root = SETUP_DIR / self._slug
         _root.mkdir(parents=True, exist_ok=True)
-        for name, blob in self.csv_blobs.items():
-            (_root / f"{name}.csv").write_bytes(blob)
-
         desc_file = _root / "description.md"
         if not desc_file.exists():
-            desc = f"A dataset of {len(self.csv_blobs)} tables"
+            desc = f"A dataset of {len(self.dfs)} tables"
             desc_file.write_text(desc)
-        nb_paths = _root.glob("*.ipynb")
-        if [*nb_paths]:
-            return
-        read_lines = [
-            f'df_{tab} = pd.read_csv("{tab}.csv")\n' for tab in self.csv_blobs.keys()
-        ]
-        nb_str = get_nb_string("Look", (["import pandas as pd"], read_lines))
-        (_root / "init.ipynb").write_text(nb_str)
+        if not [*_root.glob("*.ipynb")]:
+            read_lines = [
+                f'df_{tab} = pd.read_csv("{tab}.csv")\n' for tab in self.dfs.keys()
+            ]
+            nb_str = get_nb_string("Look", (["import pandas as pd"], read_lines))
+            (_root / "init.ipynb").write_text(nb_str)
+        for table_cc in self.cc_context["tables"]:
+            tname = table_cc["slug"]
+            df = self.dfs[tname]
+            csv_key = f"{self._slug}/{tname}.csv"
+            profile_key = f"{self._slug}/{tname}-profile.html"
+            csv_blob = df.to_csv(index=None).encode("utf-8")
+            (_root / f"{tname}.csv").write_bytes(csv_blob)
+            profile_str: str = get_profile_str(df, self.minimal)
+            remote.push(profile_str.encode("utf-8"), profile_key)
+            mod_date = remote.push(csv_blob, csv_key)
+            table_cc.update(
+                {
+                    "profile_url": remote.full_link(profile_key),
+                    "update_date": mod_date.isoformat(" ", "minutes")[:16],
+                    "n_cols": df.shape[1],
+                    "n_rows": df.shape[0],
+                    "csv_url": remote.full_link(csv_key),
+                    "csv_filesize": _get_filesize(csv_blob),
+                    "head_html": df.head()._repr_html_(),
+                }
+            )
 
     def id_(self):
         return (self.project, self.v_str)
@@ -162,47 +165,22 @@ class ExplorerDataset:
     def v_str(self):
         return f"=={self.version}" if self.version else ""
 
-    def _get_table_cc(self, scrutable: ScruTable, remote: S3Remote, book_root):
-        # slow import...
-        from pandas_profiling import ProfileReport
-
-        df = self._get_df(scrutable)
-        csv_str = df.to_csv(index=None)
-        profile_str = _shorten(ProfileReport(df, minimal=self.minimal))
+    def _get_table_cc(self, scrutable: ScruTable):
         name = scrutable.name
+        self.dfs[name] = self._get_df(scrutable)
+        return {"name": _title(name), "slug": name}
 
-        profile_key = f"{self._slug}/{name}-profile.html"
-        csv_key = f"{self._slug}/{name}.csv"
-        remote.push(profile_str, profile_key)
-        mod_date = remote.push(csv_str, csv_key)
-        self.csv_blobs[scrutable.name] = csv_str.encode("utf-8")
-        return {
-            "name": _title(scrutable.name),
-            "slug": scrutable.name,
-            "profile_url": remote.full_link(profile_key),
-            "update_date": mod_date.isoformat(" ", "minutes")[:16],
-            "n_cols": df.shape[1],
-            "n_rows": df.shape[0],
-            "csv_url": remote.full_link(csv_key),
-            "csv_filesize": _get_filesize(csv_str),
-            "head_html": df.head()._repr_html_(),
-        }
-
-    def _get_cron_desc(self, pipereg: "PipelineRegistry"):
+    def _get_cron_desc(self, raw_cron: str):
         from cron_descriptor import ExpressionDescriptor
 
-        raw_cron = pipereg.get_external_cron(self.project, self.namespace)
         if not raw_cron:
             return ""
-        return (
-            ExpressionDescriptor(
-                raw_cron, locale_code="en", throw_exception_on_parse_error=False
-            )
-            .get_description()
-            .lower()
+        exp_dsc = ExpressionDescriptor(
+            raw_cron, locale_code="en", throw_exception_on_parse_error=False
         )
+        return exp_dsc.get_description().lower()
 
-    def _get_erd(self, scrutables: List[ScruTable]):
+    def _get_erd(self, scrutables: list[ScruTable]):
         if not self.erd:
             return ""
         names = [st.name for st in scrutables]
@@ -226,24 +204,33 @@ class ExplorerDataset:
 
 @dataclass
 class ExplorerContext:
-    datasets: List[ExplorerDataset]
+    datasets: list[ExplorerDataset]
     remote: Union[S3Remote, LocalRemote]
     registry: str = DEFAULT_REGISTRY
     book_root: Path = field(init=False, default_factory=Path.cwd)
     cc_template: str = CC_DIR
     cc_checkout: Optional[str] = None
     analytics_id: Optional[str] = None
+    prepped_datasets: Queue[ExplorerDataset] = field(default_factory=mp.Queue)
 
     def load_data(self):
         # to avoid dependency clashes, it is slower but simpler
         # to setup a sandbox one by one
         with sandbox_project(self.registry) as core_path:
             # TODO: avoid recursive data imports here
-            for (pname, pv), ds_gen in groupby(self.datasets, ExplorerDataset.id_):
-                ds_list = list(ds_gen)
-                names = ", ".join([ds.namespace for ds in ds_list])
-                core_path.write_text(f"from {META_MODULE_NAME}.{pname} import {names}")
-                self._set_from_project(ds_list, pname, pv)
+            for _, ds_iter in groupby(self.datasets, ExplorerDataset.id_):
+                proc = mp.Process(
+                    target=self._set_from_project, args=(core_path, list(ds_iter))
+                )
+                proc.start()
+                proc.join()
+                proc.close()
+        cc_base = {"analytics_id": self.analytics_id, "datasets": {"datasets": []}}
+        while not self.prepped_datasets.empty():
+            pdset = self.prepped_datasets.get()
+            pdset.dump(self.remote)
+            cc_base["datasets"]["datasets"].append(pdset.cc_context)
+        CC_BASE_FILE.write_text(yaml.safe_dump(cc_base))
 
     @classmethod
     def load(cls):
@@ -256,28 +243,29 @@ class ExplorerContext:
             remote = LocalRemote(remote_raw)
         return cls(tdirs, remote, **conf_dic)
 
-    def _set_from_project(
-        self, datasets: List[ExplorerDataset], project_name, project_v
-    ):
-        envs = set([d.env for d in datasets])
-        dnss = [*set([d.namespace for d in datasets])]
+    def _set_from_project(self, core_path: Path, ds_list: list[ExplorerDataset]):
+        p_name, p_v = ds_list[0].id_()
+        names = ", ".join([ds.namespace for ds in ds_list])
+        core_path.write_text(f"from {META_MODULE_NAME}.{p_name} import {names}")
+        envs = set([d.env for d in ds_list])
+        dnss = list(set([d.namespace for d in ds_list]))
         test_conf = Config(
             name=SANDBOX_NAME,
             registry=self.registry,
             version="v0.0",
-            imported_projects=[ImportedProject(project_name, dnss, version=project_v)],
-            envs=[ProjectEnv(env, import_envs={project_name: env}) for env in envs],
+            imported_projects=[ImportedProject(p_name, dnss, version=p_v)],
+            envs=[ProjectEnv(env, import_envs={p_name: env}) for env in envs],
         )
         test_conf.dump()
         test_reg = Registry(test_conf, True)
         test_reg.update()
         try:
             test_reg.full_build()
-            runtime = get_runtime(True)
+            runtime = get_runtime()
             runtime.load_all_data()
-            for dataset in datasets:
-                dataset.set_from_project(self.remote, runtime, self.book_root)
-            reset_meta_module()
+            for dataset in ds_list:
+                dataset.set_from_project(runtime)
+                self.prepped_datasets.put(dataset)
         finally:
             test_reg.purge()
 
@@ -285,21 +273,13 @@ class ExplorerContext:
 def init_explorer(cron: str = "0 15 * * *"):
     write_book_actions(cron)
     REQUIREMENTS_FILE.write_text(f"{PACKAGE_NAME}[explorer]")
+    SETUP_DIR.mkdir(exist_ok=True)
     load_explorer_data()
 
 
 def load_explorer_data():
     get_full_auth().dump_dvc(local=False)
-    ctx = ExplorerContext.load()
-    ctx.load_data()
-    for ds in ctx.datasets:
-        ds.dump()
-    cc_datasets = {"datasets": {"datasets": [ds.cc_context for ds in ctx.datasets]}}
-    cc_dic = {
-        "analytics_id": ctx.analytics_id,
-        **cc_datasets,
-    }
-    CC_BASE_FILE.write_text(yaml.safe_dump(cc_dic))
+    ExplorerContext.load().load_data()
 
 
 def build_explorer():
@@ -322,7 +302,7 @@ def build_explorer():
 def _extend_with_notebooks(cc_dic):
     for nb_path in DATASETS.glob("**/*.ipynb"):
         if ".ipynb_checkpoints" in nb_path.parts:
-            continue
+            continue  # pragma: no cover
         dataset_slug = nb_path.parts[-2]
         for ds_dic in cc_dic["datasets"]["datasets"]:
             if ds_dic["slug"] == dataset_slug:
@@ -379,9 +359,12 @@ class _NBParser:
             self.cc_dic[out_key].append(out_path.relative_to(self.ds_root).as_posix())
 
 
-def _shorten(profile):
-    from bs4 import BeautifulSoup, Tag
+def get_profile_str(df, minimal):
 
+    from bs4 import BeautifulSoup, Tag
+    from pandas_profiling import ProfileReport
+
+    profile = ProfileReport(df, minimal=minimal)
     soup = BeautifulSoup(profile.to_html(), "html5lib")
     bs_root = "https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist"
 
@@ -409,8 +392,8 @@ def _title(s):
     return camel_to_snake(s).replace("_", " ").title()
 
 
-def _get_filesize(file_str):
-    kb_size = len(file_str.encode("utf-8")) / 2**10
-    if kb_size > 1000:
-        return f"{kb_size / 2 ** 10:0.2f} MB"
+def _get_filesize(blob: bytes):
+    kb_size = len(blob) / 1000
+    if kb_size > 1000:  # pragma: no cover
+        return f"{kb_size / 1000:0.2f} MB"
     return f"{kb_size:0.2f} kB"

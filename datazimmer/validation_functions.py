@@ -2,17 +2,15 @@ import re
 from contextlib import contextmanager
 from pathlib import Path
 from subprocess import check_call
-from typing import TYPE_CHECKING
 
 from structlog import get_logger
 
-from .config_loading import Config, ImportedProject, ProjectEnv
+from .config_loading import Config
 from .get_runtime import get_runtime
 from .naming import (
     CONSTR,
     DEFAULT_REGISTRY,
     MAIN_MODULE_NAME,
-    META_MODULE_NAME,
     SANDBOX_DIR,
     SANDBOX_NAME,
     TEMPLATE_REPO,
@@ -21,10 +19,6 @@ from .registry import Registry
 from .sql.draw import dump_graph
 from .sql.loader import SqlLoader
 from .utils import cd_into
-
-if TYPE_CHECKING:
-    from .project_runtime import ProjectRuntime  # pragma: no cover
-
 
 logger = get_logger(ctx="validation")
 
@@ -74,26 +68,6 @@ def sql_validation(constr, env, draw=False, batch_size=2000):
         loader.validate_data(env)
     finally:
         loader.purge()
-
-
-def validate_importable(runtime: "ProjectRuntime"):
-    name = runtime.config.name
-    envs = runtime.config.validation_envs
-    with sandbox_project(runtime.config.registry) as core_path:
-        test_conf = Config(
-            name=SANDBOX_NAME,
-            version="v0.0",
-            imported_projects=[ImportedProject(name)],
-            envs=[ProjectEnv(f"test_{env}", import_envs={name: env}) for env in envs],
-            registry=runtime.config.registry,
-        )
-        test_reg = Registry(test_conf)
-        test_reg.full_build()
-        test_conf.dump()
-        core_path.write_text(f"from {META_MODULE_NAME} import {name}")
-        type(runtime)().load_all_data()
-        # TODO: assert this data matches local
-        test_reg.purge()
 
 
 def is_underscored_name(s):

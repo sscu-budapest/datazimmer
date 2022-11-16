@@ -1,5 +1,4 @@
 import datetime as dt
-import os
 from dataclasses import asdict
 from subprocess import check_call
 
@@ -11,20 +10,13 @@ from .config_loading import Config, RunConfig, get_tag
 from .exceptions import ProjectSetupException
 from .explorer import build_explorer, init_explorer, load_explorer_data
 from .get_runtime import get_runtime
-from .gh_actions import write_cron_actions
-from .naming import (
-    BASE_CONF_PATH,
-    CRON_ENV_VAR,
-    MAIN_MODULE_NAME,
-    SANDBOX_DIR,
-    TEMPLATE_REPO,
-)
-from .pipeline_registry import get_global_pipereg
+from .gh_actions import write_aswan_crons, write_project_cron
+from .naming import BASE_CONF_PATH, MAIN_MODULE_NAME, SANDBOX_DIR, TEMPLATE_REPO
 from .registry import Registry
 from .sql.draw import dump_graph
 from .sql.loader import tmp_constr
 from .utils import gen_rmtree, get_git_diffs, git_run
-from .validation_functions import validate, validate_importable
+from .validation_functions import validate
 
 logger = get_logger(ctx="CLI command")
 app = typer.Typer()
@@ -36,14 +28,14 @@ app.command()(load_explorer_data)
 
 
 @app.command()
-def run_step(name: str):
-    get_runtime().pipereg.get_step(name).run()
+def run_step(name: str, env: str):
+    get_runtime().run_step(name, env)
 
 
 @app.command()
 def publish_meta():
     _validate_empty_vc("publishing meta", [MAIN_MODULE_NAME])
-    get_runtime(True).registry.publish()
+    get_runtime().registry.publish()
 
 
 @app.command()
@@ -71,15 +63,15 @@ def draw(v: bool = False):
 
 
 @app.command()
-def publish_data(validate: bool = False):
+def publish_data():
     build_meta()
     _validate_empty_vc("publishing data")
-    runtime = get_runtime(True)
+    runtime = get_runtime()
     dvc_repo = Repo()
     data_version = runtime.metadata.next_data_v
     vtags = []
     for env in runtime.config.sorted_envs:
-        targets = runtime.pipereg.step_names_of_env(env.name)
+        targets = runtime.step_names_of_env(env.name)
         logger.info("pushing targets", targets=targets, env=env.name)
         dvc_repo.push(targets=targets, remote=env.remote)
         vtag = get_tag(runtime.config.version, data_version, env.name)
@@ -90,19 +82,16 @@ def publish_data(validate: bool = False):
     for tag_to_push in vtags:
         check_call(["git", "push", "origin", tag_to_push])
     runtime.registry.publish()
-    if validate:
-        validate_importable(runtime)
 
 
 @app.command()
 def build_meta(global_conf: bool = False):
-    get_global_pipereg(reset=True)  # used when building meta from script
-    Registry(Config.load()).full_build(global_conf)
-    runtime = get_runtime(True)
-    crons = set(filter(None, [s.cron for s in runtime.pipereg.steps]))
-    if crons:
-        logger.info("writing github actions files for crons", crons=crons)
-        write_cron_actions(crons)
+    config = Config.load()
+    Registry(config).full_build(global_conf)
+    if config.cron:
+        write_project_cron(config.cron)
+    runtime = get_runtime()
+    write_aswan_crons(runtime.metadata.complete.aswan_projects)
 
 
 @app.command()
@@ -112,13 +101,13 @@ def load_external_data(git_commit: bool = False, env: str = None):
     should probably be a bit more clever,
     but dvc handles quite a lot of caching
     """
-    runtime = get_runtime(True)
+    runtime = get_runtime()
     logger.info("loading external data", envs=runtime.data_to_load)
     posixes = runtime.load_all_data(env=env)
     if git_commit and posixes:
         git_run(add=["*.gitignore", *[f"{p}.dvc" for p in posixes]])
         if get_git_diffs(True):
-            git_run(msg="add imported datases")
+            git_run(msg="add imported datasets")
 
 
 @app.command()
@@ -129,12 +118,12 @@ def cleanup():
 
 
 @app.command()
-def run_cronjobs(cronexpr: str = None, commit: bool = True):
+def run_aswan_project(project: str = ""):
     runtime = get_runtime()
-    for step in runtime.pipereg.steps:
-        if step.cron == (cronexpr or os.environ.get(CRON_ENV_VAR)):
-            runtime.config.bump_cron(step.name)
-    run(commit=commit)
+    for asw_project in runtime.metadata.complete.aswan_projects:
+        if project and (project != asw_project.name):
+            continue
+        asw_project(global_run=True).run()
 
 
 @app.command()
@@ -142,22 +131,21 @@ def run(
     stage: bool = True, profile: bool = False, env: str = None, commit: bool = False
 ):
     dvc_repo = Repo(config={"core": {"autostage": stage}})
-    runtime = get_runtime(True)
-    stage_names = []
-    for step in runtime.pipereg.steps:
-        logger.info("adding step", step=step)
-        step.add_as_stage(dvc_repo)
-        stage_names.append(step.name)
-
+    runtime = get_runtime()
+    stage_names = [
+        stage_name
+        for step in runtime.metadata.complete.pipeline_elements
+        for stage_name in step.add_stages(dvc_repo)
+    ]
     for stage in dvc_repo.stages:
         if stage.is_data_source or stage.is_import or (stage.name in stage_names):
             continue
-        logger.info("removing step", step=step)
+        logger.info("removing dvc stage", stage=stage.name)
         dvc_repo.remove(stage.name)
         dvc_repo.lock.lock()
         stage.remove_outs(force=True)
         dvc_repo.lock.unlock()
-    targets = runtime.pipereg.step_names_of_env(env) if env else None
+    targets = runtime.step_names_of_env(env) if env else None
     rconf = RunConfig(profile=profile)
     with rconf:
         logger.info("running repro", targets=targets, **asdict(rconf))

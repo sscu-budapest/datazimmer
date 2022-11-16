@@ -1,6 +1,11 @@
+import inspect
+import sys
 from dataclasses import dataclass
 from functools import partial
-from typing import Dict, List
+from importlib import import_module
+from pathlib import Path
+from pkgutil import walk_packages
+from typing import TypeVar
 
 from dvc.repo import Repo
 from structlog import get_logger
@@ -8,13 +13,21 @@ from structlog import get_logger
 from .config_loading import Config
 from .exceptions import ProjectSetupException
 from .metadata.atoms import EntityClass
-from .metadata.project_metadata import ProjectMetadata
+from .metadata.complete_id import CompleteIdBase
+from .metadata.high_level import NamespaceMetadata, ProjectMetadata
 from .metadata.scrutable import ScruTable
-from .module_tree import ModuleTree
-from .naming import PREFIX_SEP, get_data_path
-from .pipeline_registry import get_global_pipereg
+from .naming import (
+    MAIN_MODULE_NAME,
+    META_MODULE_NAME,
+    PREFIX_SEP,
+    VERSION_VAR_NAME,
+    get_data_path,
+)
 from .registry import Registry
-from .utils import gen_rmtree, reset_meta_module, reset_src_module
+from .utils import gen_rmtree
+
+T = TypeVar("T")
+
 
 logger = get_logger()
 
@@ -24,14 +37,19 @@ class ProjectRuntime:
         self.config: Config = Config.load()
         self.name = self.config.name
         self.registry = Registry(self.config)
-        self.pipereg = get_global_pipereg(reset=True)
-        reset_src_module()
-        reset_meta_module()
-        module_tree = ModuleTree(self.config, self.registry)
+        self._module_dic = {}
+        self._collected_modules = set()
+        self._ns_meta_dic: dict[CompleteIdBase, NamespaceMetadata] = {}
+        self.metadata_dic: dict[str, ProjectMetadata] = {}
 
-        self.metadata: ProjectMetadata = module_tree.project_meta
-        self.metadata_dic: Dict[str, ProjectMetadata] = module_tree.project_meta_dic
-        self.data_to_load: List[DataEnvironmentToLoad] = self._get_data_envs()
+        sys.path.insert(0, Path.cwd().as_posix())
+        self._walk_module(import_module(MAIN_MODULE_NAME))
+        # self._walk_id(META_MODULE_NAME, True) simpler but bloating
+        while self._module_dic.keys() != self._collected_modules:
+            self._collect_metas()
+        self._fill_projects()
+        self.metadata = self.metadata_dic[self.name]
+        self.data_to_load: list[DataEnvironmentToLoad] = self._get_data_envs()
 
     def load_all_data(self, env=None):
         dvc_repo = Repo()
@@ -69,6 +87,20 @@ class ProjectRuntime:
         msg = f"couldn't find table for {feat_elems} in {base_table.id_}"
         raise ProjectSetupException(msg)
 
+    def run_step(self, namespace, env):
+        for step in self.metadata.namespaces[namespace].pipeline_elements:
+            if env in step.write_envs:
+                step.run(env)
+                for a_name in step.aswan_dependencies:
+                    leaf = self.config.get_aswan_spec(a_name).current_leaf
+                    self.config.update_aswan_for_step(a_name, namespace, leaf)
+                return
+        raise KeyError("no such step")
+
+    def step_names_of_env(self, env):
+        steps = self.metadata.complete.pipeline_elements
+        return [step.stage_name(env) for step in steps if env in step.write_envs]
+
     def _get_data_envs(self):
         arg_set = set()
         for env in self.config.envs:
@@ -82,6 +114,54 @@ class ProjectRuntime:
                 for ns in nss:
                     arg_set.add((project_name, meta.uri, ns, data_env, tag))
         return [DataEnvironmentToLoad(*args) for args in arg_set]
+
+    def _walk_module(self, mod):
+        self._module_dic[mod.__name__] = mod
+        src_dir = Path(mod.__file__).parent.as_posix()
+        for _info in walk_packages([src_dir], f"{mod.__package__}."):
+            _m = import_module(_info.name)
+            self._module_dic[_info.name] = _m
+
+    def _collect_metas(self):
+        # TODO: do this (optionally) for data importing as well
+        for ns_module_id, module in list(self._module_dic.items()):
+            if ns_module_id in self._collected_modules:
+                continue
+            self._parse_module(module)
+            self._collected_modules.add(ns_module_id)
+
+    def _parse_module(self, module):
+        base_id = CompleteIdBase.from_module_name(module.__name__, self.name)
+        if base_id is None:
+            return
+        if base_id not in self._ns_meta_dic.keys():
+            self._ns_meta_dic[base_id] = NamespaceMetadata(base_id.namespace)
+        ns_meta = self._ns_meta_dic[base_id]
+
+        for obj in map(partial(getattr, module), dir(module)):
+            if inspect.ismodule(obj) and _dz_module(obj.__name__):
+                self._walk_module(obj)
+                continue
+            mod_name = getattr(obj, "__module__", "")  # set for relevant instances
+            if _dz_module(mod_name):
+                if mod_name != module.__name__:
+                    self._module_dic[mod_name] = import_module(mod_name)
+                else:
+                    ns_meta.add_obj(obj)
+
+    def _fill_projects(self):
+        for base_id, ns_meta in self._ns_meta_dic.items():
+            proj_id = base_id.project
+            if proj_id == self.name:
+                proj_v = self.config.version
+            else:
+                proj_v = _get_v_of_ext_project(proj_id)
+            if proj_id not in self.metadata_dic.keys():
+                init_kwargs = self.registry.get_project_meta_base(proj_id, proj_v)
+                if not init_kwargs:
+                    continue
+                self.metadata_dic[proj_id] = ProjectMetadata(**init_kwargs)
+            self.metadata_dic[proj_id].namespaces[base_id.namespace] = ns_meta
 
 
 @dataclass
@@ -120,3 +200,13 @@ def dump_dfs_to_tables(df_structable_pairs, parse=True, **kwargs):
     """helper function to fill the detected env of a dataset"""
     for df, structable in df_structable_pairs:
         structable.replace_all(df, parse, **kwargs)
+
+
+def _get_v_of_ext_project(project_name):
+    module_name = f"{META_MODULE_NAME}.{project_name}"
+    return getattr(import_module(module_name), VERSION_VAR_NAME)
+
+
+def _dz_module(module_name: str):
+    prefixes = [META_MODULE_NAME, MAIN_MODULE_NAME]
+    return any(map(lambda s: module_name.startswith(f"{s}"), prefixes))

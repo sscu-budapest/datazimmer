@@ -22,6 +22,10 @@ Make sure that `python` points to `python>=3.8` and you have `pip` and `git`
 
 ### Engineer Research
 
+## Scheduling
+
+- a project as a whole has a cron expression to determine the schedule of reruns
+- additionally, aswan projects within the dz project can have different cron expressions for scheduling new runs of the aswan projects
 
 ## Lookahead
 

@@ -44,5 +44,5 @@ class CompleteIdBase:
         _splitted = module_name.split(".")
         if _splitted[0] == META_MODULE_NAME:
             return cls(*_splitted[1:3])
-        elif _splitted[0] == MAIN_MODULE_NAME:
+        elif (_splitted[0] == MAIN_MODULE_NAME) and (len(_splitted) > 1):
             return cls(project, _splitted[1])

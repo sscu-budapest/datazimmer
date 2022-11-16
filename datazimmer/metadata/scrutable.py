@@ -1,8 +1,7 @@
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
-from inspect import getmodule, stack
-from typing import Dict, List, Optional, Type
+from typing import Optional
 
 import pandas as pd
 import sqlalchemy as sa
@@ -11,11 +10,10 @@ from structlog import get_logger
 
 from ..config_loading import Config, RunConfig, UnavailableTrepo
 from ..exceptions import ProjectRuntimeException
-from ..primitive_types import PrimitiveType, get_np_type, get_sa_type
-from ..utils import camel_to_snake, chainmap
+from ..utils import camel_to_snake, chainmap, get_creation_module_name
 from .atoms import CompositeFeature, EntityClass, ObjectProperty, PrimitiveFeature
 from .complete_id import CompleteId, CompleteIdBase
-from .datascript import AbstractEntity
+from .datascript import AbstractEntity, PrimitiveType, get_np_type, get_sa_type
 
 logger = get_logger()
 
@@ -23,16 +21,16 @@ logger = get_logger()
 class ScruTable:
     def __init__(
         self,
-        entity: Type[AbstractEntity],
-        entity_key_table_map: Optional[Dict[str, "ScruTable"]] = None,
-        partitioning_cols: Optional[List[str]] = None,
+        entity: type[AbstractEntity],
+        entity_key_table_map: Optional[dict[str, "ScruTable"]] = None,
+        partitioning_cols: Optional[list[str]] = None,
         max_partition_size: Optional[int] = None,
     ) -> None:
         # TODO: somehow add possibility for a description
 
         self._conf = Config.load()
-        self.module_name = getmodule(stack()[1][0]).__name__
-        self.id_: CompleteId = self._infer_id(entity, self.module_name)
+        self.__module__ = get_creation_module_name()
+        self.id_: CompleteId = self._infer_id(entity, self.__module__)
         self.key_map = entity_key_table_map or {}
         self.entity_class: EntityClass = EntityClass.from_cls(entity)
 
@@ -60,6 +58,9 @@ class ScruTable:
         self.replace_all = self._write_wrap(self.trepo.replace_all)
         self.replace_records = self._write_wrap(self.trepo.replace_records)
         self.replace_groups = self._write_wrap(self.trepo.replace_groups)
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({self.name}, {self.__module__})"
 
     def purge(self):
         with self.env_ctx(RunConfig.load().write_env):
@@ -133,11 +134,11 @@ class Column:
     nullable: bool = False
 
 
-def feats_to_cols(feats, proc_fk=None, wrap=lambda x: x) -> List[Column]:
+def feats_to_cols(feats, proc_fk=None, wrap=lambda x: x) -> list[Column]:
     return chainmap(partial(feat_to_cols, proc_fk=proc_fk, wrap=wrap), feats)
 
 
-def feat_to_cols(feat, proc_fk, wrap, init_prefix=(), open_to_fk=True) -> List:
+def feat_to_cols(feat, proc_fk, wrap, init_prefix=(), open_to_fk=True) -> list:
 
     new_open_to_fk = True
     fk_to = None

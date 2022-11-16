@@ -1,5 +1,6 @@
 """sscu-budapest utilities for scientific data engineering"""
 # flake8: noqa
+from .aswan_integration import DzAswan
 from .metadata.atoms import EntityClass
 from .metadata.datascript import (
     AbstractEntity,
@@ -9,7 +10,8 @@ from .metadata.datascript import (
     SourceUrl,
 )
 from .metadata.scrutable import ScruTable
-from .pipeline_registry import register, register_data_loader, register_env_creator
+from .persistent_state import PersistentState
+from .pipeline_element import register, register_data_loader, register_env_creator
 from .project_runtime import dump_dfs_to_tables
 from .reporting import ReportFile
 from .typer_commands import app

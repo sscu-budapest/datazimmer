@@ -1,9 +1,9 @@
+import multiprocessing as mp
 import os
 from pathlib import Path
 
 from datazimmer.config_loading import Config
 from datazimmer.explorer import init_explorer
-from datazimmer.metadata.atoms import _GLOBAL_CLS_MAP
 from datazimmer.naming import BASE_CONF_PATH, MAIN_MODULE_NAME
 from datazimmer.typer_commands import (
     build_explorer,
@@ -14,11 +14,11 @@ from datazimmer.typer_commands import (
     publish_data,
     publish_meta,
     run,
-    run_cronjobs,
+    run_aswan_project,
     update,
     validate,
 )
-from datazimmer.utils import cd_into, get_git_diffs, git_run, reset_meta_module
+from datazimmer.utils import cd_into, get_git_diffs, git_run
 
 from .create_dogshow import DogshowContextCreator, modify_to_version
 
@@ -48,36 +48,45 @@ def test_full_dogshow(tmp_path: Path, pytestconfig, proper_env, test_bucket):
 
 
 def run_project_test(dog_context, constr):
-    reset_meta_module()
-    with dog_context as (versions, crons):
-        init_version = Config.load().version
+    with dog_context as (name, versions):
+        print("%" * 40, "\n" * 8, name, "\n" * 8, "%" * 40, sep="\n")
+        conf = Config.load()
         _complete(constr)
         for testv in versions:
-            [_GLOBAL_CLS_MAP.pop(k) for k in [*_GLOBAL_CLS_MAP.keys()]]
             modify_to_version(testv)
-            if testv == init_version:
+            if testv == conf.version:
                 # should warn and just try install
-                build_meta()
+                _run(build_meta)
                 continue
             _complete(constr)
-            build_meta()
-        for cronexpr in crons:
+            _run(build_meta)
+        if conf.cron:
             # TODO: warn if same data is tagged differently
-            run_cronjobs(cronexpr)
-            validate()
-            publish_data(validate=True)
+            _run(build_meta)
+            _run(run_aswan_project)
+            _run(run, commit=True, profile=True)
+            _run(publish_data)
 
 
 def _complete(constr):
-    draw()
-    build_meta()
+    _run(build_meta)
+    _run(draw)
     git_run(add=[MAIN_MODULE_NAME, BASE_CONF_PATH])
     get_git_diffs(True) and git_run(msg="build")
-    load_external_data(git_commit=True)
-    run(commit=True)
-    validate(constr)
-    publish_meta()
-    reset_meta_module()
-    publish_data()
-    update()
-    reset_meta_module()
+    _run(load_external_data, git_commit=True)
+    _run(run_aswan_project)
+    _run(run, commit=True)
+    _run(validate, constr)
+    _run(publish_meta)
+    _run(publish_data)
+    _run(update)
+
+
+def _run(fun, *args, **kwargs):
+    print("*" * 20, "RUNNING", fun.__name__, "*" * 20)
+    proc = mp.Process(target=fun, args=args, kwargs=kwargs, name=fun.__name__)
+    proc.start()
+    proc.join()
+    assert proc.exitcode == 0
+    proc.terminate()
+    proc.close()
