@@ -44,7 +44,7 @@ class PipelineElement:
         if not self.write_envs:
             self.write_envs = _conf.env_names
         if self.is_data_loader:
-            self.outputs.append(cbase)
+            self.outputs_persist.append(cbase)
             self.write_envs = [_conf.default_env]
         if self.is_env_creator:
             self.outputs.append(cbase)
