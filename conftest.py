@@ -9,11 +9,11 @@ import moto
 import pytest
 from aswan.constants import DEFAULT_REMOTE_ENV_VAR, DEPOT_ROOT_ENV_VAR
 from aswan.depot import HEX_ENV, PW_ENV
+from dvc.config import Config as DvcConfig
 from zimmauth import ZimmAuth
 from zimmauth.core import LOCAL_HOST_NAMES_ENV_VAR
 
 from datazimmer.config_loading import RunConfig
-from datazimmer.get_runtime import get_runtime
 from datazimmer.naming import (
     AUTH_HEX_ENV_VAR,
     AUTH_PASS_ENV_VAR,
@@ -75,6 +75,14 @@ def test_bucket():
 
 @pytest.fixture
 def proper_env():
+
+    conf = DvcConfig()
+    gpath = Path(conf.files.get("global"))
+
+    old_conf = None
+    if gpath.name and gpath.exists():
+        old_conf = gpath.read_text()
+
     tmp_dir = TemporaryDirectory()
     tmp_path = Path(tmp_dir.name)
     rem_path, local_path = tmp_path / "aswan-remote", tmp_path / "aswan-local"
@@ -107,3 +115,5 @@ def proper_env():
     os.environ[DEPOT_ROOT_ENV_VAR] = local_path.as_posix()
     yield
     tmp_dir.cleanup()
+    if old_conf:
+        gpath.write_text(old_conf)
