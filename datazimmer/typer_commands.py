@@ -118,12 +118,14 @@ def cleanup():
 
 
 @app.command()
-def run_aswan_project(project: str = ""):
+def run_aswan_project(project: str = "", publish: bool = True):
     runtime = get_runtime()
     for asw_project in runtime.metadata.complete.aswan_projects:
         if project and (project != asw_project.name):
             continue
         asw_project(global_run=True).run()
+    if publish:
+        git_run(add=(BASE_CONF_PATH,), msg="ran aswan", push=True)
 
 
 @app.command()
