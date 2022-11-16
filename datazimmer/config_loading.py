@@ -46,8 +46,7 @@ class ProjectEnv:
                 repo = Repo()
                 self.remote = repo.config["core"]["remote"]
             except KeyError:
-                msg = "can't get default remote from dvc repo"
-                logger.warning(msg)
+                pass
 
 
 @dataclass
