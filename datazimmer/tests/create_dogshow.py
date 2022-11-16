@@ -60,7 +60,7 @@ class DogshowContextCreator:
         root_dir.mkdir()
         template_path = project_cc_root / f"cc-{name}"
         git_remote = self._init_if_local(self.remote_root / f"dogshow-{name}")
-        check_call(["git", "clone", TEMPLATE_REPO, "."], cwd=root_dir)
+        git_run(clone=(TEMPLATE_REPO, "."), wd=root_dir)
         Path(root_dir, MAIN_MODULE_NAME, "core.py").unlink()
         check_call(["git", "remote", "set-url", "origin", git_remote], cwd=root_dir)
         generate_files(
