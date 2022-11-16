@@ -124,8 +124,9 @@ def run_aswan_project(project: str = "", publish: bool = True):
         if project and (project != asw_project.name):
             continue
         asw_project(global_run=True).run()
-    if publish and get_git_diffs():
-        git_run(add=(BASE_CONF_PATH,), msg="ran aswan", push=True)
+    git_run(add=(BASE_CONF_PATH,))
+    if publish and get_git_diffs(staged=True):
+        git_run(msg="ran aswan", push=True)
 
 
 @app.command()
