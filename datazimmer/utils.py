@@ -22,8 +22,9 @@ def get_creation_module_name():
     return getmodule(stack()[2][0]).__name__
 
 
-def git_run(add=(), msg=None, pull=False, push=False, wd=None):
+def git_run(*, add=(), msg=None, pull=False, push=False, wd=None, clone=()):
     for k, git_cmd in [
+        (clone, ["clone", "--depth", "1", *clone]),
         (pull, ["pull"]),
         (add, ["add", *add]),
         (msg, ["commit", "-m", msg]),

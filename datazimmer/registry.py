@@ -45,9 +45,9 @@ class Registry:
             gen_rmtree(self.paths.dir)
             self.paths.dir.mkdir(parents=True)
             try:
-                check_call(["git", "clone", conf.registry, self.posix])
+                git_run(clone=(conf.registry, self.posix))
             except CalledProcessError:  # pragma: no cover
-                check_call(["git", "clone", _de_auth(conf.registry, True), self.posix])
+                git_run(clone=(_de_auth(conf.registry, True), self.posix))
 
             self.paths.ensure()
         self.requires = [

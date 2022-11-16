@@ -23,7 +23,7 @@ from datazimmer.naming import (
 )
 from datazimmer.tests.create_dogshow import dogshow_root
 from datazimmer.typer_commands import cleanup
-from datazimmer.utils import cd_into, gen_rmtree
+from datazimmer.utils import cd_into, gen_rmtree, git_run
 
 CORE_PY = dogshow_root / "minimal.py"
 
@@ -36,7 +36,7 @@ def pytest_addoption(parser):
 @pytest.fixture(scope="session")
 def empty_template():
     tmpdir = TemporaryDirectory().name
-    check_call(["git", "clone", TEMPLATE_REPO, tmpdir])
+    git_run(clone=(TEMPLATE_REPO, tmpdir))
     with cd_into(tmpdir):
         check_call(["dvc", "remote", "add", "testrem", "/nothing"])
         check_call(["dvc", "remote", "default", "testrem"])

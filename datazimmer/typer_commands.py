@@ -45,7 +45,7 @@ def update_registry():
 
 @app.command()
 def init(name: str):
-    check_call(["git", "clone", TEMPLATE_REPO, name])
+    git_run(clone=(TEMPLATE_REPO, name))
     check_call(["git", "remote", "rename", "origin", "template"], cwd=name)
 
 

@@ -1,7 +1,6 @@
 import re
 from contextlib import contextmanager
 from pathlib import Path
-from subprocess import check_call
 
 from structlog import get_logger
 
@@ -18,7 +17,7 @@ from .naming import (
 from .registry import Registry
 from .sql.draw import dump_graph
 from .sql.loader import SqlLoader
-from .utils import cd_into
+from .utils import cd_into, git_run
 
 logger = get_logger(ctx="validation")
 
@@ -85,7 +84,7 @@ def is_step_name(s):
 @contextmanager
 def sandbox_project(registry=DEFAULT_REGISTRY):
     if not SANDBOX_DIR.exists():
-        check_call(["git", "clone", TEMPLATE_REPO, SANDBOX_DIR.as_posix()])
+        git_run(clone=(TEMPLATE_REPO, SANDBOX_DIR.as_posix()))
         with cd_into(SANDBOX_DIR):
             conf = Config(SANDBOX_NAME, "v0.0", registry=registry)
             conf.dump()
