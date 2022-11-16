@@ -57,7 +57,11 @@ def update_data(data_root):
     spots_df = pd.read_csv(f"{data_root}/spotted.csv", dtype=str)
 
     for coll_ev in PhotoProject().get_unprocessed_events(PhotoCollector):
-        ns.photo_table.extend(coll_ev.content)
+        ns.photo_table.replace_records(coll_ev.content)
+
+    # test if output got extended
+    old_state = PhotoState.load()
+    assert ns.photo_table.get_full_df().shape[0] > old_state.photos_loaded
 
     PhotoState(ns.photo_table.get_full_df().shape[0]).save()
     # for cron - data update
