@@ -211,25 +211,21 @@ class ExplorerContext:
     cc_template: str = CC_DIR
     cc_checkout: Optional[str] = None
     analytics_id: Optional[str] = None
-    prepped_datasets: Queue[ExplorerDataset] = field(default_factory=mp.Queue)
 
     def load_data(self):
         # to avoid dependency clashes, it is slower but simpler
         # to setup a sandbox one by one
+        preps: list[ExplorerDataset] = []
         with sandbox_project(self.registry) as core_path:
             # TODO: avoid recursive data imports here
             for _, ds_iter in groupby(self.datasets, ExplorerDataset.id_):
-                proc = mp.Process(
-                    target=self._set_from_project, args=(core_path, list(ds_iter))
-                )
-                proc.start()
-                proc.join()
-                proc.close()
+                self._run_as_proc(list(ds_iter), core_path, preps)
+
         cc_base = {"analytics_id": self.analytics_id, "datasets": {"datasets": []}}
-        while not self.prepped_datasets.empty():
-            pdset = self.prepped_datasets.get()
+        for pdset in preps:
             pdset.dump(self.remote)
             cc_base["datasets"]["datasets"].append(pdset.cc_context)
+
         CC_BASE_FILE.write_text(yaml.safe_dump(cc_base))
 
     @classmethod
@@ -243,7 +239,9 @@ class ExplorerContext:
             remote = LocalRemote(remote_raw)
         return cls(tdirs, remote, **conf_dic)
 
-    def _set_from_project(self, core_path: Path, ds_list: list[ExplorerDataset]):
+    def _set_from_project(
+        self, core_path: Path, ds_list: list[ExplorerDataset], pq: Queue
+    ):
         p_name, p_v = ds_list[0].id_()
         names = ", ".join([ds.namespace for ds in ds_list])
         core_path.write_text(f"from {META_MODULE_NAME}.{p_name} import {names}")
@@ -265,9 +263,20 @@ class ExplorerContext:
             runtime.load_all_data()
             for dataset in ds_list:
                 dataset.set_from_project(runtime)
-                self.prepped_datasets.put(dataset)
+                pq.put(dataset)
         finally:
             test_reg.purge()
+
+    def _run_as_proc(self, lds, core_path, preps: list):
+        pq = mp.Queue()
+        proc = mp.Process(target=self._set_from_project, args=(core_path, lds, pq))
+        proc.start()
+        for _ in lds:
+            preps.append(pq.get())
+        pq.close()
+        pq.join_thread()
+        proc.join()
+        proc.close()
 
 
 def init_explorer(cron: str = "0 15 * * *"):
