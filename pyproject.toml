@@ -26,7 +26,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-collect = ["aswan>=0.4.2"]
+collect = ["aswan[remote]>=0.4.2"]
 postgres = ["psycopg2"]
 profile = ["pyinstrument"]
 explorer = [
