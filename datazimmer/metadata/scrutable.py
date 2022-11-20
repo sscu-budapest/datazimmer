@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
-from typing import Callable, Optional
+from typing import Callable, Optional, TypeVar
 
 import pandas as pd
 import sqlalchemy as sa
@@ -16,6 +16,8 @@ from .complete_id import CompleteId, CompleteIdBase
 from .datascript import AbstractEntity, PrimitiveType, get_np_type, get_sa_type
 
 logger = get_logger()
+
+T = TypeVar("T")
 
 
 class ScruTable:
@@ -51,9 +53,7 @@ class ScruTable:
             self.partitioning_cols,
             self.max_partition_size,
         )
-        self.get_full_df: Callable[..., pd.DataFrame] = self._read_wrap(
-            self.trepo.get_full_df
-        )
+        self.get_full_df = self._read_wrap(self.trepo.get_full_df)
         self.map_partitions = self._read_wrap(self.trepo.map_partitions)
 
         self.extend = self._write_wrap(self.trepo.extend)
@@ -70,8 +70,8 @@ class ScruTable:
 
     def get_partition_paths(self, partition_col, env=None):
         with self.env_ctx(env or RunConfig.load().read_env):
-            for _, _paths in self.trepo.get_partition_paths(partition_col):
-                yield _paths
+            for gid, paths in self.trepo.get_partition_paths(partition_col):
+                yield gid, paths
 
     @property
     def paths(self):
@@ -93,7 +93,7 @@ class ScruTable:
         with self.trepo.env_ctx(true_env):
             yield
 
-    def _read_wrap(self, fun):
+    def _read_wrap(self, fun: Callable[..., T]) -> Callable[..., T]:
         def f(env=None, **kwargs):
             with self.env_ctx(env or RunConfig.load().read_env):
                 return fun(**kwargs)

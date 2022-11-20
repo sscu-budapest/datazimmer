@@ -76,7 +76,7 @@ class DogshowContextCreator:
             for remote_name, remote_id in self.dvc_remotes:
                 check_call(["dvc", "remote", "add", remote_name, remote_id])
             check_call(["dvc", "remote", "default", self.dvc_remotes[0][0]])
-            git_run(add=["*"], msg="setup project")
+            git_run(add=["*"], msg="setup project", push=True)
             yield name, _VERSIONS.get(name, [])
             sys.path.pop(0)
 

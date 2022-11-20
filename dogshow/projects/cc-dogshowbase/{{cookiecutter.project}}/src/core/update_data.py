@@ -3,6 +3,7 @@ from time import time
 
 import aswan
 import pandas as pd
+from atqo import parallel_map
 
 import datazimmer as dz
 
@@ -45,7 +46,6 @@ class PhotoProject(dz.DzAswan):
         self.starters[PhotoCollector] = [data_root]
 
 
-# TODO: state as dependency
 @dz.register_data_loader(extra_deps=[ns, PhotoProject, PhotoState])
 def update_data(data_root):
 
@@ -56,8 +56,9 @@ def update_data(data_root):
     rels_df = pd.read_csv(f"{data_root}/rel.csv").rename(columns=rel_renamer)
     spots_df = pd.read_csv(f"{data_root}/spotted.csv", dtype=str)
 
-    for coll_ev in PhotoProject().get_unprocessed_events(PhotoCollector):
-        ns.photo_table.replace_records(coll_ev.content)
+    # for coll_ev in PhotoProject().get_unprocessed_events(PhotoCollector):
+    #    ns.photo_table.replace_records(coll_ev.content)
+    list(parallel_map(_rep, PhotoProject().get_unprocessed_events(PhotoCollector)))
 
     # test if output got extended
     old_state = PhotoState.load()
@@ -82,3 +83,7 @@ def update_data(data_root):
         (spots_df, ns.spot_table),
     ]
     dz.dump_dfs_to_tables(pairs)
+
+
+def _rep(coll_ev: aswan.ParsedCollectionEvent):
+    ns.photo_table.replace_records(coll_ev.content)
