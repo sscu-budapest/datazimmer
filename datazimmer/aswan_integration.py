@@ -1,8 +1,14 @@
 from typing import TYPE_CHECKING
 
-from .config_loading import Config
+from dvc.repo import Repo
+from structlog import get_logger
+
+from .config_loading import Config, RunConfig, get_aswan_leaf_param_id
 from .metadata.complete_id import CompleteIdBase
+from .naming import BASE_CONF_PATH, get_stage_name
 from .utils import get_creation_module_name
+
+logger = get_logger("aswan_integration")
 
 if TYPE_CHECKING:
     from aswan import ANY_HANDLER_T
@@ -35,8 +41,8 @@ class DzAswan:
         self._depot.current.purge()
 
     def get_unprocessed_events(self, handler: "ANY_HANDLER_T", only_latest=False):
-        spec = self._conf.get_aswan_spec(self.name)
-        from_status = spec.processed_upto_by_ns.get(self._ns)
+        from_status = self.get_aswan_status()
+        logger.info("getting_unprocessed events", from_status=from_status, ns=self._ns)
         self._depot.pull(post_status=from_status)
         if from_status:
             runs = self._depot.get_missing_runs(self._depot.get_status(from_status))
@@ -53,3 +59,21 @@ class DzAswan:
     def extend_starters(self):
         """this runs prior to running the project"""
         pass  # pragma: no cover
+
+    def get_aswan_status(self):
+        conf = RunConfig.load()
+
+        stage_name = get_stage_name(self._ns, conf.write_env)
+        possible_deps = []
+        repo = Repo()
+
+        aswan_id = get_aswan_leaf_param_id(self.name)
+
+        for stage in repo.index.stages:
+            if stage.name == stage_name:
+                possible_deps = stage.deps
+
+        for dep in possible_deps:
+            if dep.def_path == BASE_CONF_PATH.as_posix():
+                info = dep.hash_info.value if dep.hash_info else {}
+                return info.get(aswan_id)

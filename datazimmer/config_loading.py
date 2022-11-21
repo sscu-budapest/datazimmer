@@ -59,7 +59,6 @@ class ImportedProject:
 @dataclass
 class AswanSpec:
     name: str
-    processed_upto_by_ns: dict[str, str] = field(default_factory=dict)
     current_leaf: Optional[str] = None
 
 
@@ -118,6 +117,7 @@ class Config:
             group_cols=partitioning_cols,
             max_records=max_partition_size or 0,
             env_parents=parents_dict,
+            drop_group_cols=True,
         )
 
     def get_data_envs(self, project, ns):
@@ -148,13 +148,8 @@ class Config:
     def update_aswan_spec(self, project_name, new_state):
         logger.info("global aswan", name=project_name, latest=new_state)
         self.get_aswan_spec(project_name).current_leaf = new_state
-        self._update_aswan_specs()
-
-    def update_aswan_for_step(self, project_name, namespace, new_state):
-        logger.info("aswan", name=project_name, processed=new_state, step=namespace)
-        spec = self.get_aswan_spec(project_name)
-        spec.processed_upto_by_ns[namespace] = new_state
-        self._update_aswan_specs()
+        raw_specs = {d.pop("name"): d for d in map(asdict, self.aswan_projects)}
+        self._update_raw({CONF_KEYS.aswan_projects: raw_specs})
 
     def dump(self):
         d = asdict(self)
@@ -177,10 +172,6 @@ class Config:
     @property
     def env_names(self):
         return [e.name for e in self.envs]
-
-    def _update_aswan_specs(self):
-        raw_specs = {d.pop("name"): d for d in map(asdict, self.aswan_projects)}
-        self._update_raw({CONF_KEYS.aswan_projects: raw_specs})
 
     def _update_raw(self, dic: dict):
         BASE_CONF_PATH.write_text(yaml.dump(self._load_raw() | dic, sort_keys=False))
@@ -247,6 +238,10 @@ def get_tag(meta_version, data_version, env):
 
 def get_full_auth():
     return ZimmAuth.from_env(AUTH_HEX_ENV_VAR, AUTH_PASS_ENV_VAR)
+
+
+def get_aswan_leaf_param_id(project_name):
+    return ".".join([CONF_KEYS.aswan_projects, project_name, SPEC_KEYS.current_leaf])
 
 
 def _to_list(entities: Union[dict, list], cls: Type[T], key_name="name") -> list[T]:

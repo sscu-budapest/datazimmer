@@ -91,9 +91,6 @@ class ProjectRuntime:
         for step in self.metadata.namespaces[namespace].pipeline_elements:
             if env in step.write_envs:
                 step.run(env)
-                for a_name in step.aswan_dependencies:
-                    leaf = self.config.get_aswan_spec(a_name).current_leaf
-                    self.config.update_aswan_for_step(a_name, namespace, leaf)
                 return
         raise KeyError("no such step")
 

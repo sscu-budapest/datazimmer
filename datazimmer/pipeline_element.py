@@ -8,7 +8,13 @@ from typing import Any, Optional
 from structlog import get_logger
 
 from .aswan_integration import DzAswan
-from .config_loading import CONF_KEYS, ENV_KEYS, SPEC_KEYS, Config, RunConfig
+from .config_loading import (
+    CONF_KEYS,
+    ENV_KEYS,
+    Config,
+    RunConfig,
+    get_aswan_leaf_param_id,
+)
 from .exceptions import ProjectSetupException
 from .metadata.complete_id import CompleteIdBase
 from .metadata.scrutable import ScruTable
@@ -18,6 +24,7 @@ from .naming import (
     PROFILES_PATH,
     cli_run,
     get_data_path,
+    get_stage_name,
 )
 from .persistent_state import PersistentState
 from .reporting import ReportFile
@@ -89,7 +96,7 @@ class PipelineElement:
             yield self.stage_name(write_env)
 
     def stage_name(self, env):
-        return f"{env}-{self.ns}"
+        return get_stage_name(self.ns, env)
 
     @property
     def ns(self):
@@ -115,8 +122,7 @@ class PipelineElement:
             parsed_params[k] = val
             param_ids.append(param_id)
         for a_name in self.aswan_dependencies:
-            _id = ".".join([CONF_KEYS.aswan_projects, a_name, SPEC_KEYS.current_leaf])
-            param_ids.append(_id)
+            param_ids.append(get_aswan_leaf_param_id(a_name))
         for pstate_id in self._get_persistent_state_dependencies(conf):
             param_ids.append(pstate_id)
         return param_ids, parsed_params

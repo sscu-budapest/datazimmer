@@ -9,8 +9,6 @@ import datazimmer as dz
 
 from . import ns_meta as ns
 
-depot_name = "dogshowbase-core"
-
 rel_renamer = {
     "owner_id": ns.Relationship.owner.cid,
     "dog_id": ns.Relationship.dog.cid,
@@ -38,7 +36,7 @@ class DataStoreState(dz.PersistentState):
 
 
 class PhotoProject(dz.DzAswan):
-    name = depot_name
+    name = "dogshowbase-core"
     cron: str = "0 11 * * 2"
 
     def extend_starters(self):
@@ -62,7 +60,7 @@ def update_data(data_root):
 
     # test if output got extended
     old_state = PhotoState.load()
-    assert ns.photo_table.get_full_df().shape[0] > old_state.photos_loaded
+    assert ns.photo_table.get_full_df().shape[0] == (old_state.photos_loaded + 10)
 
     PhotoState(ns.photo_table.get_full_df().shape[0]).save()
     # for cron - data update

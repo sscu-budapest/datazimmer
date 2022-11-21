@@ -71,6 +71,10 @@ def get_package_name(project_name):
     return f"{META_MODULE_NAME}-{project_name}"
 
 
+def get_stage_name(ns, write_env):
+    return f"{write_env}-{ns}"
+
+
 def cli_run(*funs):
     return " && ".join(f"{CLI} {_get_fun_name(f)}" for f in funs)
 
