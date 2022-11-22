@@ -29,6 +29,8 @@ class DzAswan:
         self._project = Project(self.name)
         self._depot = self._project.depot
         self._depot.setup()
+        self._unproc_pulled = False
+        self._complete_pulled = False
 
     def run(self):
         self.extend_starters()
@@ -43,7 +45,9 @@ class DzAswan:
     def get_unprocessed_events(self, handler: "ANY_HANDLER_T", only_latest=False):
         from_status = self.get_aswan_status()
         logger.info("getting_unprocessed events", from_status=from_status, ns=self._ns)
-        self._depot.pull(post_status=from_status)
+        if not self._unproc_pulled:
+            self._depot.pull(post_status=from_status)
+            self._unproc_pulled = True
         if from_status:
             runs = self._depot.get_missing_runs(self._depot.get_status(from_status))
         else:
@@ -53,7 +57,9 @@ class DzAswan:
         )
 
     def get_all_events(self, handler: "ANY_HANDLER_T"):
-        self._depot.pull(complete=True)
+        if not self._complete_pulled:
+            self._depot.pull(complete=True)
+            self._complete_pulled = True
         return self._depot.get_handler_events(handler)
 
     def extend_starters(self):
