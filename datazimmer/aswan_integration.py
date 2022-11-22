@@ -46,7 +46,11 @@ class DzAswan:
         from_status = self.get_aswan_status()
         logger.info("getting_unprocessed events", from_status=from_status, ns=self._ns)
         if not self._unproc_pulled:
-            self._depot.pull(post_status=from_status)
+            if from_status is None:
+                self._depot.pull(complete=True)
+                self._complete_pulled = True
+            else:
+                self._depot.pull(post_status=from_status)
             self._unproc_pulled = True
         if from_status:
             runs = self._depot.get_missing_runs(self._depot.get_status(from_status))
