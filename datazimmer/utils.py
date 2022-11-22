@@ -10,16 +10,22 @@ from typing import Type, Union
 
 from colassigner.util import camel_to_snake  # noqa: F401
 from sqlalchemy.dialects.postgresql import dialect as postgres_dialect
+from structlog import get_logger
 
 LINE_LEN = 119
 PRIMITIVE_MODULES = ["builtins", "datetime"]
 package_root = Path(__file__).parent.parent
 
+logger = get_logger("util")
+
 
 def get_creation_module_name():
-    # TODO module is none if in notebook
     # stack[2] as 0: utils, 1: dz module, 2: src/metazimmer
-    return getmodule(stack()[2][0]).__name__
+    try:
+        return getmodule(stack()[2][0]).__name__
+    except AttributeError:  # pragma: no cover
+        logger.warning("can't get module name, likely due to notebook call")
+        return None
 
 
 def git_run(*, add=(), msg=None, pull=False, push=False, wd=None, clone=()):
