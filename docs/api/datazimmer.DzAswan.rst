@@ -20,6 +20,7 @@ DzAswan
 
       ~DzAswan.extend_starters
       ~DzAswan.get_all_events
+      ~DzAswan.get_aswan_status
       ~DzAswan.get_unprocessed_events
       ~DzAswan.run
 
@@ -33,5 +34,6 @@ DzAswan
 
    .. automethod:: extend_starters
    .. automethod:: get_all_events
+   .. automethod:: get_aswan_status
    .. automethod:: get_unprocessed_events
    .. automethod:: run
