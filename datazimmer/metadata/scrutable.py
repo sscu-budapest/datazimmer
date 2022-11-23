@@ -71,7 +71,7 @@ class ScruTable:
     def get_partition_paths(self, partition_col, env=None):
         with self.env_ctx(env or RunConfig.load().read_env):
             for gid, paths in self.trepo.get_partition_paths(partition_col):
-                yield gid, paths
+                yield gid, list(paths)
 
     @property
     def paths(self):
