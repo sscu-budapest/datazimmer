@@ -140,7 +140,7 @@ class NamespaceMapper:
                 for _df in [df, df_sql]
             ]
         if df.empty and df_sql.empty:
-            logger.warn("empty data frames", table=table_id)
+            logger.warning("empty data frames", table=table_id)
 
         pd.testing.assert_frame_equal(df.loc[:, df_sql.columns], df_sql)
 
