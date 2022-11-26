@@ -18,7 +18,7 @@ from datazimmer.typer_commands import (
     update,
     validate,
 )
-from datazimmer.utils import cd_into, get_git_diffs, git_run
+from datazimmer.utils import cd_into, git_run
 
 from .create_dogshow import DogshowContextCreator, modify_to_version
 
@@ -71,8 +71,7 @@ def run_project_test(dog_context, constr):
 def _complete(constr):
     _run(build_meta)
     _run(draw)
-    git_run(add=[MAIN_MODULE_NAME, BASE_CONF_PATH])
-    get_git_diffs(True) and git_run(msg="build")
+    git_run(add=[MAIN_MODULE_NAME, BASE_CONF_PATH], msg="build", check=True)
     _run(load_external_data, git_commit=True)
     _run(run_aswan_project)
     _run(run, commit=True)

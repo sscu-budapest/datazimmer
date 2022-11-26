@@ -105,9 +105,8 @@ def load_external_data(git_commit: bool = False, env: str = None):
     logger.info("loading external data", envs=runtime.data_to_load)
     posixes = runtime.load_all_data(env=env)
     if git_commit and posixes:
-        git_run(add=["*.gitignore", *[f"{p}.dvc" for p in posixes]])
-        if get_git_diffs(True):
-            git_run(msg="add imported datasets")
+        vc_paths = ["*.gitignore", *[f"{p}.dvc" for p in posixes]]
+        git_run(add=vc_paths, msg="add imported datasets", check=True)
 
 
 @app.command()
@@ -124,9 +123,8 @@ def run_aswan_project(project: str = "", publish: bool = True):
         if project and (project != asw_project.name):
             continue
         asw_project(global_run=True).run()
-    git_run(add=(BASE_CONF_PATH,))
-    if publish and get_git_diffs(staged=True):
-        git_run(msg="ran aswan", push=True, pull=True)
+    if publish:
+        git_run(add=(BASE_CONF_PATH,), msg="asw-run", push=True, pull=True, check=True)
 
 
 @app.command()
@@ -154,17 +152,15 @@ def run(
         logger.info("running repro", targets=targets, **asdict(rconf))
         runs = dvc_repo.reproduce(targets=targets, pull=True)
     git_run(add=["dvc.yaml", "dvc.lock", BASE_CONF_PATH])
-    if commit and get_git_diffs(True):
+    if commit:
         now = dt.datetime.now().isoformat(" ", "minutes")
-        git_run(msg=f"at {now} ran: {runs}")
+        git_run(msg=f"at {now} ran: {runs}", check=True)
     return runs
 
 
 def _commit_dvc_default(remote):
     check_call(["dvc", "remote", "default", remote])
-    git_run(add=[".dvc"])
-    if get_git_diffs(True):
-        git_run(msg=f"update dvc default remote to {remote}")
+    git_run(add=[".dvc"], msg=f"update dvc default remote to {remote}", check=True)
 
 
 def _validate_empty_vc(attempt, prefs=("dvc.", MAIN_MODULE_NAME)):

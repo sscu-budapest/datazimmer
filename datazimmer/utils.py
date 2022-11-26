@@ -1,12 +1,13 @@
 import os
 import stat
 from contextlib import contextmanager
+from functools import partial
 from inspect import getmodule, stack
 from itertools import chain
 from pathlib import Path
 from shutil import rmtree
 from subprocess import check_call, check_output
-from typing import Type, Union
+from typing import Any, Type, Union
 
 from colassigner.util import camel_to_snake  # noqa: F401
 from sqlalchemy.dialects.postgresql import dialect as postgres_dialect
@@ -28,23 +29,27 @@ def get_creation_module_name():
         return None
 
 
-def git_run(*, add=(), msg=None, pull=False, push=False, wd=None, clone=()):
-    for k, git_cmd in [
+def git_run(
+    *, add=(), msg=None, pull=False, push=False, wd=None, clone=(), check=False
+):
+    _run = partial(_run_if, prefix=("git",), wd=wd)
+    batch_one = [
         (clone, ["clone", "--depth", "1", *clone]),
         (pull, ["pull"]),
         (add, ["add", *add]),
-        (msg, ["commit", "-m", msg]),
-        (push, ["push"]),
-    ]:
-        if k:
-            check_call(["git", *git_cmd], cwd=wd)
+    ]
+    _run(batch_one)
+
+    if check and (not get_git_diffs(True, wd=wd)):
+        return
+    _run([(msg, ["commit", "-m", msg]), (push, ["push"])])
 
 
-def get_git_diffs(staged=False):
+def get_git_diffs(staged=False, wd=None):
     comm = ["git", "diff", "--name-only"]
     if staged:
         comm.append("--cached")
-    diffs = check_output(comm)
+    diffs = check_output(comm, cwd=wd)
     return [*filter(None, diffs.decode("utf-8").strip().split("\n"))]
 
 
@@ -95,3 +100,8 @@ def _simplify_mro(parent_list: list[Type]):
             continue
         out.append(cls)
     return out
+
+
+def _run_if(pairs: list[tuple[Any, list]], prefix=(), wd=None):
+    for _, comm in filter(lambda kv: kv[0], pairs):
+        check_call([*prefix, *comm], cwd=wd)
