@@ -68,7 +68,7 @@ class ProjectMetadata:
     tags: list[str]
     cron: str = ""
     namespaces: dict[str, NamespaceMetadata] = field(default_factory=dict)
-    complete: NsCollection = field(init=False)
+    complete: NsCollection = field(init=False, repr=False)
     # TODO maybe elminate / rename namespace to module
 
     def __post_init__(self):
@@ -84,7 +84,7 @@ class ProjectMetadata:
         try:
             return sorted(self._tags_by_v.items())[-1][1][env]
         except IndexError:
-            logger.warning(f"no tagged data release for {self}")
+            logger.warning(f"no tagged data release for {self.uri}")
 
     @property
     def next_data_v(self):
