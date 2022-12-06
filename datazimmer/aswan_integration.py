@@ -26,47 +26,51 @@ class DzAswan:
         self._module = get_creation_module_name()
         self._ns = global_run or CompleteIdBase.from_module_name(self._module).namespace
         self._conf = Config.load()
-        self._project = Project(self.name)
-        self._depot = self._project.depot
-        self._depot.setup()
+        self.project = Project(self.name)
+        self.depot = self.project.depot
+        self.depot.setup()
         self._unproc_pulled = False
         self._complete_pulled = False
 
     def run(self):
-        self.extend_starters()
-        self._depot.pull()
-        self._project.cleanup_current_run()
-        self._project.run(urls_to_overwrite=self.starters)
-        latest = self._depot.save_current()
-        self._depot.push()
+        self.prepare_run()
+        logger.info("pulling")
+        self.depot.pull()
+        self.depot.current.purge()
+        self.project.run(urls_to_overwrite=self.starters)
+        logger.info("saving")
+        latest = self.depot.save_current()
+        logger.info("pushing")
+        self.depot.push()
         self._conf.update_aswan_spec(self.name, latest.name)
-        self._depot.current.purge()
+        self.depot.current.purge()
+        logger.info("done")
 
     def get_unprocessed_events(self, handler: "ANY_HANDLER_T", only_latest=False):
         from_status = self.get_aswan_status()
         logger.info("getting_unprocessed events", from_status=from_status, ns=self._ns)
         if not self._unproc_pulled:
             if from_status is None:
-                self._depot.pull(complete=True)
+                self.depot.pull(complete=True)
                 self._complete_pulled = True
             else:
-                self._depot.pull(post_status=from_status)
+                self.depot.pull(post_status=from_status)
             self._unproc_pulled = True
         if from_status:
-            runs = self._depot.get_missing_runs(self._depot.get_status(from_status))
+            runs = self.depot.get_missing_runs(self.depot.get_status(from_status))
         else:
             runs = None
-        return self._depot.get_handler_events(
+        return self.depot.get_handler_events(
             handler, only_latest=only_latest, past_runs=runs
         )
 
     def get_all_events(self, handler: "ANY_HANDLER_T"):
         if not self._complete_pulled:
-            self._depot.pull(complete=True)
+            self.depot.pull(complete=True)
             self._complete_pulled = True
-        return self._depot.get_handler_events(handler)
+        return self.depot.get_handler_events(handler)
 
-    def extend_starters(self):
+    def prepare_run(self):
         """this runs prior to running the project"""
         pass  # pragma: no cover
 

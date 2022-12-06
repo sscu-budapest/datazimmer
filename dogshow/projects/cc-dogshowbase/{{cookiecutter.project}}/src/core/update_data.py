@@ -39,7 +39,7 @@ class PhotoProject(dz.DzAswan):
     name = "dogshowbase-core"
     cron: str = "0 11 * * 2"
 
-    def extend_starters(self):
+    def prepare_run(self):
         data_root = DataStoreState.load().data_root
         self.starters[PhotoCollector] = [data_root]
 
