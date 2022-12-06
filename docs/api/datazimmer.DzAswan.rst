@@ -18,10 +18,10 @@ DzAswan
 
    .. autosummary::
 
-      ~DzAswan.extend_starters
       ~DzAswan.get_all_events
       ~DzAswan.get_aswan_status
       ~DzAswan.get_unprocessed_events
+      ~DzAswan.prepare_run
       ~DzAswan.run
 
    .. rubric:: Attributes Documentation
@@ -32,8 +32,8 @@ DzAswan
 
    .. rubric:: Methods Documentation
 
-   .. automethod:: extend_starters
    .. automethod:: get_all_events
    .. automethod:: get_aswan_status
    .. automethod:: get_unprocessed_events
+   .. automethod:: prepare_run
    .. automethod:: run
