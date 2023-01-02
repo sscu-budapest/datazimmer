@@ -1,3 +1,4 @@
+from importlib import import_module
 from typing import TYPE_CHECKING
 
 from dvc.repo import Repo
@@ -34,6 +35,7 @@ class DzAswan:
 
     def run(self):
         self.prepare_run()
+        self._reg_from_module()
         logger.info("pulling")
         self.depot.pull()
         self.depot.current.purge()
@@ -56,12 +58,8 @@ class DzAswan:
             else:
                 self.depot.pull(post_status=from_status)
             self._unproc_pulled = True
-        if from_status:
-            runs = self.depot.get_missing_runs(self.depot.get_status(from_status))
-        else:
-            runs = None
         return self.depot.get_handler_events(
-            handler, only_latest=only_latest, past_runs=runs
+            handler, only_latest=only_latest, post_status=from_status
         )
 
     def get_all_events(self, handler: "ANY_HANDLER_T"):
@@ -91,3 +89,6 @@ class DzAswan:
             if dep.def_path == BASE_CONF_PATH.as_posix():
                 info = dep.hash_info.value if dep.hash_info else {}
                 return info.get(aswan_id)
+
+    def _reg_from_module(self):
+        self.project.register_module(import_module(type(self).__module__))

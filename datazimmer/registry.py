@@ -133,8 +133,12 @@ class Registry:
 
     def _get_info(self):
         remote_comm = ["git", "config", "--get", "remote.origin.url"]
-        uri = check_output(remote_comm).decode("utf-8").strip()
-        # WET Project metadata params
+        try:
+            uri = check_output(remote_comm).decode("utf-8").strip()
+        except CalledProcessError:
+            uri = ""
+            logger.info("can't get git remote.origin.url")
+        # TODO: WET Project metadata params
         return {"uri": _de_auth(uri), "tags": self._get_tags(), "cron": self.conf.cron}
 
     def _is_released(self):

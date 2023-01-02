@@ -8,7 +8,7 @@ import boto3
 import moto
 import pytest
 from aswan.constants import DEFAULT_REMOTE_ENV_VAR, DEPOT_ROOT_ENV_VAR
-from aswan.depot import HEX_ENV, PW_ENV
+from aswan.depot.remote import HEX_ENV, PW_ENV
 from dvc.config import Config as DvcConfig
 from zimmauth import ZimmAuth
 from zimmauth.core import LOCAL_HOST_NAMES_ENV_VAR
