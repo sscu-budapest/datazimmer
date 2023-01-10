@@ -12,7 +12,7 @@ from .utils import get_creation_module_name
 logger = get_logger("aswan_integration")
 
 if TYPE_CHECKING:
-    from aswan import ANY_HANDLER_T
+    from aswan import ANY_HANDLER_T  # pragma: no cover
 
 
 # TODO: add just checking on and logging external project (depot)
@@ -62,11 +62,11 @@ class DzAswan:
             handler, only_latest=only_latest, post_status=from_status
         )
 
-    def get_all_events(self, handler: "ANY_HANDLER_T"):
+    def get_all_events(self, handler: "ANY_HANDLER_T", only_latest=True):
         if not self._complete_pulled:
             self.depot.pull(complete=True)
             self._complete_pulled = True
-        return self.depot.get_handler_events(handler)
+        return self.depot.get_handler_events(handler, only_latest=only_latest)
 
     def prepare_run(self):
         """this runs prior to running the project"""
@@ -82,7 +82,8 @@ class DzAswan:
         aswan_id = get_aswan_leaf_param_id(self.name)
 
         for stage in repo.index.stages:
-            if stage.name == stage_name:
+            # imported stage has no name attribute
+            if getattr(stage, "name", "") == stage_name:
                 possible_deps = stage.deps
 
         for dep in possible_deps:
