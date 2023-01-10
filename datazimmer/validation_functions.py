@@ -22,7 +22,7 @@ from .utils import cd_into, git_run
 logger = get_logger(ctx="validation")
 
 
-def validate(con: str = CONSTR, draw: bool = False, batch: int = 20000):
+def validate(con: str = CONSTR, env: str = "", draw: bool = False, batch: int = 20000):
     """asserts a few things about a dataset
 
     - configuration files are present
@@ -48,9 +48,9 @@ def validate(con: str = CONSTR, draw: bool = False, batch: int = 20000):
         if _env.parent:
             assert _env.parent in env_names
 
-    for env in ctx.config.validation_envs:
-        _log("reading data to sql db", env=env)
-        sql_validation(con, env, draw, batch_size=batch)
+    venv = env or ctx.config.default_env
+    _log("reading data to sql db", env=venv)
+    sql_validation(con, venv, draw, batch_size=batch)
 
 
 def sql_validation(constr, env, draw=False, batch_size=2000):
