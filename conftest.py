@@ -14,6 +14,8 @@ from zimmauth import ZimmAuth
 from zimmauth.core import LOCAL_HOST_NAMES_ENV_VAR
 
 from datazimmer.config_loading import RunConfig
+from datazimmer.get_runtime import _GLOBAL_RUNTIME
+from datazimmer.metadata.atoms import _GLOBAL_CLS_MAP
 from datazimmer.naming import (
     AUTH_HEX_ENV_VAR,
     AUTH_PASS_ENV_VAR,
@@ -22,7 +24,7 @@ from datazimmer.naming import (
     TEMPLATE_REPO,
 )
 from datazimmer.tests.create_dogshow import dogshow_root
-from datazimmer.typer_commands import cleanup
+from datazimmer.typer_commands import cleanup, init
 from datazimmer.utils import cd_into, gen_rmtree, git_run
 
 CORE_PY = dogshow_root / "minimal.py"
@@ -35,16 +37,19 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope="session")
 def empty_template():
-    tmpdir = TemporaryDirectory().name
-    git_run(clone=(TEMPLATE_REPO, tmpdir))
-    with cd_into(tmpdir):
+    tmpdir = TemporaryDirectory()
+    pname = "test-project"
+    with cd_into(tmpdir.name):
+        init(pname)
+    pdir = Path(tmpdir.name, pname)
+    with cd_into(pdir):
         check_call(["dvc", "remote", "add", "testrem", "/nothing"])
         check_call(["dvc", "remote", "default", "testrem"])
         Path(MAIN_MODULE_NAME, "core.py").write_text(CORE_PY.read_text())
-    yield tmpdir
-    with cd_into(tmpdir):
+    yield pdir
+    with cd_into(pdir):
         cleanup()
-    gen_rmtree(tmpdir)
+    gen_rmtree(tmpdir.name)
 
 
 @pytest.fixture
@@ -53,6 +58,10 @@ def in_template(empty_template):
         sys.path.insert(0, empty_template)
         yield
         sys.path.pop(0)
+        global _GLOBAL_CLS_MAP
+        _GLOBAL_CLS_MAP = {}
+        global _GLOBAL_RUNTIME
+        _GLOBAL_RUNTIME = None
 
 
 @pytest.fixture
