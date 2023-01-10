@@ -43,7 +43,7 @@ class SqlLoader:
 
         self.runtime = get_runtime()
         self.engine = sa.create_engine(constr, echo=echo)
-        self.sql_meta = sa.MetaData()
+        self.sql_meta = sa.MetaData(bind=self.engine)
         self._Session = sessionmaker(self.engine)
         self._batch_size = batch_size
 
