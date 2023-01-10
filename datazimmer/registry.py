@@ -14,6 +14,7 @@ from flit.build import main
 from structlog import get_logger
 
 from .config_loading import get_full_auth
+from .metadata.high_level import PROJ_KEYS
 from .naming import (
     GIT_TOKEN_ENV_VAR,
     MAIN_MODULE_NAME,
@@ -25,6 +26,7 @@ from .naming import (
     VERSION_VAR_NAME,
     RegistryPaths,
     get_package_name,
+    to_mod_name,
 )
 from .utils import gen_rmtree, git_run
 
@@ -56,12 +58,24 @@ class Registry:
         self._git_run = partial(git_run, wd=self.posix)
 
     def dump_info(self):
-        meta_dic = self._get_info()
+        meta_dic = self.get_info()
         self.paths.info_yaml.write_text(yaml.safe_dump(meta_dic))
 
+    def get_info(self):
+        remote_comm = ["git", "config", "--get", "remote.origin.url"]
+        try:
+            uri = check_output(remote_comm).decode("utf-8").strip()
+        except CalledProcessError:
+            uri = ""
+            logger.info("can't get git remote.origin.url")
+        # TODO: WET Project metadata params
+        return {
+            PROJ_KEYS.uri: _de_auth(uri),
+            PROJ_KEYS.tags: self._get_tags(),
+            PROJ_KEYS.cron: self.conf.cron,
+        }
+
     def get_project_meta_base(self, project_name, version):
-        if project_name == self.name:
-            return self._get_info()
         ypath = self.paths.info_yaml_of(project_name, version)
         if ypath.exists():
             return yaml.safe_load(ypath.read_text())
@@ -96,6 +110,7 @@ class Registry:
     def _package(self):
         pack_paths = self._dump_meta()
         reqs_from_txt = REQUIREMENTS_FILE.read_text().strip().split("\n")
+        mod_name = to_mod_name(self.name)
         proj_conf = {
             "project": {
                 "name": get_package_name(self.name),
@@ -104,7 +119,7 @@ class Registry:
                 "requires-python": PYV,
                 "dependencies": self.requires + reqs_from_txt,
             },
-            "tool": {"flit": {"module": {"name": f"{META_MODULE_NAME}.{self.name}"}}},
+            "tool": {"flit": {"module": {"name": f"{META_MODULE_NAME}.{mod_name}"}}},
         }
         pack_paths.toml_path.write_text(toml.dumps(proj_conf))
         ns = main(pack_paths.toml_path)
@@ -117,7 +132,7 @@ class Registry:
         comm = [sys.executable, "-m", "pip", "install", f"--find-links={addr}"]
         extras = ["--no-cache", "--no-build-isolation"]
         backup_ind = ["--extra-index-url", "https://pypi.org/simple"]
-        check_call(comm + backup_ind + extras + packages, stdout=PIPE)
+        check_call(comm + backup_ind + extras + packages)  # TODO: , stdout=PIPE)
 
     def _dump_meta(self):
         pack_paths = PackPaths(self.name)
@@ -130,16 +145,6 @@ class Registry:
     def _get_tags(self):
         tagpref = VERSION_SEPARATOR.join([VERSION_PREFIX, self.conf.version])
         return [*_command_out_w_prefix(["git", "tag"], tagpref)]
-
-    def _get_info(self):
-        remote_comm = ["git", "config", "--get", "remote.origin.url"]
-        try:
-            uri = check_output(remote_comm).decode("utf-8").strip()
-        except CalledProcessError:
-            uri = ""
-            logger.info("can't get git remote.origin.url")
-        # TODO: WET Project metadata params
-        return {"uri": _de_auth(uri), "tags": self._get_tags(), "cron": self.conf.cron}
 
     def _is_released(self):
         try:
@@ -169,7 +174,7 @@ class PackPaths:
         self.dir = Path(TemporaryDirectory().name)
         _meta_root = self.dir / META_MODULE_NAME
         self.toml_path = self.dir / "pyproject.toml"
-        self.project_meta = _meta_root / name
+        self.project_meta = _meta_root / to_mod_name(name)
 
 
 def _command_out_w_prefix(comm, prefix):
