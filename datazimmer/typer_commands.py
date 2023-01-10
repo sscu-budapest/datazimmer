@@ -48,7 +48,7 @@ def update_registry():
 
 @app.command()
 def init(name: str):
-    git_run(clone=(TEMPLATE_REPO, name))
+    git_run(clone=(TEMPLATE_REPO, name), depth=None)
     c_p = name / BASE_CONF_PATH
     cstr = re.sub(f"{CONF_KEYS.name}: .+", f"{CONF_KEYS.name}: {name}", c_p.read_text())
     c_p.write_text(cstr)

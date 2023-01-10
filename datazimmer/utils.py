@@ -30,11 +30,16 @@ def get_creation_module_name():
 
 
 def git_run(
-    *, add=(), msg=None, pull=False, push=False, wd=None, clone=(), check=False
+    *, add=(), msg=None, pull=False, push=False, wd=None, clone=(), check=False, depth=1
 ):
+    if depth:
+        depthcomm = ["--depth", str(depth)]
+    else:
+        depthcomm = []
+
     _run = partial(_run_if, prefix=("git",), wd=wd)
     batch_one = [
-        (clone, ["clone", "--depth", "1", *clone]),
+        (clone, ["clone", *depthcomm, *clone]),
         (pull, ["pull"]),
         (add, ["add", *add]),
     ]
