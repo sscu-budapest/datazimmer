@@ -19,9 +19,9 @@ from .metadata.scrutable import ScruTable
 from .naming import (
     MAIN_MODULE_NAME,
     META_MODULE_NAME,
-    PREFIX_SEP,
     VERSION_VAR_NAME,
     get_data_path,
+    to_mod_name,
 )
 from .registry import Registry
 from .utils import gen_rmtree
@@ -40,7 +40,9 @@ class ProjectRuntime:
         self._module_dic = {}
         self._collected_modules = set()
         self._ns_meta_dic: dict[CompleteIdBase, NamespaceMetadata] = {}
-        self.metadata_dic: dict[str, ProjectMetadata] = {}
+        self.metadata_dic: dict[str, ProjectMetadata] = {
+            self.name: ProjectMetadata(**self.registry.get_info())
+        }
 
         sys.path.insert(0, Path.cwd().as_posix())
         self._walk_module(import_module(MAIN_MODULE_NAME))
@@ -67,7 +69,7 @@ class ProjectRuntime:
     def get_table_for_entity(
         self, ec: EntityClass, base_table: ScruTable, feat_elems
     ) -> ScruTable:
-        fixed = base_table.key_map.get(PREFIX_SEP.join(feat_elems))
+        fixed = base_table.key_map.get(feat_elems)
         if fixed is not None:
             return fixed
         my_proj = self.metadata_dic[base_table.id_.project]
@@ -149,11 +151,8 @@ class ProjectRuntime:
     def _fill_projects(self):
         for base_id, ns_meta in self._ns_meta_dic.items():
             proj_id = base_id.project
-            if proj_id == self.name:
-                proj_v = self.config.version
-            else:
-                proj_v = _get_v_of_ext_project(proj_id)
             if proj_id not in self.metadata_dic.keys():
+                proj_v = _get_v_of_ext_project(proj_id)
                 init_kwargs = self.registry.get_project_meta_base(proj_id, proj_v)
                 if not init_kwargs:
                     continue
@@ -200,7 +199,7 @@ def dump_dfs_to_tables(df_structable_pairs, parse=True, **kwargs):
 
 
 def _get_v_of_ext_project(project_name):
-    module_name = f"{META_MODULE_NAME}.{project_name}"
+    module_name = f"{META_MODULE_NAME}.{to_mod_name(project_name)}"
     return getattr(import_module(module_name), VERSION_VAR_NAME)
 
 
