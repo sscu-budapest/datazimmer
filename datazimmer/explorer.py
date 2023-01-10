@@ -32,6 +32,7 @@ from .naming import (
     REQUIREMENTS_FILE,
     SANDBOX_NAME,
     repo_link,
+    to_mod_name,
 )
 from .nb_generator import get_nb_string
 from .registry import Registry
@@ -244,7 +245,9 @@ class ExplorerContext:
     ):
         p_name, p_v = ds_list[0].id_()
         names = ", ".join([ds.namespace for ds in ds_list])
-        core_path.write_text(f"from {META_MODULE_NAME}.{p_name} import {names}")
+        core_path.write_text(
+            f"from {META_MODULE_NAME}.{to_mod_name(p_name)} import {names}"
+        )
         envs = set([d.env for d in ds_list])
         dnss = list(set([d.namespace for d in ds_list]))
         test_conf = Config(
