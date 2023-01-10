@@ -3,13 +3,14 @@ import os
 from pathlib import Path
 
 from datazimmer.config_loading import Config
-from datazimmer.explorer import init_explorer
+from datazimmer.explorer import _NBParser, init_explorer
 from datazimmer.naming import BASE_CONF_PATH, MAIN_MODULE_NAME
 from datazimmer.typer_commands import (
     build_explorer,
     build_meta,
     cleanup,
     draw,
+    import_raw,
     load_external_data,
     publish_data,
     publish_meta,
@@ -48,10 +49,10 @@ def test_full_dogshow(tmp_path: Path, pytestconfig, proper_env, test_bucket):
 
 
 def run_project_test(dog_context, constr):
-    with dog_context as (name, versions):
+    with dog_context as (name, versions, raw_imports):
         print("%" * 40, "\n" * 8, name, "\n" * 8, "%" * 40, sep="\n")
         conf = Config.load()
-        _complete(constr)
+        _complete(constr, raw_imports)
         for testv in versions:
             modify_to_version(testv)
             if testv == conf.version:
@@ -68,10 +69,13 @@ def run_project_test(dog_context, constr):
             _run(publish_data)
 
 
-def _complete(constr):
+def _complete(constr, raw_imports=()):
     _run(build_meta)
     _run(draw)
     git_run(add=[MAIN_MODULE_NAME, BASE_CONF_PATH], msg="build", check=True)
+    _run_notebooks()
+    for imp in raw_imports:
+        _run(import_raw, imp)
     _run(load_external_data, git_commit=True)
     _run(run_aswan_project)
     _run(run, commit=True)
@@ -89,3 +93,8 @@ def _run(fun, *args, **kwargs):
     assert proc.exitcode == 0
     proc.terminate()
     proc.close()
+
+
+def _run_notebooks():
+    for nbp in Path("notebooks").glob("*.ipynb"):
+        _NBParser(nbp)

@@ -18,6 +18,7 @@ from datazimmer.naming import (
     MAIN_MODULE_NAME,
     TEMPLATE_REPO,
 )
+from datazimmer.typer_commands import init
 from datazimmer.utils import cd_into, gen_rmtree, git_run, package_root
 
 logger = get_logger()
@@ -26,8 +27,9 @@ dogshow_root = package_root / "dogshow"
 project_cc_root = dogshow_root / "projects"
 dec_src_root = dogshow_root / "explorer"
 
-_PROJECTS = ["dogshowbase", "dogracebase", "dogsuccess", "dogcombine"]
-_VERSIONS = {"dogshowbase": ["0.0", "0.1"], "dogsuccess": ["1.0"]}
+_PROJECTS = ["dog-raw", "dog-show", "dograce", "dogsuccess", "dogcombine"]
+_VERSIONS = {"dog-show": ["0.0", "0.1"], "dogsuccess": ["1.0"]}
+_RAW_IMPORTS = {"dog-show": ["dog-raw"], "dograce": ["dog-raw"]}
 
 
 class DogshowContextCreator:
@@ -56,13 +58,13 @@ class DogshowContextCreator:
 
     @contextmanager
     def project_ctx(self, name: str):
+        with cd_into(self.local_root):
+            init(name)
         root_dir = self.local_root / name
-        root_dir.mkdir()
         template_path = project_cc_root / f"cc-{name}"
         git_remote = self._init_if_local(self.remote_root / f"dogshow-{name}")
-        check_call(["git", "clone", TEMPLATE_REPO, root_dir.as_posix()])
         Path(root_dir, MAIN_MODULE_NAME, "core.py").unlink()
-        check_call(["git", "remote", "set-url", "origin", git_remote], cwd=root_dir)
+        check_call(["git", "remote", "add", "origin", git_remote], cwd=root_dir)
         generate_files(
             template_path,
             {"cookiecutter": {"project": name}, **self.cc_context},
@@ -76,8 +78,9 @@ class DogshowContextCreator:
             for remote_name, remote_id in self.dvc_remotes:
                 check_call(["dvc", "remote", "add", remote_name, remote_id])
             check_call(["dvc", "remote", "default", self.dvc_remotes[0][0]])
-            git_run(add=["*"], msg="setup project", push=True)
-            yield name, _VERSIONS.get(name, [])
+            git_run(add=["*"], msg=f"setup {name} project")
+            check_call(["git", "push", "--set-upstream", "origin", "main"])
+            yield name, _VERSIONS.get(name, []), _RAW_IMPORTS.get(name, [])
             sys.path.pop(0)
 
     def explorer(self):
