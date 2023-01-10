@@ -1,11 +1,11 @@
 from itertools import chain
 from typing import Type
 
-import metazimmer.dogracebase.core as doglast
-import metazimmer.dogshowbase.core.ns_meta as dogfirst
+import metazimmer.dog_show.core.ns_meta as dogfirst
+import metazimmer.dograce.core as doglast
 import numpy as np
 import pandas as pd
-from metazimmer.dogracebase.core import SizedDog
+from metazimmer.dograce.core import SizedDog
 
 import datazimmer as dz
 

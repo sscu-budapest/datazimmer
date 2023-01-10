@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import pandas as pd
-from metazimmer.dogshowbase.core import ns_meta
+from metazimmer.dog_show.core import ns_meta
 
 import datazimmer as dz
 
@@ -52,16 +52,16 @@ dog_of_the_month_table = dz.ScruTable(DogOfTheMonth, max_partition_size=3)
 
 
 @dz.register_data_loader
-def create_data(data_root):
-
-    dogsize_df = pd.read_csv(f"{data_root}/sizes.csv")
-    dog_df = pd.read_csv(f"{data_root}/dog2.csv")
+def create_data():
+    raw_src = "dog-raw"
+    dogsize_df = pd.read_csv(dz.get_raw_data_path("sizes.csv", raw_src))
+    dog_df = pd.read_csv(dz.get_raw_data_path("dog2.csv", raw_src))
     comp_df = (
-        pd.read_csv(f"{data_root}/race.csv")
+        pd.read_csv(dz.get_raw_data_path("race.csv", raw_src))
         .set_index(Competition.competition_id)
         .astype({Competition.held_date: "datetime64"})
     )
-    dotm_df = pd.read_csv(f"{data_root}/dog_of_the_month.csv")
+    dotm_df = pd.read_csv(dz.get_raw_data_path("dog_of_the_month.csv", raw_src))
     dz.dump_dfs_to_tables(
         [
             (dogsize_df, dog_size_table),

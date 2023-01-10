@@ -1,0 +1,5 @@
+name: dograce
+version: v0.0
+registry: {{ test_registry }}
+imported_projects:
+  - dog-show  # can be either list or dict

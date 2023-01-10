@@ -1,4 +1,4 @@
-import metazimmer.dogshowbase.core as dogcore
+import metazimmer.dog_show.core as dogcore
 import metazimmer.dogsuccess.success as dogsucc
 import pandas as pd
 

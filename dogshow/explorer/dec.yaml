@@ -2,14 +2,14 @@ registry: {{test_registry}}
 remote: {{explore_remote}}
 datasets:
   - name: Dog One
-    project: dogshowbase
+    project: dog-show
     namespace: core
     tables: 
       - dog
       - person
     env: top_comps
   - name: Dog Two
-    project: dogracebase
+    project: dograce
     namespace: core
     env: complete
     tables: 
@@ -21,14 +21,14 @@ datasets:
     tables: 
       - sex_match
   - name: Spots One
-    project: dogshowbase
+    project: dog-show
     namespace: core
     env: complete
     tables: 
       - spotting
     version: v0.0
   - name: Spots Two
-    project: dogshowbase
+    project: dog-show
     namespace: core
     env: top_comps
     version: v0.1

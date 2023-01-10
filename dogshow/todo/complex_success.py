@@ -1,5 +1,5 @@
-import metazimmer.dogracebase.core as doglast
-import metazimmer.dogshowbase.core as dogfirst
+import metazimmer.dog_show.core as dogfirst
+import metazimmer.dograce.core as doglast
 from colassigner import ChildColAssigner, Col, ColAssigner
 
 import datazimmer as dz

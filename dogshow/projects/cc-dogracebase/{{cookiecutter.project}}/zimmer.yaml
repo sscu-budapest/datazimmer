@@ -1,9 +1,0 @@
-name: dogracebase
-version: v0.0
-registry: {{ test_registry }}
-imported_projects:
-  - dogshowbase  # can be either list or dict
-envs:
-  complete:
-    params:
-      data_root: {{ csv_path }}

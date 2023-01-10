@@ -1,4 +1,4 @@
-import metazimmer.dogracebase.core as doglast
+import metazimmer.dograce.core as doglast
 
 import datazimmer as dz
 

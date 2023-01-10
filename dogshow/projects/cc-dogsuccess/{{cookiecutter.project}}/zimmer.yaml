@@ -2,9 +2,9 @@ name: dogsuccess
 version: v0.0
 registry: {{ test_registry }}
 imported_projects:
-  dogshowbase:
+  dog-show:
     version: ==0.0 # can use PEP-440 version specifiers https://www.python.org/dev/peps/pep-0440/#version-specifiers
-  dogracebase: {}
+  dograce: {}
 envs:
   prime:
     params:
@@ -13,8 +13,8 @@ envs:
       top_report:
         show_top: 3
     import_envs:
-      dogshowbase: highest_comps
-      dogracebase: complete
+      dog-show: highest_comps
+      dograce: complete
   bigger:
     remote: {{ remote2 }}
     parent: prime  # is default anyway
@@ -22,4 +22,4 @@ envs:
       top_report:
         show_top: 5
     import_envs:
-      dogshowbase: complete
+      dog-show: complete

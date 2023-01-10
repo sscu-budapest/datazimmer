@@ -1,4 +1,4 @@
-import metazimmer.dogshowbase.core.ns_meta as dogfirst
+import metazimmer.dog_show.core.ns_meta as dogfirst
 from colassigner import Col
 
 import datazimmer as dz

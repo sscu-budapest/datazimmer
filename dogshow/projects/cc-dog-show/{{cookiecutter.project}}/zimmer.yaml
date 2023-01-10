@@ -1,13 +1,11 @@
-name: dogshowbase
+name: dog-show
 version: v0.0
 cron: "0 11 * * 1" # run mondays
 default_env: complete  # is the default anyway
-validation_envs: [complete, top_comps, highest_comps]
 registry: {{ test_registry }}
 envs:
   complete:
-    params:
-      data_root: {{ csv_path }}
+    params: {}
   top_comps:
     params:
       min_prize_pool: 8000
@@ -16,4 +14,4 @@ envs:
     params:
       min_prize_pool: 12000
 persistent_states:
-  src-core-update_data-DataStoreState: {data_root: {{ csv_path}}}
+  src-core-update_data-DataStoreState: {data_root: {{ csv_path }}}

@@ -14,13 +14,15 @@ rel_renamer = {
     "dog_id": ns.Relationship.dog.cid,
 }
 
+PHOTO_INC = 10
+
 
 class PhotoCollector(aswan.RequestHandler):
     def load_cache(self, url):
         ps = PhotoState.load()
         return (
             pd.read_csv(f"{url}/photo.csv")
-            .iloc[ps.photos_loaded : ps.photos_loaded + 10]
+            .iloc[ps.photos_loaded : ps.photos_loaded + PHOTO_INC]
             .rename(columns={f"rel__{k}": f"rel__{v}" for k, v in rel_renamer.items()})
         )
 
@@ -36,7 +38,7 @@ class DataStoreState(dz.PersistentState):
 
 
 class PhotoProject(dz.DzAswan):
-    name = "dogshowbase-core"
+    name = "dog-show-core"
     cron: str = "0 11 * * 2"
 
     def prepare_run(self):
@@ -45,24 +47,39 @@ class PhotoProject(dz.DzAswan):
 
 
 @dz.register_data_loader(extra_deps=[ns, PhotoProject, PhotoState])
-def update_data(data_root):
+def update_data():
+    ext_src = "dog-raw"
+    persons_df = pd.read_csv(dz.get_raw_data_path("people.csv", ext_src))
+    dogs_df = pd.read_csv(dz.get_raw_data_path("dog.csv", ext_src))
+    comps_df = pd.read_csv(dz.get_raw_data_path("comp.csv", ext_src))
 
-    persons_df = pd.read_csv(f"{data_root}/people.csv")
-    dogs_df = pd.read_csv(f"{data_root}/dog.csv")
-    comps_df = pd.read_csv(f"{data_root}/comp.csv")
-
-    rels_df = pd.read_csv(f"{data_root}/rel.csv").rename(columns=rel_renamer)
-    spots_df = pd.read_csv(f"{data_root}/spotted.csv", dtype=str)
+    rels_df = pd.read_csv(dz.get_raw_data_path("rel.csv", ext_src)).rename(
+        columns=rel_renamer
+    )
+    spots_df = pd.read_csv(dz.get_raw_data_path("spotted.csv", ext_src), dtype=str)
 
     # for coll_ev in PhotoProject().get_unprocessed_events(PhotoCollector):
     #    ns.photo_table.replace_records(coll_ev.content)
-    list(parallel_map(_rep, PhotoProject().get_unprocessed_events(PhotoCollector)))
+    pp = PhotoProject()
+    list(parallel_map(_rep, pp.get_unprocessed_events(PhotoCollector)))
 
     # test if output got extended
     old_state = PhotoState.load()
-    assert ns.photo_table.get_full_df().shape[0] == (old_state.photos_loaded + 10)
+    photo_df = ns.photo_table.get_full_df()
+    assert photo_df.shape[0] == (old_state.photos_loaded + PHOTO_INC)
 
-    PhotoState(ns.photo_table.get_full_df().shape[0]).save()
+    all_full = (
+        pd.concat(
+            [p.content for p in pp.get_all_events(PhotoCollector, only_latest=False)]
+        )
+        .drop_duplicates()
+        .set_index(ns.photo_table.index_cols)
+        .loc[photo_df.index, photo_df.columns]
+    )
+
+    assert photo_df.equals(all_full)
+
+    PhotoState(photo_df.shape[0]).save()
     # for cron - data update
     randog = {
         ns.Dog.cid: f"d-{dogs_df.shape[0] + 1}",
