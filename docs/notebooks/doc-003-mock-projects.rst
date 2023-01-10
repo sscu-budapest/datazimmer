@@ -7,8 +7,8 @@ all features of the package.
 They have their test registry (TODO: should have sscu-budapest GitHub
 repo address)
 
--  dogshowbase
--  dogracebase
+-  dog-show
+-  dograce
 -  dogsuccess
 -  dogcombine
 
