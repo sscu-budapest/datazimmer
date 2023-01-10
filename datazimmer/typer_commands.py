@@ -1,4 +1,5 @@
 import datetime as dt
+import re
 from dataclasses import asdict
 from subprocess import check_call
 
@@ -6,12 +7,14 @@ import typer
 from dvc.repo import Repo
 from structlog import get_logger
 
-from .config_loading import Config, RunConfig, get_tag
+from .config_loading import CONF_KEYS, Config, RunConfig, get_tag, meta_version_from_tag
 from .exceptions import ProjectSetupException
 from .explorer import build_explorer, init_explorer, load_explorer_data
 from .get_runtime import get_runtime
 from .gh_actions import write_aswan_crons, write_project_cron
+from .metadata.high_level import ProjectMetadata
 from .naming import BASE_CONF_PATH, MAIN_MODULE_NAME, SANDBOX_DIR, TEMPLATE_REPO
+from .raw_data import IMPORTED_RAW_DATA_DIR, RAW_DATA_DIR, RAW_ENV_NAME
 from .registry import Registry
 from .sql.draw import dump_graph
 from .sql.loader import tmp_constr
@@ -46,7 +49,10 @@ def update_registry():
 @app.command()
 def init(name: str):
     git_run(clone=(TEMPLATE_REPO, name))
-    check_call(["git", "remote", "rename", "origin", "template"], cwd=name)
+    c_p = name / BASE_CONF_PATH
+    cstr = re.sub(f"{CONF_KEYS.name}: .+", f"{CONF_KEYS.name}: {name}", c_p.read_text())
+    c_p.write_text(cstr)
+    check_call(["git", "remote", "rm", "origin"], cwd=name)
 
 
 @app.command()
@@ -63,6 +69,21 @@ def draw(v: bool = False):
 
 
 @app.command()
+def import_raw(project: str, tag: str = ""):
+    dvc_repo = Repo()
+    reg = get_runtime().registry
+    v = meta_version_from_tag(tag) if tag else None
+    uri = ProjectMetadata(**reg.get_project_meta_base(project, v)).uri
+    IMPORTED_RAW_DATA_DIR.mkdir(exist_ok=True)
+    dvc_repo.imp(
+        uri,
+        path=RAW_DATA_DIR.as_posix(),
+        out=(IMPORTED_RAW_DATA_DIR / project).as_posix(),
+        rev=tag or None,
+    )
+
+
+@app.command()
 def publish_data():
     build_meta()
     _validate_empty_vc("publishing data")
@@ -70,15 +91,25 @@ def publish_data():
     dvc_repo = Repo()
     data_version = runtime.metadata.next_data_v
     vtags = []
+
+    def _tag(env_name, env_remote):
+        vtag = get_tag(runtime.config.version, data_version, env_name)
+        _commit_dvc_default(env_remote)
+        check_call(["git", "tag", vtag])
+        vtags.append(vtag)
+
+    default_remote = runtime.config.get_env(runtime.config.default_env).remote
+    if RAW_DATA_DIR.exists():
+        dvc_repo.add(RAW_DATA_DIR.as_posix())
+        dvc_repo.push(targets=RAW_DATA_DIR.as_posix(), remote=default_remote)
+        git_run(add=[f"{RAW_DATA_DIR}.dvc"], msg="save raw data", check=True)
+        _tag(RAW_ENV_NAME, default_remote)
     for env in runtime.config.sorted_envs:
         targets = runtime.step_names_of_env(env.name)
         logger.info("pushing targets", targets=targets, env=env.name)
         dvc_repo.push(targets=targets, remote=env.remote)
-        vtag = get_tag(runtime.config.version, data_version, env.name)
-        _commit_dvc_default(env.remote)
-        check_call(["git", "tag", vtag])
-        vtags.append(vtag)
-    git_run(push=True)
+        _tag(env.name, env.remote)
+    git_run(push=True, pull=True)
     for tag_to_push in vtags:
         check_call(["git", "push", "origin", tag_to_push])
     runtime.registry.publish()
@@ -146,6 +177,8 @@ def run(
         dvc_repo.lock.lock()
         stage.remove_outs(force=True)
         dvc_repo.lock.unlock()
+    if not stage_names:
+        return
     targets = runtime.step_names_of_env(env) if env else None
     rconf = RunConfig(profile=profile)
     with rconf:
