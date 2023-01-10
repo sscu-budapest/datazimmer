@@ -6,6 +6,7 @@ from typing import Callable, Optional, TypeVar
 import pandas as pd
 import sqlalchemy as sa
 from colassigner.constants import PREFIX_SEP
+from colassigner.meta_base import ColMeta
 from structlog import get_logger
 
 from ..config_loading import Config, RunConfig, UnavailableTrepo
@@ -33,7 +34,7 @@ class ScruTable:
         self._conf = Config.load()
         self.__module__ = get_creation_module_name()
         self.id_: CompleteId = self._infer_id(entity, self.__module__)
-        self.key_map = entity_key_table_map or {}
+        self.key_map = _parse_entity_map(entity_key_table_map)
         self.entity_class: EntityClass = EntityClass.from_cls(entity)
 
         self.name = self.id_.obj_id
@@ -176,3 +177,11 @@ def to_dt_map(feats):
 def to_sa_col(col: Column, pk=False):
     sa_dt = get_sa_type(col.dtype)
     return sa.Column(col.name, sa_dt, nullable=col.nullable, primary_key=pk)
+
+
+def _parse_entity_map(entity_map: dict):
+    d = {}
+    for k, v in (entity_map or {}).items():
+        if isinstance(k, ColMeta):
+            d[k._parent_prefixes] = v
+    return d
