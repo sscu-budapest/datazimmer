@@ -37,7 +37,7 @@ explorer = [
     "html5lib",
     "cron-descriptor",
 ]
-test = ["branthebuilder", "zimmauth[test]", "atqo"]
+test = ["branthebuilder", "zimmauth[test]", "atqo", "faker"]
 doc = ["branthebuilder[doc]"]
 [project.urls]
 Homepage = "https://github.com/sscu-budapest/datazimmer"
