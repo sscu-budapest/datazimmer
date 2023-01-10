@@ -1,6 +1,7 @@
 import os
+import re
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Optional
 
 from colassigner.constants import PREFIX_SEP  # noqa: F401
 
@@ -52,8 +53,17 @@ class RegistryPaths:
         self.publish_paths = self._relpos([self.index_dir, self.info_yaml])
         self.dist_gitpath = f"index/{package_name}-{version}.tar.gz"
 
-    def info_yaml_of(self, name, version) -> Path:
-        return self._info_dir / f"{name}-{version}.yaml"
+    def info_yaml_of(self, name, version: Optional[str] = None) -> Path:
+        if version:
+            return self._info_dir / f"{name}-{version}.yaml"
+        return self.get_latest_yaml_path(name)
+
+    def get_latest_yaml_path(self, name):
+        def _get_v(fp: Path):
+            vstr = re.findall(rf"{name}-([\.|\d]+)\.yaml", fp.name)[0]
+            return tuple(map(int, vstr.split(".")))
+
+        return sorted(self._info_dir.glob(f"{name}-*.yaml"), key=_get_v)[-1]
 
     def ensure(self):
         for d in [self.index_dir, self._info_dir]:
@@ -77,6 +87,14 @@ def get_stage_name(ns, write_env):
 
 def cli_run(*funs):
     return " && ".join(f"{CLI} {_get_fun_name(f)}" for f in funs)
+
+
+def to_mod_name(name: str):
+    return name.replace("-", "_")
+
+
+def from_mod_name(name: str):
+    return name.replace("_", "-")
 
 
 def _get_fun_name(fun):

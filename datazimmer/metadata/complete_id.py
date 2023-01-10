@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from ..naming import MAIN_MODULE_NAME, META_MODULE_NAME
+from ..naming import MAIN_MODULE_NAME, META_MODULE_NAME, from_mod_name
 
 
 @dataclass
@@ -17,7 +17,7 @@ class CompleteId:
 
     @property
     def sql_id(self):
-        return "__".join([self.project, self.namespace, self.obj_id])
+        return "__".join([self.project, self.namespace, self.obj_id]).replace("-", "_")
 
 
 @dataclass
@@ -43,6 +43,6 @@ class CompleteIdBase:
     def from_module_name(cls, module_name, project=None):
         _splitted = module_name.split(".")
         if _splitted[0] == META_MODULE_NAME:
-            return cls(*_splitted[1:3])
+            return cls(from_mod_name(_splitted[1]), _splitted[2])
         elif (_splitted[0] == MAIN_MODULE_NAME) and (len(_splitted) > 1):
             return cls(project, _splitted[1])
