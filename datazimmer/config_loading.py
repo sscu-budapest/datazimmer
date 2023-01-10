@@ -80,11 +80,9 @@ class Config:
             self.envs = [ProjectEnv()]
         if self.default_env is None:
             self.default_env = self.envs[0].name
-        if self.validation_envs is None:
-            self.validation_envs = [self.default_env]
         _parse_version(self.version)
-        msg = f"name can only contain lower case letters {self.name}"
-        assert re.compile("^[a-z]+$").findall(self.name), msg
+        msg = f"name can only contain lower case letters or -. {self.name}"
+        assert re.compile(r"^[a-z\-]+$").findall(self.name), msg
         self.version = self.version[1:]
 
     def get_env(self, env_name: str) -> ProjectEnv:
@@ -181,7 +179,7 @@ class Config:
         return _yaml_or_err(BASE_CONF_PATH)
 
 
-_DC_ATTRIBUTES = {  # what attributes of config need parsing
+_DC_ATTRIBUTES = {  # what attributes of config need parsing as dataclasses
     k: v.__args__[0]
     for k, v in Config.__annotations__.items()
     if (list in v.mro()) and isinstance(getattr(v, "__args__", [None])[0], type)
@@ -213,27 +211,31 @@ class UnavailableTrepo(TableRepo):
         pass
 
 
-class _KeyMeta(ABCMeta):
+class KeyMeta(ABCMeta):
     def __getattribute__(cls, attid: str):
         if attid.startswith("_"):
             return super().__getattribute__(attid)
         return attid
 
 
-class CONF_KEYS(Config, metaclass=_KeyMeta):
+class CONF_KEYS(Config, metaclass=KeyMeta):
     pass
 
 
-class SPEC_KEYS(AswanSpec, metaclass=_KeyMeta):
+class SPEC_KEYS(AswanSpec, metaclass=KeyMeta):
     pass
 
 
-class ENV_KEYS(ProjectEnv, metaclass=_KeyMeta):
+class ENV_KEYS(ProjectEnv, metaclass=KeyMeta):
     pass
 
 
 def get_tag(meta_version, data_version, env):
     return VERSION_SEPARATOR.join([VERSION_PREFIX, meta_version, data_version, env])
+
+
+def meta_version_from_tag(tag: str):
+    return tag.split(VERSION_SEPARATOR)[1]
 
 
 def get_full_auth():
