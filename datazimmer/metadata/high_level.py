@@ -7,6 +7,7 @@ from itertools import chain
 from structlog import get_logger
 
 from ..aswan_integration import DzAswan
+from ..config_loading import KeyMeta
 from ..naming import VERSION_SEPARATOR
 from ..pipeline_element import PipelineElement
 from .atoms import CompositeType, EntityClass
@@ -147,3 +148,7 @@ class DataVersion:
     @property
     def _args(self):
         return (self.year, self.month, self.day, self.num)
+
+
+class PROJ_KEYS(ProjectMetadata, metaclass=KeyMeta):
+    pass
