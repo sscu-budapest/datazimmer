@@ -8,9 +8,9 @@ authors:
 - family-names: Kovács
   given-names: Bence
   orcid: https://orcid.org/0000-0002-2225-9895
-- family-names: Borza
-  given-names: Endre Márk
-  orcid: https://orcid.org/0000-0002-8804-4520
+- family-names: Pap
+  given-names: Sebestyén
+  orcid: https://orcid.org/0000-0002-1987-845X
 title: sscu-budapest/datazimmer
 version: 0.4.7
 date-released: 2023-01-11
