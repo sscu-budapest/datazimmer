@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+url: https://github.com/sscu-budapest/datazimmer
+authors:
+- family-names: Borza
+  given-names: Endre Márk
+  orcid: https://orcid.org/0000-0002-8804-4520
+- family-names: Kovács
+  given-names: Bence
+  orcid: https://orcid.org/0000-0002-2225-9895
+- family-names: Borza
+  given-names: Endre Márk
+  orcid: https://orcid.org/0000-0002-8804-4520
+title: sscu-budapest/datazimmer
+version: 0.4.7
+date-released: 2023-01-11
