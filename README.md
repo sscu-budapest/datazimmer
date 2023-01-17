@@ -4,6 +4,8 @@
 [![codeclimate](https://img.shields.io/codeclimate/maintainability/sscu-budapest/datazimmer.svg)](https://codeclimate.com/github/sscu-budapest/datazimmer)
 [![codecov](https://img.shields.io/codecov/c/github/sscu-budapest/datazimmer)](https://codecov.io/gh/sscu-budapest/datazimmer)
 [![pypi](https://img.shields.io/pypi/v/datazimmer.svg)](https://pypi.org/project/datazimmer/)
+[![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.7499121.svg)](https://doi.org/10.5281/zenodo.7499121)
+
 
 Some utility function to help with
 
@@ -13,6 +15,21 @@ Some utility function to help with
 these are used in the [project-template](https://github.com/sscu-budapest/project-template)
 
 Make sure that `python` points to `python>=3.8` and you have `pip` and `git`
+
+### To create a new project
+
+- install requirements `dz init project-name`
+- create, register and document steps in a pipeline you will run ind different [environments](TODO)
+- build metadata to exportable and serialized format with `dz build-meta`
+  - if you defined importable data from other artifacts in the config, you can import them with `load-external-data` 
+  - ensure that you import envs that are served from sources you have access to
+- build and run pipeline steps by running `dz run`
+- validate that the data matches the [datascript](TODO) description with `dz validate`
+
+## Test projects
+
+TODO: document dogshow and everything else much better here
+
 
 ## Functions
 
