@@ -41,6 +41,7 @@ jobs:
     - name: Test
       env:
         POSTGRES_HOST: localhost
+        ZENODO_SANDBOX_TOKEN: ${{ secrets.ZENODO_SANDBOX_TOKEN }}
       run: |
         branb test
     - uses: codecov/codecov-action@v3

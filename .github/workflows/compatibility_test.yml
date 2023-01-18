@@ -32,5 +32,6 @@ jobs:
     - name: Test
       env:
         POSTGRES_HOST: sqlite
+        ZENODO_SANDBOX_TOKEN: ${{ secrets.ZENODO_SANDBOX_TOKEN }}
       run: |
         branb test
