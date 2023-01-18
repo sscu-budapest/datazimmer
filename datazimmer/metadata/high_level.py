@@ -70,7 +70,7 @@ class ProjectMetadata:
     cron: str = ""
     namespaces: dict[str, NamespaceMetadata] = field(default_factory=dict)
     complete: NsCollection = field(init=False, repr=False)
-    # TODO maybe elminate / rename namespace to module
+    # TODO maybe eliminate / rename namespace to module
 
     def __post_init__(self):
         self.complete = NsCollection(self)
