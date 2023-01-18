@@ -13,5 +13,3 @@ envs:
     remote: {{ remote2 }}
     params:
       min_prize_pool: 12000
-persistent_states:
-  src-core-update_data-DataStoreState: {data_root: {{ csv_path }}}
