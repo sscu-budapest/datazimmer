@@ -1,6 +1,7 @@
 import re
 from abc import ABCMeta
 from dataclasses import asdict, dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Type, TypeVar, Union
 
 import yaml
@@ -18,8 +19,7 @@ from .naming import (
     DEFAULT_ENV_NAME,
     DEFAULT_REGISTRY,
     RUN_CONF_PATH,
-    VERSION_PREFIX,
-    VERSION_SEPARATOR,
+    USER_CONF_PATH,
     get_data_path,
 )
 
@@ -69,7 +69,6 @@ class Config:
     cron: str = ""
     default_env: str = None
     registry: str = DEFAULT_REGISTRY
-    validation_envs: list = None
     envs: list[ProjectEnv] = None
     imported_projects: list[ImportedProject] = field(default_factory=list)
     aswan_projects: list[AswanSpec] = field(default_factory=list)
@@ -186,8 +185,22 @@ _DC_ATTRIBUTES = {  # what attributes of config need parsing as dataclasses
 }
 
 
+class _IoConf:
+    def dump(self):
+        self._cpath().write_text(yaml.safe_dump(asdict(self)))
+
+    @classmethod
+    def load(cls):
+        return cls(**_yaml_or_err(cls._cpath(), cls.__name__))
+
+    @classmethod
+    def _cpath(cls) -> Path:
+        return ...
+
+
 @dataclass
-class RunConfig:
+class RunConfig(_IoConf):
+
     profile: bool = False
     write_env: Optional[str] = None
     read_env: Optional[str] = None
@@ -196,14 +209,23 @@ class RunConfig:
         self.dump()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        RUN_CONF_PATH.unlink()
-
-    def dump(self):
-        RUN_CONF_PATH.write_text(yaml.safe_dump(asdict(self)))
+        self._cpath().unlink()
 
     @classmethod
-    def load(cls):
-        return cls(**_yaml_or_err(RUN_CONF_PATH, "run config"))
+    def _cpath(cls):
+        return RUN_CONF_PATH
+
+
+@dataclass
+class UserConfig(_IoConf):
+
+    first_name: str
+    last_name: str
+    orcid: str
+
+    @classmethod
+    def _cpath(cls):
+        return USER_CONF_PATH
 
 
 class UnavailableTrepo(TableRepo):
@@ -228,14 +250,6 @@ class SPEC_KEYS(AswanSpec, metaclass=KeyMeta):
 
 class ENV_KEYS(ProjectEnv, metaclass=KeyMeta):
     pass
-
-
-def get_tag(meta_version, data_version, env):
-    return VERSION_SEPARATOR.join([VERSION_PREFIX, meta_version, data_version, env])
-
-
-def meta_version_from_tag(tag: str):
-    return tag.split(VERSION_SEPARATOR)[1]
 
 
 def get_full_auth():
