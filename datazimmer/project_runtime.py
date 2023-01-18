@@ -5,7 +5,7 @@ from functools import partial
 from importlib import import_module
 from pathlib import Path
 from pkgutil import walk_packages
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from dvc.repo import Repo
 from structlog import get_logger
@@ -25,6 +25,9 @@ from .naming import (
 )
 from .registry import Registry
 from .utils import gen_rmtree
+
+if TYPE_CHECKING:  # pragma: no cover
+    import pandas as pd
 
 T = TypeVar("T")
 
@@ -192,10 +195,17 @@ class DataEnvironmentToLoad:
         )
 
 
-def dump_dfs_to_tables(df_structable_pairs, parse=True, **kwargs):
+def dump_dfs_to_tables(
+    df_structable_pairs: list[tuple["pd.DataFrame", "ScruTable"]],
+    parse=True,
+    skip_empty=False,
+    **kwargs,
+):
     """helper function to fill the detected env of a dataset"""
     for df, structable in df_structable_pairs:
-        structable.replace_all(df, parse, **kwargs)
+        if skip_empty and df.empty:
+            continue
+        structable.replace_all(df, parse=parse, **kwargs)
 
 
 def _get_v_of_ext_project(project_name):
