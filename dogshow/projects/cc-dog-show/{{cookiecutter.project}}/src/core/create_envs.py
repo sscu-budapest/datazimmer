@@ -53,7 +53,7 @@ def create_environments(min_prize_pool):
         (rels_df, ns.relationship_table),
         (photo_df, ns.photo_table),
     ]
-    dz.dump_dfs_to_tables(pairs)
+    dz.dump_dfs_to_tables(pairs, skip_empty=True)
 
 
 def _uelems(df, cols):
@@ -61,6 +61,9 @@ def _uelems(df, cols):
 
 
 def _allin(df, cols_to_sets: dict):
+    # TODO: maybe builtin to check
+    if df.empty:
+        return df
     _bmap = map(lambda kv: _isin(df, *kv), cols_to_sets.items())
     return df.loc[reduce(and_, chain(*_bmap)), :]
 
