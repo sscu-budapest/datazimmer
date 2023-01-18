@@ -98,6 +98,14 @@ def get_simplified_mro(cls: Type):
     return _simplify_mro(cls.mro()[1:])
 
 
+def command_out_w_prefix(comm: list, prefix: str):
+    for tagbytes in check_output(comm).strip().split():
+        tag = tagbytes.decode("utf-8").strip()
+        if not tag.startswith(prefix):
+            continue
+        yield tag
+
+
 def _simplify_mro(parent_list: list[Type]):
     out = []
     for cls in parent_list:

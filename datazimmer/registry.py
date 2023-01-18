@@ -28,7 +28,7 @@ from .naming import (
     get_package_name,
     to_mod_name,
 )
-from .utils import gen_rmtree, git_run
+from .utils import command_out_w_prefix, gen_rmtree, git_run
 
 if TYPE_CHECKING:
     from .config_loading import Config  # pragma: no cover
@@ -68,7 +68,6 @@ class Registry:
         except CalledProcessError:
             uri = ""
             logger.info("can't get git remote.origin.url")
-        # TODO: WET Project metadata params
         return {
             PROJ_KEYS.uri: _de_auth(uri),
             PROJ_KEYS.tags: self._get_tags(),
@@ -86,9 +85,8 @@ class Registry:
         get_full_auth().dump_dvc(local=not global_conf)
         if not self._is_released():
             self._package()
-        if not self.requires:
-            return
-        self._install_no_server(self.requires)
+        if self.requires:
+            self._install_no_server(self.requires)
 
     def update(self):
         self._git_run(pull=True)
@@ -102,7 +100,7 @@ class Registry:
     def purge(self):
         gen_rmtree(self.posix)
         freeze_comm = [sys.executable, "-m", "pip", "freeze"]
-        all_dz_projects = [*_command_out_w_prefix(freeze_comm, f"{META_MODULE_NAME}-")]
+        all_dz_projects = [*command_out_w_prefix(freeze_comm, f"{META_MODULE_NAME}-")]
         if not all_dz_projects:
             return
         check_call([sys.executable, "-m", "pip", "uninstall", *all_dz_projects, "-y"])
@@ -125,7 +123,7 @@ class Registry:
         ns = main(pack_paths.toml_path)
         copy(ns.sdist.file, self.paths.index_dir)
         copy(ns.wheel.file, self.paths.index_dir)
-        return True
+        return ns.sdist.file
 
     def _install_no_server(self, packages: list):
         addr = self.paths.index_dir.as_posix()
@@ -144,7 +142,7 @@ class Registry:
 
     def _get_tags(self):
         tagpref = VERSION_SEPARATOR.join([VERSION_PREFIX, self.conf.version])
-        return [*_command_out_w_prefix(["git", "tag"], tagpref)]
+        return list(command_out_w_prefix(["git", "tag"], tagpref))
 
     def _is_released(self):
         try:
@@ -175,11 +173,3 @@ class PackPaths:
         _meta_root = self.dir / META_MODULE_NAME
         self.toml_path = self.dir / "pyproject.toml"
         self.project_meta = _meta_root / to_mod_name(name)
-
-
-def _command_out_w_prefix(comm, prefix):
-    for tagbytes in check_output(comm).strip().split():
-        tag = tagbytes.decode("utf-8").strip()
-        if not tag.startswith(prefix):
-            continue
-        yield tag
