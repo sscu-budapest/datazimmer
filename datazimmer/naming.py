@@ -13,8 +13,10 @@ VERSION_SEPARATOR = "/"
 
 RUN_CONF_PATH = Path("__run_conf.yaml")
 BASE_CONF_PATH = Path("zimmer.yaml")
+USER_CONF_PATH = Path.home() / ".config" / "datazimmer.yaml"
 EXPLORE_CONF_PATH = Path("dec.yaml")
 REQUIREMENTS_FILE = Path("requirements.txt")
+README_PATH = Path("README.md")
 
 DATA_PATH = Path("data")
 PROFILES_PATH = Path("run-profiles")
@@ -95,6 +97,18 @@ def to_mod_name(name: str):
 
 def from_mod_name(name: str):
     return name.replace("_", "-")
+
+
+def get_tag(meta_version, data_version, env):
+    return VERSION_SEPARATOR.join([VERSION_PREFIX, meta_version, data_version, env])
+
+
+def meta_version_from_tag(tag: str):
+    return tag.split(VERSION_SEPARATOR)[1]
+
+
+def env_from_tag(tag: str):
+    return tag.split(VERSION_SEPARATOR)[-1]
 
 
 def _get_fun_name(fun):
