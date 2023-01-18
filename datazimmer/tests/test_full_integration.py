@@ -4,7 +4,6 @@ from pathlib import Path
 
 from datazimmer.config_loading import Config
 from datazimmer.explorer import _NBParser, init_explorer
-from datazimmer.naming import BASE_CONF_PATH, MAIN_MODULE_NAME
 from datazimmer.typer_commands import (
     build_explorer,
     build_meta,
@@ -13,13 +12,14 @@ from datazimmer.typer_commands import (
     import_raw,
     load_external_data,
     publish_data,
-    publish_meta,
+    publish_to_zenodo,
     run,
     run_aswan_project,
+    set_whoami,
     update,
     validate,
 )
-from datazimmer.utils import cd_into, git_run
+from datazimmer.utils import cd_into
 
 from .create_dogshow import DogshowContextCreator, modify_to_version
 
@@ -27,8 +27,9 @@ from .create_dogshow import DogshowContextCreator, modify_to_version
 def test_full_dogshow(tmp_path: Path, pytestconfig, proper_env, test_bucket):
     # TODO: turn this into documentation
     mode = pytestconfig.getoption("mode")
+    # TODO: make this set temporary
+    set_whoami("Endre Márk", "Borza", "0000-0002-8804-4520")
     ds_cc = DogshowContextCreator.load(mode, tmp_path)
-
     pg_host = os.environ.get("POSTGRES_HOST", "localhost")
     if pg_host == "sqlite":  # pragma: no cover
         constr = "sqlite:///_db.sqlite"
@@ -61,27 +62,29 @@ def run_project_test(dog_context, constr):
                 continue
             _complete(constr)
             _run(build_meta)
+            # no run or publish, as it will happen once at cron anyway
+            # maybe needs changing
         if conf.cron:
             # TODO: warn if same data is tagged differently
             _run(build_meta)
             _run(run_aswan_project)
             _run(run, commit=True, profile=True)
             _run(publish_data)
+            _run(publish_to_zenodo, test=True)
 
 
 def _complete(constr, raw_imports=()):
     _run(build_meta)
     _run(draw)
-    git_run(add=[MAIN_MODULE_NAME, BASE_CONF_PATH], msg="build", check=True)
-    _run_notebooks()
+    _run(_run_notebooks)
     for imp in raw_imports:
         _run(import_raw, imp)
     _run(load_external_data, git_commit=True)
     _run(run_aswan_project)
     _run(run, commit=True)
     _run(validate, constr)
-    _run(publish_meta)
     _run(publish_data)
+    _run(publish_to_zenodo, test=True)
     _run(update)
 
 
