@@ -37,6 +37,7 @@ explorer = [
     "html5lib",
     "cron-descriptor",
 ]
+zenodo = ["requests", "markdown2"]
 test = ["branthebuilder", "zimmauth[test]", "atqo", "faker"]
 doc = ["branthebuilder[doc]"]
 [project.urls]
