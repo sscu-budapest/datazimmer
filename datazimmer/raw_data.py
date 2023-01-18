@@ -10,7 +10,7 @@ RAW_ENV_NAME = "#raw"
 MAX_LEVELS = 5
 
 
-def get_raw_data_path(filename: str, project: Optional[str] = None):
+def get_raw_data_path(leaf_name: str, project: Optional[str] = None) -> Path:
     """if project is None, raw data output path is given, otherwise imported"""
     loc = Path.cwd()
     for _ in range(MAX_LEVELS):
@@ -20,7 +20,7 @@ def get_raw_data_path(filename: str, project: Optional[str] = None):
             else:
                 r_dir = loc / IMPORTED_RAW_DATA_DIR / project
             r_dir.mkdir(exist_ok=True, parents=True)
-            return r_dir / filename
+            return r_dir / leaf_name
         loc = loc.parent
     raise ProjectSetupException(f"could not find a project going up {MAX_LEVELS}")
 
