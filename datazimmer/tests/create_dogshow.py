@@ -12,12 +12,7 @@ from structlog import get_logger
 from yaml import safe_load
 
 from datazimmer.explorer import SETUP_DIR
-from datazimmer.naming import (
-    BASE_CONF_PATH,
-    EXPLORE_CONF_PATH,
-    MAIN_MODULE_NAME,
-    TEMPLATE_REPO,
-)
+from datazimmer.naming import BASE_CONF_PATH, EXPLORE_CONF_PATH, MAIN_MODULE_NAME
 from datazimmer.typer_commands import init
 from datazimmer.utils import cd_into, gen_rmtree, git_run, package_root
 
@@ -34,12 +29,7 @@ _RAW_IMPORTS = {"dog-show": ["dog-raw"], "dograce": ["dog-raw"]}
 
 class DogshowContextCreator:
     def __init__(
-        self,
-        local_root,
-        csv_path,
-        remote_root=None,
-        dvc_remotes=None,
-        explore_remote=None,
+        self, local_root, remote_root=None, dvc_remotes=None, explore_remote=None
     ):
         self.local_root = Path(local_root)
         gen_rmtree(self.local_root)
@@ -49,7 +39,6 @@ class DogshowContextCreator:
         self.dvc_remotes = [*self._get_dvc_remotes(dvc_remotes)]
         _reg = self.remote_root / "dogshow-registry"
         self.cc_context = {
-            "csv_path": csv_path,
             "test_registry": self._init_if_local(_reg, True),
             "explore_remote": json.dumps(explore_remote),
             "remote2": self.dvc_remotes[1][0],
@@ -63,7 +52,6 @@ class DogshowContextCreator:
         root_dir = self.local_root / name
         template_path = project_cc_root / f"cc-{name}"
         git_remote = self._init_if_local(self.remote_root / f"dogshow-{name}")
-        Path(root_dir, MAIN_MODULE_NAME, "core.py").unlink(missing_ok=True)
         check_call(["git", "remote", "add", "origin", git_remote], cwd=root_dir)
         generate_files(
             template_path,
@@ -74,7 +62,6 @@ class DogshowContextCreator:
         self.ran_dirs.append(root_dir)
         with cd_into(root_dir):
             sys.path.insert(0, Path.cwd().as_posix())
-            _add_readme()
             for remote_name, remote_id in self.dvc_remotes:
                 check_call(["dvc", "remote", "add", remote_name, remote_id])
             check_call(["dvc", "remote", "default", self.dvc_remotes[0][0]])
@@ -117,10 +104,7 @@ class DogshowContextCreator:
     @classmethod
     def load(cls, mode: str, tmp_path: Path):
         if mode == "test":
-            kwargs = {
-                "csv_path": Path(dogshow_root, "data").absolute().as_posix(),
-                "local_root": tmp_path,
-            }
+            kwargs = {"local_root": tmp_path}
         else:  # pragma: no cover
             kwargs = safe_load((dogshow_root / "confs-live.yaml").read_text())[mode]
         return cls(**kwargs)
@@ -163,10 +147,7 @@ def modify_to_version(version: str):
                 new_line = old_line
             lines.append(new_line)
         path.write_text("\n".join(lines))
-
-
-def _add_readme():
-    Path("README.md").write_text(f"test project for [this]({TEMPLATE_REPO}) template")
+    git_run(add=[MAIN_MODULE_NAME, BASE_CONF_PATH], msg=f"v{version}", check=True)
 
 
 def _get_paths():
