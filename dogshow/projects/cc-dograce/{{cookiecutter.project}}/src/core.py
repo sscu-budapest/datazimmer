@@ -51,7 +51,7 @@ competition_table = dz.ScruTable(Competition)
 dog_of_the_month_table = dz.ScruTable(DogOfTheMonth, max_partition_size=3)
 
 
-@dz.register_data_loader
+@dz.register_data_loader  # TODO: add raw paths as dependencies
 def create_data():
     raw_src = "dog-raw"
     dogsize_df = pd.read_csv(dz.get_raw_data_path("sizes.csv", raw_src))
