@@ -38,7 +38,7 @@ rm_frame = (
     "(https://doi.org/{doi_num}/zenodo.{zid})"
 )
 
-z_rex = reduce(lambda l, r: l.replace(r, f"\\{r}"), "()[]!", rm_frame).format(
+z_rex = reduce(lambda le, ri: le.replace(ri, f"\\{ri}"), "()[]!", rm_frame).format(
     url_base="(.*)", doi_num="(.*)", zid=r"(\d+)"
 )
 
