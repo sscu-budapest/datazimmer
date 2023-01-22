@@ -1,6 +1,7 @@
 import datetime as dt
 import re
 from dataclasses import asdict
+from itertools import chain
 from pathlib import Path
 from subprocess import check_call
 
@@ -230,18 +231,23 @@ def run(
 ):
     dvc_repo = Repo(config={"core": {"autostage": stage}})
     runtime = get_runtime()
-    stage_names = [
-        stage_name
-        for step in runtime.metadata.complete.pipeline_elements
-        for stage_name in step.add_stages(dvc_repo)
-    ]
-    for stage in dvc_repo.stages:
-        if stage.is_data_source or stage.is_import or (stage.name in stage_names):
+    stage_names = []
+    no_cache_outputs = []
+    for step in runtime.metadata.complete.pipeline_elements:
+        no_cache_outputs.extend(chain(*step.get_no_cache_outs(env)))
+        stage_names.extend(step.add_stages(dvc_repo))
+
+    for dvc_stage in dvc_repo.stages:
+        if (
+            dvc_stage.is_data_source
+            or dvc_stage.is_import
+            or (dvc_stage.name in stage_names)
+        ):
             continue
-        logger.info("removing dvc stage", stage=stage.name)
-        dvc_repo.remove(stage.name)
+        logger.info("removing dvc stage", stage=dvc_stage.name)
+        dvc_repo.remove(dvc_stage.name)
         dvc_repo.lock.lock()
-        stage.remove_outs(force=True)
+        dvc_stage.remove_outs(force=True)
         dvc_repo.lock.unlock()
     if not stage_names:
         return
@@ -250,7 +256,7 @@ def run(
     with rconf:
         logger.info("running repro", targets=targets, **asdict(rconf))
         runs = dvc_repo.reproduce(targets=targets, pull=True)
-    git_run(add=["dvc.yaml", "dvc.lock", BASE_CONF_PATH])
+    git_run(add=["dvc.yaml", "dvc.lock", BASE_CONF_PATH, *no_cache_outputs])
     if commit:
         now = dt.datetime.now().isoformat(" ", "minutes")
         git_run(msg=f"at {now} ran: {runs}", check=True)

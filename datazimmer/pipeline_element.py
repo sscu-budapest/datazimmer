@@ -95,6 +95,10 @@ class PipelineElement:
             )
             yield self.stage_name(write_env)
 
+    def get_no_cache_outs(self, env):
+        for e in [env] if env else self.write_envs:
+            yield _parse_list(self.outputs_nocache, e)
+
     def stage_name(self, env):
         return get_stage_name(self.ns, env)
 
