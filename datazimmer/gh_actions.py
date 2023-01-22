@@ -47,7 +47,7 @@ def write_book_actions(cron):
 
 _env_keys = [AUTH_HEX_ENV_VAR, AUTH_PASS_ENV_VAR, GIT_TOKEN_ENV_VAR]
 try:
-    from aswan.depot import DEFAULT_REMOTE_ENV_VAR, HEX_ENV, PW_ENV
+    from aswan.constants import DEFAULT_REMOTE_ENV_VAR, HEX_ENV, PW_ENV
 
     _env_keys.extend([PW_ENV, HEX_ENV, DEFAULT_REMOTE_ENV_VAR])
 except ImportError:
