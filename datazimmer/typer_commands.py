@@ -168,7 +168,7 @@ def publish_to_zenodo(env: str = "", test: bool = False):
     else:
         dvc_repo = Repo()
         for step in runtime.step_names_of_env(tag_env):
-            for out in dvc_repo.index.stage_collector.get_target(step).outs:
+            for out in list(dvc_repo.stage.collect(step))[0].outs:
                 op = Path(out.fs_path)
                 if op.is_absolute():
                     op = op.relative_to(Path.cwd())
