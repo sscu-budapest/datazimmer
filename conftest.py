@@ -21,11 +21,10 @@ from datazimmer.naming import (
     AUTH_PASS_ENV_VAR,
     DEFAULT_ENV_NAME,
     MAIN_MODULE_NAME,
-    TEMPLATE_REPO,
 )
 from datazimmer.tests.create_dogshow import dogshow_root
-from datazimmer.typer_commands import cleanup, init
-from datazimmer.utils import cd_into, gen_rmtree, git_run
+from datazimmer.typer_commands import cleanup, init, init_explorer
+from datazimmer.utils import cd_into, gen_rmtree
 
 CORE_PY = dogshow_root / "minimal.py"
 
@@ -62,6 +61,11 @@ def in_template(empty_template):
         _GLOBAL_CLS_MAP = {}
         global _GLOBAL_RUNTIME
         _GLOBAL_RUNTIME = None
+
+
+@pytest.fixture(scope="session")
+def small_explorer():
+    pass
 
 
 @pytest.fixture
