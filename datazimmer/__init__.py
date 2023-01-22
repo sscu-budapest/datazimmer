@@ -1,7 +1,7 @@
 """sscu-budapest utilities for scientific data engineering"""
 # flake8: noqa
 from .aswan_integration import DzAswan
-from .metadata.atoms import EntityClass
+from .metadata.atoms import EntityClass, parse_df
 from .metadata.datascript import (
     AbstractEntity,
     CompositeTypeBase,

@@ -29,7 +29,7 @@ from .raw_data import IMPORTED_RAW_DATA_DIR, RAW_DATA_DIR, RAW_ENV_NAME
 from .registry import Registry
 from .sql.draw import dump_graph
 from .sql.loader import tmp_constr
-from .utils import command_out_w_prefix, gen_rmtree, get_git_diffs, git_run
+from .utils import cd_into, command_out_w_prefix, gen_rmtree, get_git_diffs, git_run
 from .validation_functions import validate
 from .zenodo import CITATION_FILE, ZenApi
 
@@ -48,14 +48,33 @@ def run_step(name: str, env: str):
 
 
 @app.command()
-def init(name: str):
+def init(name: str, github_org: str = "", git_remote: str = ""):
     git_run(clone=(TEMPLATE_REPO, name), depth=None)
-    c_p = name / BASE_CONF_PATH
-    cstr = re.sub(f"{CONF_KEYS.name}: .+", f"{CONF_KEYS.name}: {name}", c_p.read_text())
-    c_p.write_text(cstr)
-    rm_p = name / README_PATH
-    rm_p.write_text(rm_p.read_text().replace("{{title}}", name))
-    check_call(["git", "remote", "rm", "origin"], cwd=name)
+    comms = [["git", "remote", "rm", "origin"]]
+    if github_org:  # pragma: no cover
+        from ghapi.all import GhApi
+
+        api = GhApi()
+        api.repos.create_in_org(github_org, name)
+        git_remote = f"git@github.com:{github_org}/{name}.git"
+    if git_remote:
+        comms.extend(
+            [
+                ["git", "remote", "add", "origin", git_remote],
+                ["git", "push", "-u", "origin", "main"],
+            ]
+        )
+    with cd_into(name):
+        cstr = re.sub(
+            f"{CONF_KEYS.name}: .+",
+            f"{CONF_KEYS.name}: {name}",
+            BASE_CONF_PATH.read_text(),
+        )
+        BASE_CONF_PATH.write_text(cstr)
+        README_PATH.write_text(README_PATH.read_text().replace("{{title}}", name))
+        for c in comms:
+            check_call(c)
+        git_run(add=["*"], msg=f"init {name}", push=bool(git_remote))
 
 
 @app.command()
