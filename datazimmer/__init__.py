@@ -17,4 +17,4 @@ from .raw_data import get_raw_data_path
 from .reporting import ReportFile
 from .typer_commands import app
 
-__version__ = "0.4.9"
+__version__ = "0.4.10"
