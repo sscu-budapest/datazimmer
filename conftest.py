@@ -14,8 +14,6 @@ from zimmauth import ZimmAuth
 from zimmauth.core import LOCAL_HOST_NAMES_ENV_VAR
 
 from datazimmer.config_loading import RunConfig
-from datazimmer.get_runtime import _GLOBAL_RUNTIME
-from datazimmer.metadata.atoms import _GLOBAL_CLS_MAP
 from datazimmer.naming import (
     AUTH_HEX_ENV_VAR,
     AUTH_PASS_ENV_VAR,
@@ -23,6 +21,7 @@ from datazimmer.naming import (
     MAIN_MODULE_NAME,
 )
 from datazimmer.tests.create_dogshow import dogshow_root
+from datazimmer.tests.util import dz_ctx
 from datazimmer.typer_commands import cleanup, init, init_explorer
 from datazimmer.utils import cd_into, gen_rmtree
 
@@ -36,31 +35,29 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope="session")
 def empty_template():
-    tmpdir = TemporaryDirectory()
+    _tmp = TemporaryDirectory()
+    tmp_dir = Path(_tmp.name)
+    dvc_rem = tmp_dir / "dvc-rem"
     pname = "test-project"
-    with cd_into(tmpdir.name):
-        init(pname)
-    pdir = Path(tmpdir.name, pname)
+    with cd_into(tmp_dir):
+        check_call(["git", "init", "remote"])
+        init(pname, git_remote=(tmp_dir / "remote").as_posix())
+    pdir = tmp_dir / pname
     with cd_into(pdir):
-        check_call(["dvc", "remote", "add", "testrem", "/nothing"])
+        check_call(["dvc", "remote", "add", "testrem", dvc_rem.as_posix()])
         check_call(["dvc", "remote", "default", "testrem"])
         Path(MAIN_MODULE_NAME, "core.py").write_text(CORE_PY.read_text())
-    yield pdir
-    with cd_into(pdir):
-        cleanup()
-    gen_rmtree(tmpdir.name)
+    with dz_ctx([pdir]):
+        yield pdir
+    gen_rmtree(tmp_dir)
 
 
 @pytest.fixture
-def in_template(empty_template):
+def in_template(empty_template: Path):
     with cd_into(empty_template):
-        sys.path.insert(0, empty_template)
-        yield
+        sys.path.insert(0, empty_template.as_posix())
+        yield empty_template
         sys.path.pop(0)
-        global _GLOBAL_CLS_MAP
-        _GLOBAL_CLS_MAP = {}
-        global _GLOBAL_RUNTIME
-        _GLOBAL_RUNTIME = None
 
 
 @pytest.fixture(scope="session")

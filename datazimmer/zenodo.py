@@ -4,7 +4,7 @@ import json
 import os
 import re
 from dataclasses import asdict, dataclass, field
-from functools import partial, reduce
+from functools import cached_property, partial, reduce
 from pathlib import Path
 
 import yaml
@@ -106,14 +106,14 @@ class Citation(ShortCitation):
     cff_version: str = "1.2.0"
 
     @classmethod
-    def from_zen_dic(cls, dic) -> "Citation":
+    def from_zen_dic(cls, dic):
         short = ShortCitation.from_zen_dic(dic)
         meta = dic["metadata"]
-        return Citation(
+        return cls(
             **asdict(short),
             authors=list(map(Author.from_zdic, meta["creators"])),
             keywords=meta.get("keywords", []),
-            license=meta["license"]["id"],
+            license=meta.get("license", {"id": "closed"})["id"],
             message=meta.get(
                 "notes", "If you use this software, please cite it as below."
             ),
@@ -173,7 +173,7 @@ class Citation(ShortCitation):
 
 
 class ZenodoMeta:
-    def __init__(self, title, version, lines) -> None:
+    def __init__(self, title, version, lines, private: bool) -> None:
         import markdown2
 
         self.title: str = title  # from git remote last 2 elems
@@ -181,8 +181,9 @@ class ZenodoMeta:
         self.publication_date = dt.date.today().isoformat()
         self.upload_type: str = "dataset"  # /software/other
         self.description: str = markdown2.markdown("\n".join(lines))
-        self.access_right: str = "open"  # embargoed/restricted/closed
-        self.license: str = "MIT"  # if open/embargoed list at /api/licenses
+        self.access_right = "closed" if private else "open"
+        # embargoed/restricted/closed
+        self.license: str = "" if private else "MIT"
         # self.keywords: list[str] = []
         self.related_identifiers: list[dict] = get_cites()
         uconf = UserConfig.load()
@@ -202,65 +203,55 @@ class ZenodoMeta:
 
 
 class ZenApi:
-    def __init__(self, conf: Config, tag: str, test: bool = True):
+    def __init__(self, conf: Config, private: bool, tag: str, test: bool = True):
         import requests
 
         self.live = not test
         self.name = conf.name
         self.tag = tag
-        self.url = _get_z_url(test)
+        self.private = private
+        self.url_base = _get_z_url(test)
+        self.url = self.url_base + "/api"
         self.env_var = ZENODO_TEST_TOKEN_ENV_VAR if test else ZENODO_TOKEN_ENV_VAR
 
         self.s = requests.Session()
         self.s.params = {"access_token": os.environ[self.env_var]}
         self.readme_lines = []
 
-    def get_depo_id(self):
-        zid = self.zid_from_readme()
-        if not zid:
-            return self.new_deposition().json()["id"]
-
-        ver_resp = self.s.post(f"{self._dep_path()}/{zid}/actions/newversion")
-        if ver_resp.ok:
-            id_ = ver_resp.json()["links"]["latest_draft"].split("/")[-1]
-            for file in ver_resp.json()["files"]:
-                self.s.delete(f"{self._dep_path()}/{id_}/files/{file['id']}")
-            self.s.put(f"{self._dep_path()}/{id_}", data=self.meta.data())
-            return id_
-        return self.new_deposition().json()["id"]
-
-    def publish(self, zid):
-        resp = self.s.post(f"{self._dep_path()}/{zid}/actions/publish")
+    def publish(self):
+        resp = self.s.post(f"{self._dep_path()}/{self.depo_id}/actions/publish")
         assert resp.ok, resp.content.decode("utf-8")
 
     def get(self, **params):
         return self.s.get(self._dep_path(), params=params)
 
     def new_deposition(self):
+        return self.s.post(self._dep_path(), **self._meta_kwargs())
 
-        return self.s.post(
-            self._dep_path(),
-            headers={"Content-Type": "application/json"},
-            data=json.dumps(self.meta.data()),
-        )
+    def upload(self, fpath: Path):
+        assert fpath.exists(), f"{fpath} must exist to upload to zenodo"
+        if fpath.is_dir():
+            self.upload_directory(fpath)
+        else:
+            self.upload_file(fpath)
 
-    def upload_file(self, fpath: Path, depo_id):
+    def upload_file(self, fpath: Path):
         return self.s.post(
-            f"{self._dep_path()}/{depo_id}/files",
+            f"{self._dep_path()}/{self.depo_id}/files",
             data={"name": fpath.as_posix()},
             files={"file": fpath.open(mode="rb")},
         )
 
-    def upload_directory(self, dirpath, depo_id):
+    def upload_directory(self, dirpath):
         for root, _, files in os.walk(dirpath):
             for f in files:
-                self.upload_file(Path(root, f), depo_id)
+                self.upload_file(Path(root, f))
 
-    def cite(self, zid, bib=True, live=False):
+    def cite(self, did: str, bib=True, live=False):
         headers = {}
         if bib:
             headers["accept"] = "application/x-bibtex"
-        return self.s.get(f"{_get_z_url(not live)}/records/{zid}", headers=headers)
+        return self.s.get(f"{_get_z_url(not live)}/api/records/{did}", headers=headers)
 
     def zid_from_readme(self):
         zid = None
@@ -274,18 +265,17 @@ class ZenApi:
                 zid = int(found[0][-1])
         return zid
 
-    def update_readme(self, depo_id):
+    def update_readme(self):
         new_zen_line = rm_frame.format(
-            url_base="zenodo.org", doi_num="10.5281", zid=depo_id
+            url_base="zenodo.org", doi_num="10.5281", zid=self.depo_id
         )
         self.readme_lines.insert(2, new_zen_line)
         # todo: this is the latest dz bib, but cant search with version
         dz_dic = self.cite(dz_concept_zid, live=True, bib=False).json()
         dz = Citation.from_zen_dic(dz_dic)
         datac = Citation.from_zen_dic(
-            self.cite(depo_id, live=self.live, bib=False).json()
+            self.cite(self.depo_id, live=self.live, bib=False).json()
         )
-
         cite_inst = cite_frame.format(
             dz_bib=dz.to_bib(),
             bib=datac.to_bib(),
@@ -303,14 +293,36 @@ class ZenApi:
 
     @property
     def meta(self):
-        return ZenodoMeta(self.name, self.tag, self.readme_lines)
+        return ZenodoMeta(self.name, self.tag, self.readme_lines, self.private)
+
+    @cached_property
+    def depo_id(self):
+        zid = self.zid_from_readme()
+        if not zid:
+            return self.new_deposition().json()["id"]
+
+        ver_resp = self.s.post(f"{self._dep_path()}/{zid}/actions/newversion")
+        if ver_resp.ok:
+            id_ = ver_resp.json()["links"]["latest_draft"].split("/")[-1]
+            for file in ver_resp.json()["files"]:
+                self.s.delete(f"{self._dep_path()}/{id_}/files/{file['id']}")
+            resp = self.s.put(f"{self._dep_path()}/{id_}", **self._meta_kwargs())
+            assert resp.ok, resp.content.decode("utf-8")
+            return id_
+        return self.new_deposition().json()["id"]
 
     def _dep_path(self):
         return f"{self.url}/deposit/depositions"
 
+    def _meta_kwargs(self):
+        return dict(
+            headers={"Content-Type": "application/json"},
+            data=json.dumps(self.meta.data()),
+        )
+
 
 def _get_z_url(sandbox: bool):
-    return f"https://{'sandbox.' if sandbox else ''}zenodo.org/api"
+    return f"https://{'sandbox.' if sandbox else ''}zenodo.org"
 
 
 def _to_bibline(kv):

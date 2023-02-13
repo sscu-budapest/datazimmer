@@ -25,6 +25,7 @@ dec_src_root = dogshow_root / "explorer"
 _PROJECTS = ["dog-raw", "dog-show", "dograce", "dogsuccess", "dogcombine"]
 _VERSIONS = {"dog-show": ["0.0", "0.1"], "dogsuccess": ["1.0"]}
 _RAW_IMPORTS = {"dog-show": ["dog-raw"], "dograce": ["dog-raw"]}
+_PRIVATE_ZEN = {"dogsuccess": "sex_matches"}
 
 
 class DogshowContextCreator:
@@ -65,7 +66,8 @@ class DogshowContextCreator:
                 check_call(["dvc", "remote", "add", remote_name, remote_id])
             check_call(["dvc", "remote", "default", self.dvc_remotes[0][0]])
             git_run(add=["*"], msg=f"setup {name} project", push=True)
-            yield name, _VERSIONS.get(name, []), _RAW_IMPORTS.get(name, [])
+            pzen = _PRIVATE_ZEN.get(name, "")
+            yield name, _VERSIONS.get(name, []), _RAW_IMPORTS.get(name, []), pzen
             sys.path.pop(0)
 
     def explorer(self):

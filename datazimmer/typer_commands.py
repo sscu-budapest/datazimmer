@@ -4,6 +4,7 @@ from dataclasses import asdict
 from itertools import chain
 from pathlib import Path
 from subprocess import check_call
+from typing import TYPE_CHECKING
 
 import typer
 from dvc.repo import Repo
@@ -33,6 +34,9 @@ from .sql.loader import tmp_constr
 from .utils import cd_into, command_out_w_prefix, gen_rmtree, get_git_diffs, git_run
 from .validation_functions import validate
 from .zenodo import CITATION_FILE, ZenApi
+
+if TYPE_CHECKING:  # pragma: no cover
+    from .project_runtime import ProjectRuntime
 
 logger = get_logger(ctx="CLI command")
 app = typer.Typer()
@@ -100,7 +104,7 @@ def set_whoami(first_name: str, last_name: str, orcid: str):
 
 
 @app.command()
-def import_raw(project: str, tag: str = ""):
+def import_raw(project: str, tag: str = "", commit: bool = False):
     dvc_repo = Repo()
     reg = get_runtime().registry
     v = meta_version_from_tag(tag) if tag else None
@@ -112,6 +116,8 @@ def import_raw(project: str, tag: str = ""):
         out=(IMPORTED_RAW_DATA_DIR / project).as_posix(),
         rev=tag or None,
     )
+    if commit:
+        _dvc_commit(paths=[f"{IMPORTED_RAW_DATA_DIR}/*"], msg=f"import raw {project}")
 
 
 @app.command()
@@ -134,7 +140,7 @@ def publish_data():
     if RAW_DATA_DIR.exists():
         dvc_repo.add(RAW_DATA_DIR.as_posix())
         dvc_repo.push(targets=RAW_DATA_DIR.as_posix(), remote=default_remote)
-        git_run(add=[f"{RAW_DATA_DIR}.dvc"], msg="save raw data", check=True)
+        _dvc_commit([RAW_DATA_DIR], "save raw data")
         _tag(RAW_ENV_NAME, default_remote)
     for env in runtime.config.sorted_envs:
         targets = runtime.step_names_of_env(env.name)
@@ -148,7 +154,14 @@ def publish_data():
 
 
 @app.command()
-def publish_to_zenodo(env: str = "", test: bool = False):
+def deposit_to_zenodo(
+    env: str = "",
+    publish: bool = False,
+    test: bool = False,
+    path_filter: str = "",
+    private: bool = False,
+):
+    """path_filter: regex to filter paths to be uploaded"""
     # must be at a zimmer tag
     _validate_empty_vc("publishing to zenodo")
     runtime = get_runtime()
@@ -160,26 +173,23 @@ def publish_to_zenodo(env: str = "", test: bool = False):
                 f"either checkout a published tag or run {publish_data}"
             )
         else:
-            raise ValueError(f"can't find {env} amond tags of HEAD")
+            raise ValueError(f"can't find {env} among tags of HEAD")
 
-    zapi = ZenApi(runtime.config, test=test, tag=tag)
-    did = zapi.get_depo_id()
+    zapi = ZenApi(runtime.config, private=private, test=test, tag=tag)
     if tag_env == RAW_ENV_NAME:
-        zapi.upload_directory(RAW_DATA_DIR, depo_id=did)
+        paths_to_upload = [RAW_DATA_DIR]
     else:
-        dvc_repo = Repo()
-        for step in runtime.step_names_of_env(tag_env):
-            for out in list(dvc_repo.stage.collect(step))[0].outs:
-                op = Path(out.fs_path)
-                if op.is_absolute():
-                    op = op.relative_to(Path.cwd())
-                if op.is_dir():
-                    zapi.upload_directory(op, depo_id=did)
-                elif op.exists():
-                    zapi.upload_file(op, depo_id=did)
-    zapi.publish(zid=did)
-    zapi.update_readme(depo_id=did)
-    git_run(add=[README_PATH, CITATION_FILE], msg=f"doi for {tag}", check=True)
+        paths_to_upload = _iter_dvc_paths(runtime, tag_env)
+    for path in paths_to_upload:
+        if (path_filter != "") and (not re.findall(path_filter, path.as_posix())):
+            continue
+        zapi.upload(path)
+    if publish:
+        zapi.publish()
+        zapi.update_readme()
+        git_run(add=[README_PATH, CITATION_FILE], msg=f"doi for {tag}", check=True)
+    else:
+        logger.info(f"{zapi.url_base}/deposit/{zapi.depo_id}")
 
 
 @app.command()
@@ -203,8 +213,7 @@ def load_external_data(git_commit: bool = False, env: str = None):
     logger.info("loading external data", envs=runtime.data_to_load)
     posixes = runtime.load_all_data(env=env)
     if git_commit and posixes:
-        vc_paths = ["*.gitignore", *[f"{p}.dvc" for p in posixes]]
-        git_run(add=vc_paths, msg="add imported datasets", check=True)
+        _dvc_commit(posixes, "add imported datasets")
 
 
 @app.command()
@@ -263,6 +272,14 @@ def run(
     return runs
 
 
+def _iter_dvc_paths(runtime: "ProjectRuntime", env):
+    dvc_repo = Repo()
+    for step in runtime.step_names_of_env(env):
+        for out in list(dvc_repo.stage.collect(step))[0].outs:
+            op = Path(out.fs_path)
+            yield op.relative_to(Path.cwd()) if op.is_absolute() else op
+
+
 def _get_current_tag_of_env(env: str):
     tag_comm = ["git", "tag", "--points-at", "HEAD"]
     for tag in command_out_w_prefix(tag_comm, VERSION_PREFIX):
@@ -275,6 +292,10 @@ def _get_current_tag_of_env(env: str):
 def _commit_dvc_default(remote):
     check_call(["dvc", "remote", "default", remote])
     git_run(add=[".dvc"], msg=f"update dvc default remote to {remote}", check=True)
+
+
+def _dvc_commit(paths, msg):
+    git_run(add=["*.gitignore", *[f"{p}.dvc" for p in paths]], msg=msg, check=True)
 
 
 def _validate_empty_vc(attempt, prefs=("dvc.", MAIN_MODULE_NAME)):
