@@ -4,7 +4,7 @@ from datazimmer.naming import DATA_PATH, DEFAULT_ENV_NAME
 from .util import run_in_process
 
 
-def test_around(in_template):
+def test_around(in_template, proper_env):
     # ./dogshow/minimal.py
     # as core
 
