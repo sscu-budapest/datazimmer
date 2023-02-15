@@ -187,7 +187,7 @@ def deposit_to_zenodo(
     for path in paths_to_upload:
         if (path_filter != "") and (not re.findall(path_filter, path.as_posix())):
             continue
-        zapi.upload(path)
+        zapi.upload(path, key_path if private else None)
     if publish:
         zapi.publish()
         zapi.update_readme()
