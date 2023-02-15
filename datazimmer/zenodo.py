@@ -8,6 +8,7 @@ from functools import cached_property, partial, reduce
 from pathlib import Path
 
 import yaml
+from cryptography.fernet import Fernet
 
 from .config_loading import Config, UserConfig
 from .naming import README_PATH
@@ -228,24 +229,29 @@ class ZenApi:
     def new_deposition(self):
         return self.s.post(self._dep_path(), **self._meta_kwargs())
 
-    def upload(self, fpath: Path):
+    def upload(self, fpath: Path, key_path=""):
         assert fpath.exists(), f"{fpath} must exist to upload to zenodo"
         if fpath.is_dir():
-            self.upload_directory(fpath)
+            self.upload_directory(fpath, key_path)
         else:
-            self.upload_file(fpath)
+            self.upload_file(fpath, key_path)
 
-    def upload_file(self, fpath: Path):
+    def upload_file(self, fpath: Path, key_path=""):
+        if key_path:
+            fern = Fernet(bytes.fromhex(Path(key_path).read_text()))
+            enc_fpath = Path(fpath.parent, fpath.name + ".encrypted")
+            enc_fpath.write_bytes(fern.encrypt(fpath.read_bytes()))
+            fpath = enc_fpath
         return self.s.post(
             f"{self._dep_path()}/{self.depo_id}/files",
             data={"name": fpath.as_posix()},
             files={"file": fpath.open(mode="rb")},
         )
 
-    def upload_directory(self, dirpath):
+    def upload_directory(self, dirpath, key_path=""):
         for root, _, files in os.walk(dirpath):
             for f in files:
-                self.upload_file(Path(root, f))
+                self.upload_file(Path(root, f), key_path)
 
     def cite(self, did: str, bib=True, live=False):
         headers = {}

@@ -95,12 +95,15 @@ def _complete(constr, raw_imports=(), zen_pattern=""):
     run_in_process(validate, constr)
     run_in_process(publish_data)
     if zen_pattern:
+        key_path = Path("kp.key")
+        key_path.write_text(((b"MTEx" * 11)[:-1] + b"=").hex())
         run_in_process(
             deposit_to_zenodo,
             test=True,
             private=True,
             path_filter=zen_pattern,
             publish=True,
+            key_path=key_path.as_posix(),
         )
         run_in_process(publish_data)
     run_in_process(deposit_to_zenodo, test=True, publish=True)

@@ -160,9 +160,13 @@ def deposit_to_zenodo(
     test: bool = False,
     path_filter: str = "",
     private: bool = False,
+    key_path: str = "",
 ):
-    """path_filter: regex to filter paths to be uploaded"""
+    """path_filter: regex to filter paths to be uploaded
+    key_path: used if private=True, a path to a fernet key file in hex text"""
     # must be at a zimmer tag
+    if private and not key_path:
+        raise ValueError("if upload is private, a fernet key path is needed")
     _validate_empty_vc("publishing to zenodo")
     runtime = get_runtime()
     tag_env, tag = _get_current_tag_of_env(env)
@@ -238,6 +242,7 @@ def run_aswan_project(project: str = "", publish: bool = True):
 def run(
     stage: bool = True, profile: bool = False, env: str = None, commit: bool = False
 ):
+    # TODO: add validation that all scrutables belong somewhere as an output
     dvc_repo = Repo(config={"core": {"autostage": stage}})
     runtime = get_runtime()
     stage_names = []
