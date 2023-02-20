@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import Callable, Optional, TypeVar
 
 import pandas as pd
@@ -37,7 +38,6 @@ class ScruTable:
         self.name = self.id_.obj_id
         self.index = self.entity_class.identifiers
         self.features = self.entity_class.properties
-
         self.index_map = self.entity_class.table_index_dt_map
         self.features_map = self.entity_class.table_feature_dt_map
         self.dtype_map = self.entity_class.table_full_dt_map
@@ -91,18 +91,10 @@ class ScruTable:
             yield
 
     def _read_wrap(self, fun: Callable[..., T]) -> Callable[..., T]:
-        def f(env=None, **kwargs):
-            with self.env_ctx(env or RunConfig.load().read_env):
-                return fun(**kwargs)
-
-        return f
+        return _RWrap(fun, self.env_ctx)
 
     def _write_wrap(self, fun):
-        def f(df, parse=True, verbose=True, env=None, **kwargs):
-            with self.env_ctx(env or RunConfig.load().write_env):
-                return fun(self._parse_df(df, verbose) if parse else df, **kwargs)
-
-        return f
+        return _WWrap(fun, self.env_ctx, self._parse_df)
 
     def _parse_df(self, df: pd.DataFrame, verbose=True):
         if verbose:
@@ -121,3 +113,24 @@ def _parse_entity_map(entity_map: dict):
         if isinstance(k, ColMeta):
             d[k._parent_prefixes] = v
     return d
+
+
+@dataclass
+class _RWrap:
+    fun: Callable
+    env_ctx: Callable
+
+    def __call__(self, env=None, **kwargs):
+        with self.env_ctx(env or RunConfig.load().read_env):
+            return self.fun(**kwargs)
+
+
+@dataclass
+class _WWrap:
+    fun: Callable
+    env_ctx: Callable
+    parse_df: Callable
+
+    def __call__(self, df, parse=True, verbose=True, env=None, **kwargs):
+        with self.env_ctx(env or RunConfig.load().write_env):
+            return self.fun(self.parse_df(df, verbose) if parse else df, **kwargs)
