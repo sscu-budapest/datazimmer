@@ -240,7 +240,11 @@ def run_aswan_project(project: str = "", publish: bool = True):
 
 @app.command()
 def run(
-    stage: bool = True, profile: bool = False, env: str = None, commit: bool = False
+    stage: bool = True,
+    profile: bool = False,
+    env: str = None,
+    commit: bool = False,
+    reset_aswan: bool = False,
 ):
     # TODO: add validation that all scrutables belong somewhere as an output
     dvc_repo = Repo(config={"core": {"autostage": stage}})
@@ -266,7 +270,7 @@ def run(
     if not stage_names:
         return
     targets = runtime.step_names_of_env(env) if env else None
-    rconf = RunConfig(profile=profile)
+    rconf = RunConfig(profile=profile, reset_aswan=reset_aswan)
     with rconf:
         logger.info("running repro", targets=targets, **asdict(rconf))
         runs = dvc_repo.reproduce(targets=targets, pull=True)

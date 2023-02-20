@@ -74,7 +74,8 @@ class DzAswan:
 
     def get_aswan_status(self):
         conf = RunConfig.load()
-
+        if conf.reset_aswan:
+            return
         stage_name = get_stage_name(self._ns, conf.write_env)
         possible_deps = []
         repo = Repo()

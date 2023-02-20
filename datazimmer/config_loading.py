@@ -204,6 +204,7 @@ class RunConfig(_IoConf):
     profile: bool = False
     write_env: Optional[str] = None
     read_env: Optional[str] = None
+    reset_aswan: bool = False
 
     def __enter__(self):
         self.dump()

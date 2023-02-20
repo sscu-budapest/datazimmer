@@ -57,7 +57,7 @@ def run_project_test(dog_context, constr):
                 # should warn and just try install
                 run_in_process(build_meta)
                 continue
-            _complete(constr)
+            _complete(constr, reset_aswan=True)
             run_in_process(build_meta)
             # no run or publish, as it will happen once at cron anyway
             # maybe needs changing
@@ -83,7 +83,7 @@ def assert_zen(versions, zen_pattern, conf: Config):
         assert any(r["metadata"]["access_right"] == "closed" for r in resp)
 
 
-def _complete(constr, raw_imports=(), zen_pattern=""):
+def _complete(constr, raw_imports=(), zen_pattern="", reset_aswan=False):
     run_in_process(build_meta)
     run_in_process(draw)
     run_in_process(_run_notebooks)
@@ -91,7 +91,7 @@ def _complete(constr, raw_imports=(), zen_pattern=""):
         run_in_process(import_raw, imp, commit=True)
     run_in_process(load_external_data, git_commit=True)
     run_in_process(run_aswan_project)
-    run_in_process(run, commit=True)
+    run_in_process(run, commit=True, reset_aswan=reset_aswan)
     run_in_process(validate, constr)
     run_in_process(publish_data)
     if zen_pattern:
