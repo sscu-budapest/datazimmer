@@ -97,7 +97,6 @@ class ShortCitation:
 
 @dataclass
 class Citation(ShortCitation):
-
     authors: list[Author]
     keywords: list[str]
     license: str
@@ -122,7 +121,6 @@ class Citation(ShortCitation):
         )
 
     def to_bib(self):
-
         pairs = [
             ("author", " and ".join(map(Author.comma_name, self.authors))),
             ("title", self.title),

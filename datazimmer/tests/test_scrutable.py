@@ -11,7 +11,6 @@ from datazimmer.sql.loader import SqlLoader, tmp_constr
 
 
 def test_scrutable_parsing(running_template):
-
     df = pd.DataFrame(
         {
             "ind": [5, 20],
@@ -45,7 +44,6 @@ def test_scrutable_parsing(running_template):
 
 
 def test_run_scrutable(in_template):
-
     from src.core import scrutable
 
     with pytest.raises(ProjectSetupException):

@@ -34,7 +34,6 @@ logger = get_logger()
 
 @dataclass
 class PipelineElement:
-
     runner: callable
     dependencies: list = field(default_factory=list)
     outputs: list = field(default_factory=list)

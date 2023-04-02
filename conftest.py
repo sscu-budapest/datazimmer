@@ -47,6 +47,7 @@ def empty_template():
         check_call(["dvc", "remote", "add", "testrem", dvc_rem.as_posix()])
         check_call(["dvc", "remote", "default", "testrem"])
         Path(MAIN_MODULE_NAME, "core.py").write_text(CORE_PY.read_text())
+
     with dz_ctx([pdir]):
         yield pdir
     gen_rmtree(tmp_dir)
@@ -86,8 +87,7 @@ def test_bucket():
 @pytest.fixture
 def proper_env():
 
-    conf = DvcConfig()
-    gpath = Path(conf.files.get("global"))
+    gpath = Path(DvcConfig().files.get("global"))
 
     old_conf = None
     if gpath.name and gpath.exists():

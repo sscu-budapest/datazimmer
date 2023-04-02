@@ -64,7 +64,6 @@ class NsCollection(NamespaceMetadata):
 
 @dataclass
 class ProjectMetadata:
-
     uri: str
     tags: list[str]
     cron: str = ""

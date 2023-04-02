@@ -52,7 +52,6 @@ DATASETS = BOOK_DIR / "datasets"
 
 class S3Remote:
     def __init__(self, remote_id):
-
         z_auth = get_full_auth()
         self.bucket = z_auth.get_boto_bucket(remote_id)
         auth = z_auth.get_auth(remote_id)
@@ -372,7 +371,6 @@ class _NBParser:
 
 
 def get_profile_str(df, minimal):
-
     from bs4 import BeautifulSoup, Tag
     from pandas_profiling import ProfileReport
 

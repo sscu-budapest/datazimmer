@@ -36,7 +36,6 @@ class PrimitiveFeature:  # ~DataProperty
 
 @dataclass
 class ObjectProperty:
-
     prefix: str
     target: "EntityClass"
     description: Optional[str] = None
@@ -44,7 +43,6 @@ class ObjectProperty:
 
 @dataclass
 class CompositeFeature:
-
     prefix: str
     dtype: "CompositeType"
     description: Optional[str] = None
@@ -134,7 +132,6 @@ def feats_to_cols(feats, proc_fk=None, wrap=lambda x: x) -> list[Column]:
 
 
 def feat_to_cols(feat, proc_fk, wrap, init_prefix=(), open_to_fk=True) -> list:
-
     new_open_to_fk = True
     fk_to = None
     if isinstance(feat, PrimitiveFeature):

@@ -100,7 +100,6 @@ class Config:
     def create_trepo(
         self, id_: CompleteId, partitioning_cols=None, max_partition_size=None
     ):
-
         envs_of_ns = self.get_data_envs(id_.project, id_.namespace)
         if not envs_of_ns:
             return UnavailableTrepo()
@@ -200,7 +199,6 @@ class _IoConf:
 
 @dataclass
 class RunConfig(_IoConf):
-
     profile: bool = False
     write_env: Optional[str] = None
     read_env: Optional[str] = None
@@ -219,7 +217,6 @@ class RunConfig(_IoConf):
 
 @dataclass
 class UserConfig(_IoConf):
-
     first_name: str
     last_name: str
     orcid: str

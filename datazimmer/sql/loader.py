@@ -93,7 +93,6 @@ class SqlLoader:
 
 @dataclass
 class NamespaceMapper:
-
     project_name: str
     ns_meta: NamespaceMetadata
     runtime: "ProjectRuntime"
