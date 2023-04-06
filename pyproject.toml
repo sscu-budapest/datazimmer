@@ -30,7 +30,8 @@ collect = ["aswan[remote]>=0.4.2"]
 postgres = ["psycopg2"]
 profile = ["pyinstrument"]
 explorer = [
-    "pandas_profiling", 
+    "htmlmin",
+    "ydata_profiling", 
     "jupyter-book==0.12.2", 
     "sphinxcontrib-mermaid", 
     "beautifulsoup4",

@@ -13,6 +13,7 @@ from subprocess import check_call
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, Optional, Union
 
+import htmlmin
 import pandas as pd
 import yaml
 from botocore.exceptions import ClientError
@@ -372,7 +373,7 @@ class _NBParser:
 
 def get_profile_str(df, minimal):
     from bs4 import BeautifulSoup, Tag
-    from pandas_profiling import ProfileReport
+    from ydata_profiling import ProfileReport
 
     profile = ProfileReport(df, minimal=minimal)
     soup = BeautifulSoup(profile.to_html(), "html5lib")
@@ -395,7 +396,7 @@ def get_profile_str(df, minimal):
 
     soup.find("body").insert(-1, bs_script)
     soup.find("body").insert(-2, jq_script)
-    return str(soup)
+    return htmlmin.minify(str(soup), remove_comments=True, remove_empty_space=True)
 
 
 def _title(s):
