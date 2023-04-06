@@ -13,7 +13,6 @@ from subprocess import check_call
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, Optional, Union
 
-import htmlmin
 import pandas as pd
 import yaml
 from botocore.exceptions import ClientError
@@ -372,6 +371,7 @@ class _NBParser:
 
 
 def get_profile_str(df, minimal):
+    import htmlmin
     from bs4 import BeautifulSoup, Tag
     from ydata_profiling import ProfileReport
 
