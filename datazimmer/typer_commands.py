@@ -309,7 +309,7 @@ def _dvc_commit(paths, msg):
 
 def _validate_empty_vc(attempt, prefs=("dvc.", MAIN_MODULE_NAME)):
     # TODO: in case of raw data, might need to check notebooks
-    for fp in get_git_diffs() + get_git_diffs(True):
+    for fp in get_git_diffs() + get_git_diffs(True) + get_git_diffs(untracked=True):
         if any([*[fp.startswith(pref) for pref in prefs], fp == BASE_CONF_PATH]):
             msg = f"{fp} should be committed to git before {attempt}"
             raise ProjectSetupException(msg)

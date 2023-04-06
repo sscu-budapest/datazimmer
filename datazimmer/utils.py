@@ -50,10 +50,13 @@ def git_run(
     _run([(msg, ["commit", "-m", msg]), (push, ["push"])])
 
 
-def get_git_diffs(staged=False, wd=None):
-    comm = ["git", "diff", "--name-only"]
-    if staged:
-        comm.append("--cached")
+def get_git_diffs(staged=False, wd=None, untracked=False):
+    if untracked:
+        comm = ["git", "ls-files", "-o", "--exclude-standard", "--full-name"]
+    else:
+        comm = ["git", "diff", "--name-only"]
+        if staged:
+            comm.append("--cached")
     diffs = check_output(comm, cwd=wd)
     return [*filter(None, diffs.decode("utf-8").strip().split("\n"))]
 
