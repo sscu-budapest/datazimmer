@@ -43,14 +43,14 @@ class SqlLoader:
 
         self.runtime = get_runtime()
         self.engine = sa.create_engine(constr, echo=echo)
-        self.sql_meta = sa.MetaData(bind=self.engine)
+        self.sql_meta = sa.MetaData()
         self._Session = sessionmaker(self.engine)
         self._batch_size = batch_size
 
     def setup_schema(self):
         for nsm in self._get_ns_mappers(False):
             nsm.create_schema()
-        self.sql_meta.create_all(self.engine)
+        self.sql_meta.create_all(bind=self.engine)
 
     def load_data(self, env):
         with RunConfig(read_env=env):
@@ -65,7 +65,7 @@ class SqlLoader:
                 nsm.validate_data()
 
     def purge(self):
-        self.sql_meta.drop_all(self.engine)
+        self.sql_meta.drop_all(bind=self.engine)
 
     def _get_ns_mappers(self, data_only=True):
         f_args = (self.runtime, self.sql_meta, self.engine, self._batch_size)

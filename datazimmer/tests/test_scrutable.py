@@ -1,6 +1,5 @@
 import pandas as pd
 import pytest
-import sqlalchemy as sa
 
 from datazimmer import ScruTable
 from datazimmer.config_loading import RunConfig
@@ -57,6 +56,6 @@ def test_sql(in_template):
 
     with tmp_constr() as constr:
         loader = SqlLoader(constr)
-        sa.MetaData.reflect(loader.sql_meta)
+        loader.sql_meta.reflect(loader.engine)
         loader.load_data(DEFAULT_ENV_NAME)
         loader.validate_data(DEFAULT_ENV_NAME)
