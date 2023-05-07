@@ -34,8 +34,6 @@ TODO: document dogshow and everything else much better here
 
 ## Lookahead
 
-- dvc style caching for explorer
-  - maybe separate explorer generation altogether
 - overlapping names convention
 - resolve naming confusion with colassigner, colaccessor and table feature / composite type / index base classes
 - abstract composite type + subclass of entity class

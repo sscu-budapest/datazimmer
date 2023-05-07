@@ -22,7 +22,7 @@ from datazimmer.naming import (
 )
 from datazimmer.tests.create_dogshow import dogshow_root
 from datazimmer.tests.util import dz_ctx
-from datazimmer.typer_commands import cleanup, init, init_explorer
+from datazimmer.typer_commands import cleanup, init
 from datazimmer.utils import cd_into, gen_rmtree
 
 CORE_PY = dogshow_root / "minimal.py"
@@ -61,11 +61,6 @@ def in_template(empty_template: Path):
         sys.path.pop(0)
 
 
-@pytest.fixture(scope="session")
-def small_explorer():
-    pass
-
-
 @pytest.fixture
 def running_template(in_template):
     _env = DEFAULT_ENV_NAME
@@ -86,7 +81,6 @@ def test_bucket():
 
 @pytest.fixture
 def proper_env():
-
     gpath = Path(DvcConfig().files.get("global"))
 
     old_conf = None

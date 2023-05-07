@@ -13,6 +13,7 @@ dependencies = [
     "setuptools>=60.0.0",
     "dvc[s3,ssh]",
     "parquetranger>=0.2.3",
+    "pandas>=2.0.1",
     "colassigner>=0.2.2",
     "pyyaml",
     "structlog",
@@ -29,15 +30,6 @@ dependencies = [
 collect = ["aswan[remote]>=0.4.2"]
 postgres = ["psycopg2"]
 profile = ["pyinstrument"]
-explorer = [
-    "htmlmin",
-    "ydata_profiling", 
-    "jupyter-book==0.12.2", 
-    "sphinxcontrib-mermaid", 
-    "beautifulsoup4",
-    "html5lib",
-    "cron-descriptor",
-]
 zenodo = ["requests", "markdown2"]
 test = ["branthebuilder", "zimmauth[test]", "atqo", "faker"]
 doc = ["branthebuilder[doc]"]
