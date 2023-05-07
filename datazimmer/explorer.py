@@ -175,9 +175,7 @@ class ExplorerDataset:
 
         if not raw_cron:
             return ""
-        exp_dsc = ExpressionDescriptor(
-            raw_cron, locale_code="en", throw_exception_on_parse_error=False
-        )
+        exp_dsc = ExpressionDescriptor(raw_cron, locale_code="en")
         return exp_dsc.get_description().lower()
 
     def _get_erd(self, scrutables: list[ScruTable]):
