@@ -12,7 +12,6 @@ from structlog import get_logger
 
 from .config_loading import CONF_KEYS, Config, RunConfig, UserConfig
 from .exceptions import ProjectSetupException
-from .explorer import build_explorer, init_explorer, load_explorer_data
 from .get_runtime import get_runtime
 from .gh_actions import write_aswan_crons, write_project_cron
 from .metadata.high_level import ProjectMetadata
@@ -42,9 +41,6 @@ logger = get_logger(ctx="CLI command")
 app = typer.Typer()
 
 app.command()(validate)
-app.command()(init_explorer)
-app.command()(build_explorer)
-app.command()(load_explorer_data)
 
 
 @app.command()

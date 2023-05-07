@@ -1,11 +1,13 @@
+import json
 import os
 from pathlib import Path
 
+import nbformat
+from nbconvert.preprocessors import ExecutePreprocessor
+
 from datazimmer.config_loading import Config
-from datazimmer.explorer import _NBParser, init_explorer
 from datazimmer.naming import meta_version_from_tag
 from datazimmer.typer_commands import (
-    build_explorer,
     build_meta,
     deposit_to_zenodo,
     draw,
@@ -40,10 +42,6 @@ def test_full_dogshow(tmp_path: Path, pytestconfig, proper_env, test_bucket):
         for ds in ds_cc.all_contexts:
             run_project_test(ds, constr)
         ds_cc.check_sdists()
-        for explorer in [ds_cc.explorer, ds_cc.explorer2]:
-            with explorer():
-                init_explorer()
-                build_explorer()
 
 
 def run_project_test(dog_context, constr):
@@ -112,4 +110,8 @@ def _complete(constr, raw_imports=(), zen_pattern="", reset_aswan=False):
 
 def _run_notebooks():
     for nbp in Path("notebooks").glob("*.ipynb"):
-        _NBParser(nbp)
+        nb_text = nbp.read_bytes().decode("utf-8")
+        nb_v = json.loads(nb_text)["nbformat"]
+        nb_obj = nbformat.reads(nb_text, as_version=nb_v)
+        ep = ExecutePreprocessor(kernel_name=nb_obj.metadata.kernelspec.name)
+        ep.preprocess(nb_obj, {"metadata": {"path": nbp.parent}})

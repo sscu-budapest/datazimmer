@@ -14,7 +14,6 @@ VERSION_SEPARATOR = "/"
 RUN_CONF_PATH = Path("__run_conf.yaml")
 BASE_CONF_PATH = Path("zimmer.yaml")
 USER_CONF_PATH = Path.home() / ".config" / "datazimmer.yaml"
-EXPLORE_CONF_PATH = Path("dec.yaml")
 REQUIREMENTS_FILE = Path("requirements.txt")
 README_PATH = Path("README.md")
 

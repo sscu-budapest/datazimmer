@@ -41,10 +41,6 @@ def write_aswan_crons(projects: list["DzAswan"]):
         write_action(cron_dic, _GHA / f"asw_{project.name}_schedule.yml")
 
 
-def write_book_actions(cron):
-    write_action(_get_book_dic(cron), _GHA / "deploy.yml")
-
-
 _env_keys = [AUTH_HEX_ENV_VAR, AUTH_PASS_ENV_VAR, GIT_TOKEN_ENV_VAR]
 try:
     from aswan.constants import DEFAULT_REMOTE_ENV_VAR, HEX_ENV, PW_ENV
@@ -79,27 +75,4 @@ def _get_cron_dic(cron, name, *funs):
         "name": f"Scheduled {name}",
         "on": {"schedule": [{"cron": cron}]},
         "jobs": _get_jobs_dic(f"cron-run-{name}", [step]),
-    }
-
-
-def _get_book_dic(cron):
-    from . import typer_commands as tc
-
-    book_comm = cli_run(tc.load_explorer_data, tc.build_explorer)
-
-    steps = [
-        {"name": "Build the book", "run": book_comm, "env": _env},
-        {
-            "name": "GitHub Pages action",
-            "uses": "peaceiris/actions-gh-pages@v3",
-            "with": {
-                "github_token": "${{ secrets.GITHUB_TOKEN }}",
-                "publish_dir": "book/_build/html",
-            },
-        },
-    ]
-    return {
-        "name": "Build and Deploy Book",
-        "on": {"push": {"branches": ["main"]}, "schedule": [{"cron": cron}]},
-        "jobs": _get_jobs_dic("build-and-deploy-book", steps),
     }

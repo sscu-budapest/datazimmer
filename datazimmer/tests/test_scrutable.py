@@ -28,7 +28,7 @@ def test_scrutable_parsing(running_template):
     parsed_df = scrutable.get_full_df()
     assert not parsed_df.equals(df)
     pd.testing.assert_frame_equal(
-        df.astype({"d": "datetime64", "num": float}).set_index("ind"),
+        df.astype({"d": "datetime64[ns]", "num": float}).set_index("ind"),
         parsed_df.sort_index().reindex(df.columns[1:], axis=1),
     )
     for fp in scrutable.paths:
