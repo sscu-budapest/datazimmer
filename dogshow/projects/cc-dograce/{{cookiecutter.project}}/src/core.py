@@ -59,7 +59,7 @@ def create_data():
     comp_df = (
         pd.read_csv(dz.get_raw_data_path("race.csv", raw_src))
         .set_index(Competition.competition_id)
-        .astype({Competition.held_date: "datetime64"})
+        .astype({Competition.held_date: "datetime64[ns]"})
     )
     dotm_df = pd.read_csv(dz.get_raw_data_path("dog_of_the_month.csv", raw_src))
     dz.dump_dfs_to_tables(
@@ -74,7 +74,6 @@ def create_data():
 
 @dz.register_env_creator
 def create_environments(dog_sizes):
-
     dog_size_set = set(dog_sizes)
     dogsize_df = dog_size_table.get_full_df().loc[dog_sizes, :]
     dog_df = dog_table.get_full_df().loc[
