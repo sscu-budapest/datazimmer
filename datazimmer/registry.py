@@ -4,7 +4,7 @@ import sys
 from functools import partial
 from pathlib import Path
 from shutil import copy, copytree
-from subprocess import PIPE, CalledProcessError, check_call, check_output
+from subprocess import CalledProcessError, check_call, check_output
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 
@@ -147,7 +147,7 @@ class Registry:
     def _is_released(self):
         try:
             comm = ["git", "cat-file", "-e", f"origin/main:{self.paths.dist_gitpath}"]
-            check_call(comm, cwd=self.posix, stdout=PIPE, stderr=PIPE)
+            check_call(comm, cwd=self.posix)  # KMN , stdout=PIPE, stderr=PIPE
             msg = f"can't package {self.name}-{self.conf.version} - already released"
             logger.warning(msg)
             return True
