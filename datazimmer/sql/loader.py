@@ -114,7 +114,7 @@ class NamespaceMapper:
 
     def _load_table(self, table: ScruTable, session):
         ins = self.sql_meta.tables[table.id_.sql_id].insert()
-        logger.info("loading", table=table.name)
+        logger.info("loading", table=table.id_.sql_id)
         for df in table.dfs:
             self._partition(df.reset_index() if table.index else df, ins, session)
 

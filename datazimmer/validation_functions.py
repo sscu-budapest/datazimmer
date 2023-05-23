@@ -22,7 +22,13 @@ from .utils import cd_into, git_run
 logger = get_logger(ctx="validation")
 
 
-def validate(con: str = CONSTR, env: str = "", draw: bool = False, batch: int = 20000):
+def validate(
+    con: str = CONSTR,
+    env: str = "",
+    draw: bool = False,
+    batch: int = 20000,
+    verbose: bool = False,
+):
     """asserts a few things about a dataset
 
     - configuration files are present
@@ -50,12 +56,12 @@ def validate(con: str = CONSTR, env: str = "", draw: bool = False, batch: int = 
 
     venv = env or ctx.config.default_env
     _log("reading data to sql db", env=venv)
-    sql_validation(con, venv, draw, batch_size=batch)
+    sql_validation(con, venv, draw, batch_size=batch, verbose=verbose)
 
 
-def sql_validation(constr, env, draw=False, batch_size=2000):
+def sql_validation(constr, env, draw=False, batch_size=2000, verbose=False):
     # TODO: check if postgres validates FKs, but sqlite does not
-    loader = SqlLoader(constr, echo=False, batch_size=batch_size)
+    loader = SqlLoader(constr, echo=verbose, batch_size=batch_size)
     _log = logger.new(step="sql", constr=constr, batch_size=batch_size, env=env).info
     try:
         _log("schema setup")

@@ -90,7 +90,7 @@ def _complete(constr, raw_imports=(), zen_pattern="", reset_aswan=False):
     run_in_process(load_external_data, git_commit=True)
     run_in_process(run_aswan_project)
     run_in_process(run, commit=True, reset_aswan=reset_aswan)
-    run_in_process(validate, constr)
+    run_in_process(validate, constr, verbose=True)
     run_in_process(publish_data)
     if zen_pattern:
         key_path = Path("kp.key")
