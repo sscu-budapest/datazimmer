@@ -19,6 +19,7 @@ from datazimmer.naming import (
     AUTH_PASS_ENV_VAR,
     DEFAULT_ENV_NAME,
     MAIN_MODULE_NAME,
+    META_MODULE_NAME,
 )
 from datazimmer.tests.create_dogshow import dogshow_root
 from datazimmer.tests.util import dz_ctx
@@ -58,6 +59,9 @@ def in_template(empty_template: Path):
     with cd_into(empty_template):
         sys.path.insert(0, empty_template.as_posix())
         yield empty_template
+        for k in list(sys.modules.keys()):
+            if k.startswith(META_MODULE_NAME) or k.startswith(MAIN_MODULE_NAME):
+                sys.modules.pop(k)
         sys.path.pop(0)
 
 
