@@ -4,3 +4,7 @@ class ProjectSetupException(Exception):
 
 class ProjectRuntimeException(Exception):
     pass
+
+
+class NotADzObject(Exception):
+    pass

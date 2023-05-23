@@ -11,7 +11,7 @@ from dvc.repo import Repo
 from structlog import get_logger
 
 from .config_loading import Config
-from .exceptions import ProjectSetupException
+from .exceptions import NotADzObject, ProjectSetupException
 from .metadata.atoms import EntityClass
 from .metadata.complete_id import CompleteIdBase
 from .metadata.high_level import NamespaceMetadata, ProjectMetadata
@@ -133,12 +133,18 @@ class ProjectRuntime:
             self._collected_modules.add(ns_module_id)
 
     def _parse_module(self, module):
-        base_id = CompleteIdBase.from_module_name(module.__name__, self.name)
-        if base_id is None:
+        import os
+
+        try:
+            base_id = CompleteIdBase.from_module_name(module.__name__, self.name)
+        except NotADzObject:
             return
+
         if base_id not in self._ns_meta_dic.keys():
             self._ns_meta_dic[base_id] = NamespaceMetadata(base_id.namespace)
         ns_meta = self._ns_meta_dic[base_id]
+        print("PARSING BASE ID", base_id, os.getpid(), ns_meta.name)
+        print("WITH TABLES", ns_meta.tables)
 
         for obj in map(partial(getattr, module), dir(module)):
             if inspect.ismodule(obj) and _dz_module(obj.__name__):
@@ -147,8 +153,6 @@ class ProjectRuntime:
             mod_name = getattr(obj, "__module__", "")  # set for relevant instances
             if _dz_module(mod_name):
                 if mod_name != module.__name__:
-                    import os
-
                     print(
                         "IMPORTING MODULE",
                         os.getpid(),
@@ -158,6 +162,7 @@ class ProjectRuntime:
                     )
                     self._module_dic[mod_name] = import_module(mod_name)
                 else:
+                    print("ADDING OBJECT", obj, os.getpid())
                     ns_meta.add_obj(obj)
 
     def _fill_projects(self):

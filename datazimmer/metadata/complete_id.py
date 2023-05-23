@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
+from ..exceptions import NotADzObject
 from ..naming import MAIN_MODULE_NAME, META_MODULE_NAME, from_mod_name
 
 
@@ -46,3 +47,4 @@ class CompleteIdBase:
             return cls(from_mod_name(_splitted[1]), _splitted[2])
         elif (_splitted[0] == MAIN_MODULE_NAME) and (len(_splitted) > 1):
             return cls(project, _splitted[1])
+        raise NotADzObject(module_name)
