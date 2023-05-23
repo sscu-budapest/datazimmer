@@ -16,7 +16,7 @@ def get_runtime() -> "ProjectRuntime":
     global _GLOBAL_RUNTIME
     import os
 
-    print("GETTING RUNTIME", os.getpid())
+    print("GETTING RUNTIME", os.getpid(), os.getppid())
     if _GLOBAL_RUNTIME is None:
         from .project_runtime import ProjectRuntime
 

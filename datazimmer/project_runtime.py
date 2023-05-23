@@ -143,7 +143,15 @@ class ProjectRuntime:
         if base_id not in self._ns_meta_dic.keys():
             self._ns_meta_dic[base_id] = NamespaceMetadata(base_id.namespace)
         ns_meta = self._ns_meta_dic[base_id]
-        print("PARSING BASE ID", base_id, os.getpid(), ns_meta.name)
+        print(
+            "PARSING BASE ID",
+            base_id,
+            os.getpid(),
+            os.getppid(),
+            ns_meta.name,
+            module.__name__,
+            sys.modules.get(module.__name__),
+        )
         print("WITH TABLES", ns_meta.tables)
 
         for obj in map(partial(getattr, module), dir(module)):
@@ -155,14 +163,22 @@ class ProjectRuntime:
                 if mod_name != module.__name__:
                     print(
                         "IMPORTING MODULE",
-                        os.getpid(),
                         mod_name,
+                        os.getpid(),
+                        os.getppid(),
                         mod_name in sys.modules.keys(),
                         sys.modules.get(mod_name),
                     )
                     self._module_dic[mod_name] = import_module(mod_name)
                 else:
-                    print("ADDING OBJECT", obj, os.getpid())
+                    print(
+                        "ADDING OBJECT",
+                        obj,
+                        os.getpid(),
+                        os.getppid(),
+                        mod_name,
+                        module.__name__,
+                    )
                     ns_meta.add_obj(obj)
 
     def _fill_projects(self):
