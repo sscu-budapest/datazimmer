@@ -14,10 +14,14 @@ _GLOBAL_RUNTIME = None
 
 def get_runtime() -> "ProjectRuntime":
     global _GLOBAL_RUNTIME
+    import os
+
+    print("GETTING RUNTIME", os.getpid())
     if _GLOBAL_RUNTIME is None:
         from .project_runtime import ProjectRuntime
 
         try:
+            print("LOADING RUNTIME", os.getpid())
             _GLOBAL_RUNTIME = ProjectRuntime()
         except Exception as e:
             logger.info(str(e))

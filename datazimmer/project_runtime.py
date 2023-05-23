@@ -147,6 +147,15 @@ class ProjectRuntime:
             mod_name = getattr(obj, "__module__", "")  # set for relevant instances
             if _dz_module(mod_name):
                 if mod_name != module.__name__:
+                    import os
+
+                    print(
+                        "IMPORTING MODULE",
+                        os.getpid(),
+                        mod_name,
+                        mod_name in sys.modules.keys(),
+                        sys.modules.get(mod_name),
+                    )
                     self._module_dic[mod_name] = import_module(mod_name)
                 else:
                     ns_meta.add_obj(obj)
