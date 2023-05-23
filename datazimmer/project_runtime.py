@@ -133,8 +133,6 @@ class ProjectRuntime:
             self._collected_modules.add(ns_module_id)
 
     def _parse_module(self, module):
-        import os
-
         try:
             base_id = CompleteIdBase.from_module_name(module.__name__, self.name)
         except NotADzObject:
@@ -143,17 +141,6 @@ class ProjectRuntime:
         if base_id not in self._ns_meta_dic.keys():
             self._ns_meta_dic[base_id] = NamespaceMetadata(base_id.namespace)
         ns_meta = self._ns_meta_dic[base_id]
-        print(
-            "PARSING BASE ID",
-            base_id,
-            os.getpid(),
-            os.getppid(),
-            ns_meta.name,
-            module.__name__,
-            sys.modules.get(module.__name__),
-        )
-        print("WITH TABLES", ns_meta.tables)
-
         for obj in map(partial(getattr, module), dir(module)):
             if inspect.ismodule(obj) and _dz_module(obj.__name__):
                 self._walk_module(obj)
@@ -161,24 +148,8 @@ class ProjectRuntime:
             mod_name = getattr(obj, "__module__", "")  # set for relevant instances
             if _dz_module(mod_name):
                 if mod_name != module.__name__:
-                    print(
-                        "IMPORTING MODULE",
-                        mod_name,
-                        os.getpid(),
-                        os.getppid(),
-                        mod_name in sys.modules.keys(),
-                        sys.modules.get(mod_name),
-                    )
                     self._module_dic[mod_name] = import_module(mod_name)
                 else:
-                    print(
-                        "ADDING OBJECT",
-                        obj,
-                        os.getpid(),
-                        os.getppid(),
-                        mod_name,
-                        module.__name__,
-                    )
                     ns_meta.add_obj(obj)
 
     def _fill_projects(self):
