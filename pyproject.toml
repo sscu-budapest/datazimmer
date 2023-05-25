@@ -7,11 +7,10 @@ readme = "README.md"
 requires-python = ">=3.10"
 scripts = {datazimmer = "datazimmer:app", dz = "datazimmer:app"}
 dependencies = [
-    "flit<3.9.0",
+    "flit",
     "wheel>=0.37.0",
     "pip>=22.0.0",
     "setuptools>=60.0.0",
-    "dvc[s3,ssh]",
     "parquetranger>=0.2.3",
     "pandas>=2.0.1",
     "colassigner>=0.2.2",

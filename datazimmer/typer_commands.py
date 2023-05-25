@@ -7,10 +7,11 @@ from subprocess import check_call
 from typing import TYPE_CHECKING
 
 import typer
-from dvc.repo import Repo
 from structlog import get_logger
 
+from . import dvc_util as dvcu
 from .config_loading import CONF_KEYS, Config, RunConfig, UserConfig
+from .dvc_util import setup_dvc
 from .exceptions import ProjectSetupException
 from .get_runtime import get_runtime
 from .gh_actions import write_aswan_crons, write_project_cron
@@ -29,7 +30,7 @@ from .naming import (
 from .raw_data import IMPORTED_RAW_DATA_DIR, RAW_DATA_DIR, RAW_ENV_NAME
 from .registry import Registry
 from .sql.draw import dump_graph
-from .sql.loader import tmp_constr
+from .sql.loader import SqlLoader, tmp_constr
 from .utils import cd_into, command_out_w_prefix, gen_rmtree, get_git_diffs, git_run
 from .validation_functions import validate
 from .zenodo import CITATION_FILE, ZenApi
@@ -41,6 +42,7 @@ logger = get_logger(ctx="CLI command")
 app = typer.Typer()
 
 app.command()(validate)
+app.command()(setup_dvc)
 
 
 @app.command()
@@ -85,7 +87,7 @@ def update(registry: bool = True, code: bool = True, dvc: bool = True):
     if code:
         git_run(pull=True)
     if dvc:
-        Repo().pull()
+        dvcu.pull()
 
 
 @app.command()
@@ -95,18 +97,24 @@ def draw(v: bool = False):
 
 
 @app.command()
+def sql_load(env: str = None, constr: str = "sqlite:///data.db"):
+    loader = SqlLoader(constr)
+    loader.setup_schema()
+    loader.load_data(env or Config.load().default_env)
+
+
+@app.command()
 def set_whoami(first_name: str, last_name: str, orcid: str):
     UserConfig(first_name, last_name, orcid).dump()
 
 
 @app.command()
 def import_raw(project: str, tag: str = "", commit: bool = False):
-    dvc_repo = Repo()
     reg = get_runtime().registry
     v = meta_version_from_tag(tag) if tag else None
     uri = ProjectMetadata(**reg.get_project_meta_base(project, v)).uri
     IMPORTED_RAW_DATA_DIR.mkdir(exist_ok=True)
-    dvc_repo.imp(
+    dvcu.import_dvc(
         uri,
         path=RAW_DATA_DIR.as_posix(),
         out=(IMPORTED_RAW_DATA_DIR / project).as_posix(),
@@ -122,7 +130,6 @@ def publish_data():
     # TODO: ensure that this build gets published
     _validate_empty_vc("publishing data")
     runtime = get_runtime()
-    dvc_repo = Repo()
     data_version = runtime.metadata.next_data_v
     vtags = []
 
@@ -134,14 +141,14 @@ def publish_data():
 
     default_remote = runtime.config.get_env(runtime.config.default_env).remote
     if RAW_DATA_DIR.exists():
-        dvc_repo.add(RAW_DATA_DIR.as_posix())
-        dvc_repo.push(targets=RAW_DATA_DIR.as_posix(), remote=default_remote)
+        dvcu.add(RAW_DATA_DIR.as_posix())
+        dvcu.push(targets=[RAW_DATA_DIR.as_posix()], remote=default_remote)
         _dvc_commit([RAW_DATA_DIR], "save raw data")
         _tag(RAW_ENV_NAME, default_remote)
     for env in runtime.config.sorted_envs:
         targets = runtime.step_names_of_env(env.name)
         logger.info("pushing targets", targets=targets, env=env.name)
-        dvc_repo.push(targets=targets, remote=env.remote)
+        dvcu.push(targets=targets, remote=env.remote)
         _tag(env.name, env.remote)
     git_run(push=True, pull=True)
     for tag_to_push in vtags:
@@ -236,40 +243,32 @@ def run_aswan_project(project: str = "", publish: bool = True):
 
 @app.command()
 def run(
-    stage: bool = True,
     profile: bool = False,
     env: str = None,
     commit: bool = False,
     reset_aswan: bool = False,
 ):
     # TODO: add validation that all scrutables belong somewhere as an output
-    dvc_repo = Repo(config={"core": {"autostage": stage}})
+    # used to have autostage thing
     runtime = get_runtime()
     stage_names = []
     no_cache_outputs = []
     for step in runtime.metadata.complete.pipeline_elements:
         no_cache_outputs.extend(chain(*step.get_no_cache_outs(env)))
-        stage_names.extend(step.add_stages(dvc_repo))
-
-    for dvc_stage in dvc_repo.stages:
-        if (
-            dvc_stage.is_data_source
-            or dvc_stage.is_import
-            or (dvc_stage.name in stage_names)
-        ):
+        stage_names.extend(step.add_stages())
+    data_sources = []  # TODO
+    for dvc_stage_name in dvcu.list_stages():
+        if dvc_stage_name in (stage_names + data_sources):
             continue
-        logger.info("removing dvc stage", stage=dvc_stage.name)
-        dvc_repo.remove(dvc_stage.name)
-        dvc_repo.lock.lock()
-        dvc_stage.remove_outs(force=True)
-        dvc_repo.lock.unlock()
+        logger.info("removing dvc stage", stage=dvc_stage_name)
+        dvcu.remove(dvc_stage_name)
     if not stage_names:
         return
     targets = runtime.step_names_of_env(env) if env else None
     rconf = RunConfig(profile=profile, reset_aswan=reset_aswan)
     with rconf:
         logger.info("running repro", targets=targets, **asdict(rconf))
-        runs = dvc_repo.reproduce(targets=targets, pull=True)
+        runs = dvcu.reproduce(targets=targets)
     git_run(add=["dvc.yaml", "dvc.lock", BASE_CONF_PATH, *no_cache_outputs])
     if commit:
         now = dt.datetime.now().isoformat(" ", "minutes")
@@ -278,10 +277,9 @@ def run(
 
 
 def _iter_dvc_paths(runtime: "ProjectRuntime", env):
-    dvc_repo = Repo()
-    for step in runtime.step_names_of_env(env):
-        for out in list(dvc_repo.stage.collect(step))[0].outs:
-            op = Path(out.fs_path)
+    for step in runtime.metadata.complete.pipeline_elements:
+        for out_path in chain(*step.get_no_cache_outs(env)):
+            op = Path(out_path)
             yield op.relative_to(Path.cwd()) if op.is_absolute() else op
 
 

@@ -9,7 +9,6 @@ import moto
 import pytest
 from aswan.constants import DEFAULT_REMOTE_ENV_VAR, DEPOT_ROOT_ENV_VAR
 from aswan.depot.remote import HEX_ENV, PW_ENV
-from dvc.config import Config as DvcConfig
 from zimmauth import ZimmAuth
 from zimmauth.core import LOCAL_HOST_NAMES_ENV_VAR
 
@@ -23,10 +22,18 @@ from datazimmer.naming import (
 )
 from datazimmer.tests.create_dogshow import dogshow_root
 from datazimmer.tests.util import dz_ctx
-from datazimmer.typer_commands import cleanup, init
+from datazimmer.typer_commands import init, setup_dvc
 from datazimmer.utils import cd_into, gen_rmtree
 
 CORE_PY = dogshow_root / "minimal.py"
+
+
+def pytest_sessionstart(session):
+    """
+    Called after the Session object has been created and
+    before performing collection and entering the run test loop.
+    """
+    setup_dvc()
 
 
 def pytest_addoption(parser):
@@ -85,7 +92,7 @@ def test_bucket():
 
 @pytest.fixture
 def proper_env():
-    gpath = Path(DvcConfig().files.get("global"))
+    gpath = Path.home() / ".config" / "dvc" / "config"
 
     old_conf = None
     if gpath.name and gpath.exists():

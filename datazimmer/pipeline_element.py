@@ -7,6 +7,7 @@ from typing import Any, Optional
 
 from structlog import get_logger
 
+from . import dvc_util as dvcu
 from .aswan_integration import DzAswan
 from .config_loading import (
     CONF_KEYS,
@@ -71,7 +72,7 @@ class PipelineElement:
         with _profile(conf.profile, self.stage_name(env)):
             return self.runner(**kwargs)
 
-    def add_stages(self, dvc_repo):
+    def add_stages(self):
         from . import typer_commands as tc
 
         # relpath = inspect.getfile(self.runner)
@@ -82,21 +83,26 @@ class PipelineElement:
             _parser = partial(_parse_list, env=write_env)
             param_ids, _ = self._get_params(write_env)
 
-            dvc_repo.stage.add(
+            dvcu.add_stage(
                 cmd=cli_run((tc.run_step, self.ns, write_env)),
                 name=self.stage_name(write_env),
                 outs_no_cache=_parser(self.outputs_nocache),
                 outs=_parser(self.outputs),
                 outs_persist=_parser(self.outputs_persist),
                 deps=_parse_list([self.runner, *self.dependencies], _true_read_env),
-                params=[{BASE_CONF_PATH.as_posix(): param_ids}] if param_ids else None,
-                force=True,
+                params=[
+                    f"{BASE_CONF_PATH.as_posix()}:{pid}" for pid in (param_ids or [])
+                ],
             )
             yield self.stage_name(write_env)
 
     def get_no_cache_outs(self, env):
         for e in [env] if env else self.write_envs:
             yield _parse_list(self.outputs_nocache, e)
+
+    def get_all_outs(self, env):
+        for ol in [self.outputs_nocache, self.outputs, self.outputs_persist]:
+            yield _parse_list(ol, env)
 
     def stage_name(self, env):
         return get_stage_name(self.ns, env)

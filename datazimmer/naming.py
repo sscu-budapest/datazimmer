@@ -52,7 +52,9 @@ class RegistryPaths:
         self.index_dir = self.dir / "index"
         self.info_yaml = self.info_yaml_of(name, version)
         self.publish_paths = self._relpos([self.index_dir, self.info_yaml])
-        self.dist_gitpath = f"index/{package_name}-{version}.tar.gz"
+        self.tarfile_name = f"{package_name}-{version}.tar.gz"
+        self.wheel_name = f"{package_name}-{version}-py3-none-any.whl"
+        self.dist_gitpath = f"index/{self.tarfile_name}"
 
     def info_yaml_of(self, name, version: Optional[str] = None) -> Path:
         if version:

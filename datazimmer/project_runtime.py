@@ -7,10 +7,10 @@ from pathlib import Path
 from pkgutil import walk_packages
 from typing import TYPE_CHECKING, TypeVar
 
-from dvc.repo import Repo
 from structlog import get_logger
 
 from .config_loading import Config
+from .dvc_util import import_dvc
 from .exceptions import NotADzObject, ProjectSetupException
 from .metadata.atoms import EntityClass
 from .metadata.complete_id import CompleteIdBase
@@ -57,7 +57,6 @@ class ProjectRuntime:
         self.data_to_load: list[DataEnvironmentToLoad] = self._get_data_envs()
 
     def load_all_data(self, env=None):
-        dvc_repo = Repo()
         posixes = []
         for data_env in self.data_to_load:
             gen_rmtree(data_env.path)  # brave thing...
@@ -65,7 +64,13 @@ class ProjectRuntime:
             pull = (env is None) or (
                 data_env.env == self.config.resolve_ns_env(data_env.project, env)
             )
-            data_env.load_data(dvc_repo, pull)
+            import_dvc(
+                url=data_env.uri,
+                path=data_env.posix,
+                out=data_env.posix,
+                rev=data_env.tag,
+                no_exec=not pull,
+            )
             posixes.append(data_env.posix)
         return posixes
 
@@ -184,16 +189,6 @@ class DataEnvironmentToLoad:
     @property
     def path(self):
         return get_data_path(self.project, self.ns, self.env)
-
-    def load_data(self, dvc_repo: Repo, pull=False):
-        dvc_repo.imp(
-            url=self.uri,
-            path=self.posix,
-            out=self.posix,
-            rev=self.tag,
-            fname=None,
-            no_exec=not pull,
-        )
 
 
 def dump_dfs_to_tables(

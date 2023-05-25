@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Type, TypeVar, Union
 
 import yaml
-from dvc.repo import Repo
 from parquetranger import TableRepo
 from structlog import get_logger
 from zimmauth import ZimmAuth
 
+from .dvc_util import get_default_remote
 from .exceptions import ProjectSetupException
 from .metadata.complete_id import CompleteId
 from .naming import (
@@ -42,11 +42,7 @@ class ProjectEnv:
 
     def __post_init__(self):
         if self.remote is None:
-            try:
-                repo = Repo()
-                self.remote = repo.config["core"]["remote"]
-            except KeyError:
-                pass
+            self.remote = get_default_remote()
 
 
 @dataclass

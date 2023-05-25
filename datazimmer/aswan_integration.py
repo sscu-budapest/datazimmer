@@ -1,12 +1,12 @@
 from importlib import import_module
 from typing import TYPE_CHECKING
 
-from dvc.repo import Repo
 from structlog import get_logger
 
 from .config_loading import Config, RunConfig, get_aswan_leaf_param_id
+from .dvc_util import get_locked_param
 from .metadata.complete_id import CompleteIdBase
-from .naming import BASE_CONF_PATH, get_stage_name
+from .naming import get_stage_name
 from .utils import get_creation_module_name
 
 logger = get_logger("aswan_integration")
@@ -77,20 +77,8 @@ class DzAswan:
         if conf.reset_aswan:
             return
         stage_name = get_stage_name(self._ns, conf.write_env)
-        possible_deps = []
-        repo = Repo()
-
         aswan_id = get_aswan_leaf_param_id(self.name)
-
-        for stage in repo.index.stages:
-            # imported stage has no name attribute
-            if getattr(stage, "name", "") == stage_name:
-                possible_deps = stage.deps
-
-        for dep in possible_deps:
-            if dep.def_path == BASE_CONF_PATH.as_posix():
-                info = dep.hash_info.value if dep.hash_info else {}
-                return info.get(aswan_id)
+        get_locked_param(stage_name, aswan_id)
 
     def _reg_from_module(self):
         self.project.register_module(import_module(type(self).__module__))
