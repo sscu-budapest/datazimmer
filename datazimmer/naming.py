@@ -47,7 +47,7 @@ class RegistryPaths:
         self.dir = REGISTRY_ROOT_DIR / name
         self._info_dir = self.dir / "info"
 
-        package_name = get_package_name(name).replace("-", "_")
+        package_name = get_package_name(name)
 
         self.index_dir = self.dir / "index"
         self.info_yaml = self.info_yaml_of(name, version)
