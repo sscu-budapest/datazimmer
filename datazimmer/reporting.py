@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .config_loading import RunConfig
+from .exceptions import ProjectSetupException
 
 REPORT_DIR = Path("reports")
 
@@ -28,4 +29,8 @@ class ReportFile:
 
     @property
     def current_path(self) -> Path:
-        return self.env_path(RunConfig.load().write_env)
+        try:
+            wenv = RunConfig.load().write_env
+        except ProjectSetupException:
+            wenv = "ext-run"
+        return self.env_path(wenv)

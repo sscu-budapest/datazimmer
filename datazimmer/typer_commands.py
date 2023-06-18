@@ -139,7 +139,7 @@ def publish_data():
         check_call(["git", "tag", vtag])
         vtags.append(vtag)
 
-    default_remote = runtime.config.get_env(runtime.config.default_env).remote
+    default_remote = runtime.config.get_env(runtime.config.default_env).true_remote
     if RAW_DATA_DIR.exists():
         dvcu.add(RAW_DATA_DIR.as_posix())
         dvcu.push(targets=[RAW_DATA_DIR.as_posix()], remote=default_remote)
@@ -148,8 +148,8 @@ def publish_data():
     for env in runtime.config.sorted_envs:
         targets = runtime.step_names_of_env(env.name)
         logger.info("pushing targets", targets=targets, env=env.name)
-        dvcu.push(targets=targets, remote=env.remote)
-        _tag(env.name, env.remote)
+        dvcu.push(targets=targets, remote=env.true_remote)
+        _tag(env.name, env.true_remote)
     git_run(push=True, pull=True)
     for tag_to_push in vtags:
         check_call(["git", "push", "origin", tag_to_push])
@@ -278,7 +278,7 @@ def run(
 
 def _iter_dvc_paths(runtime: "ProjectRuntime", env):
     for step in runtime.metadata.complete.pipeline_elements:
-        for out_path in chain(*step.get_no_cache_outs(env)):
+        for out_path in chain(*step.get_all_outs(env)):
             op = Path(out_path)
             yield op.relative_to(Path.cwd()) if op.is_absolute() else op
 

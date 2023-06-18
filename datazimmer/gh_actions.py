@@ -25,7 +25,7 @@ def write_action(dic, path: Path):
 def write_project_cron(cron):
     from . import typer_commands as tc
 
-    funs = tc.build_meta, tc.update, (tc.run, "--commit"), tc.publish_data
+    funs = tc.setup_dvc, tc.build_meta, tc.update, (tc.run, "--commit"), tc.publish_data
     cron_dic = _get_cron_dic(cron, "zimmer-project", *funs)
     write_action(cron_dic, _GHA / "zimmer_schedule.yml")
 

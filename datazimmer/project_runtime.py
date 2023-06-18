@@ -65,7 +65,7 @@ class ProjectRuntime:
                 data_env.env == self.config.resolve_ns_env(data_env.project, env)
             )
             import_dvc(
-                url=data_env.uri,
+                uri=data_env.uri,
                 path=data_env.posix,
                 out=data_env.posix,
                 rev=data_env.tag,

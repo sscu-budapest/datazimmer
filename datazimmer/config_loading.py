@@ -40,9 +40,9 @@ class ProjectEnv:
     params: dict = field(default_factory=dict)
     import_envs: dict = field(default_factory=dict)
 
-    def __post_init__(self):
-        if self.remote is None:
-            self.remote = get_default_remote()
+    @property
+    def true_remote(self):
+        return self.remote or get_default_remote()
 
 
 @dataclass
@@ -158,8 +158,10 @@ class Config:
 
     @property
     def sorted_envs(self):
-        _remote = self.get_env(self.default_env).remote
-        return sorted(self.envs, key=lambda env: (env.remote == _remote, env.remote))
+        _remote = self.get_env(self.default_env).true_remote
+        return sorted(
+            self.envs, key=lambda env: (env.true_remote == _remote, env.true_remote)
+        )
 
     @property
     def env_names(self):
