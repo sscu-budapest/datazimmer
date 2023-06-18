@@ -121,8 +121,11 @@ class Registry:
         }
         pack_paths.toml_path.write_text(toml.dumps(proj_conf))
         ns = main(pack_paths.toml_path)
-        copy(ns.sdist.file, self.paths.tarfile_name)
-        copy(ns.wheel.file, self.paths.wheel_name)
+        for _src, _dst in [
+            (ns.sdist.file, self.paths.tarfile_name),
+            (ns.wheel.file, self.paths.wheel_name),
+        ]:
+            copy(_src, self.paths.index_dir / _dst)
 
     def _install_no_server(self, packages: list):
         addr = self.paths.index_dir.as_posix()
