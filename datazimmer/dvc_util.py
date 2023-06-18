@@ -13,9 +13,10 @@ DVC_ENV = Path.home() / ".dvc-env"
 DVC_ENV_EXC = DVC_ENV / "bin" / "python"
 
 
-def setup_dvc():
+def setup_dvc(update: bool = False):
     venv.create(DVC_ENV, system_site_packages=True)
-    _erun("-m", "pip", "install", "dvc[ssh,s3]")
+    uarg = ("-U",) if update else ()
+    _erun("-m", "pip", "install", *uarg, "dvc[ssh,s3]")
 
 
 def import_dvc(uri, path, out, rev=None, no_exec=False):
