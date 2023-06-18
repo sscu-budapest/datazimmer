@@ -6,6 +6,7 @@ import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 
 from datazimmer.config_loading import Config
+from datazimmer.dvc_util import run_dvc
 from datazimmer.naming import meta_version_from_tag
 from datazimmer.typer_commands import (
     build_meta,
@@ -47,6 +48,7 @@ def test_full_dogshow(tmp_path: Path, pytestconfig, proper_env, test_bucket):
 def run_project_test(dog_context, constr):
     with dog_context as (name, versions, raw_imports, zen_pattern):
         print("%" * 40, "\n" * 8, name, "\n" * 8, "%" * 40, sep="\n")
+        run_dvc("config", "cache.type", "copy")
         conf = Config.load()
         _complete(constr, raw_imports, zen_pattern)
         for testv in versions:

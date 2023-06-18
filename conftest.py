@@ -95,7 +95,7 @@ def proper_env():
     gpath = Path.home() / ".config" / "dvc" / "config"
 
     old_conf = None
-    if gpath.name and gpath.exists():
+    if gpath.exists():
         old_conf = gpath.read_text()
 
     tmp_dir = TemporaryDirectory()

@@ -51,7 +51,7 @@ def remove(stage_name):
 
 
 def reproduce(targets):
-    run_dvc("repro", "--pull", *(targets or []))
+    return run_dvc("repro", "--pull", *(targets or [])).strip()
 
 
 def add_stage(cmd, name, outs_no_cache, outs, outs_persist, deps, params):
