@@ -1,0 +1,4 @@
+v0.5.2
+---------------------
+
+external dvc zimmauth
