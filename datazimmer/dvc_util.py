@@ -1,3 +1,4 @@
+import sys
 import venv
 from pathlib import Path
 from subprocess import check_output
@@ -10,7 +11,7 @@ from .naming import BASE_CONF_PATH
 logger = get_logger("dvc-util")
 
 DVC_ENV = Path.home() / ".dvc-env"
-DVC_ENV_EXC = DVC_ENV / "bin" / "python"
+DVC_ENV_EXC = Path(DVC_ENV, *Path(sys.executable).parts[-2:])
 
 
 def setup_dvc(update: bool = False):
