@@ -1,4 +1,3 @@
-import sys
 import venv
 from pathlib import Path
 from subprocess import check_output
@@ -10,12 +9,11 @@ from .naming import BASE_CONF_PATH
 
 logger = get_logger("dvc-util")
 
-DVC_ENV = Path.home() / ".dvc-env"
-DVC_ENV_EXC = Path(DVC_ENV, *Path(sys.executable).parts[-2:])
+DVC_ENV_DIR = Path.home() / ".dvc-env"
 
 
 def setup_dvc(update: bool = False):
-    venv.create(DVC_ENV, system_site_packages=True)
+    venv.create(DVC_ENV_DIR, system_site_packages=True, with_pip=True)
     uarg = ("-U",) if update else ()
     _erun("-m", "pip", "install", *uarg, "dvc[ssh,s3]")
 
@@ -93,5 +91,9 @@ def run_dvc(*comm):
     return _erun("-m", "dvc", *comm)
 
 
+def get_dvc_venv_exec():
+    return venv.EnvBuilder().ensure_directories(DVC_ENV_DIR).env_exec_cmd
+
+
 def _erun(*comm):
-    return check_output([DVC_ENV_EXC.as_posix(), *comm]).decode()
+    return check_output([get_dvc_venv_exec(), *comm]).decode()
