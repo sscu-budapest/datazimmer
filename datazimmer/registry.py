@@ -14,6 +14,7 @@ from flit.build import main
 from structlog import get_logger
 
 from .config_loading import get_full_auth
+from .dvc_util import DVC_ENV_EXC
 from .metadata.high_level import PROJ_KEYS
 from .naming import (
     GIT_TOKEN_ENV_VAR,
@@ -82,7 +83,7 @@ class Registry:
 
     def full_build(self, global_conf=False):
         self.dump_info()
-        get_full_auth().dump_dvc(local=not global_conf)
+        get_full_auth().dump_dvc(local=not global_conf, executable=DVC_ENV_EXC)
         if not self._is_released():
             self._package()
         if self.requires:
