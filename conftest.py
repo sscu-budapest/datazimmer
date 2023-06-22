@@ -13,6 +13,7 @@ from zimmauth import ZimmAuth
 from zimmauth.core import LOCAL_HOST_NAMES_ENV_VAR
 
 from datazimmer.config_loading import RunConfig
+from datazimmer.dvc_util import run_dvc
 from datazimmer.naming import (
     AUTH_HEX_ENV_VAR,
     AUTH_PASS_ENV_VAR,
@@ -52,8 +53,8 @@ def empty_template():
         init(pname, git_remote=(tmp_dir / "remote").as_posix())
     pdir = tmp_dir / pname
     with cd_into(pdir):
-        check_call(["dvc", "remote", "add", "testrem", dvc_rem.as_posix()])
-        check_call(["dvc", "remote", "default", "testrem"])
+        run_dvc("remote", "add", "testrem", dvc_rem.as_posix())
+        run_dvc("remote", "default", "testrem")
         Path(MAIN_MODULE_NAME, "core.py").write_text(CORE_PY.read_text())
 
     with dz_ctx([pdir]):

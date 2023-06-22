@@ -11,7 +11,7 @@ from structlog import get_logger
 
 from . import dvc_util as dvcu
 from .config_loading import CONF_KEYS, Config, RunConfig, UserConfig
-from .dvc_util import setup_dvc
+from .dvc_util import run_dvc, setup_dvc
 from .exceptions import ProjectSetupException
 from .get_runtime import get_runtime
 from .gh_actions import write_aswan_crons, write_project_cron
@@ -293,7 +293,7 @@ def _get_current_tag_of_env(env: str):
 
 
 def _commit_dvc_default(remote):
-    check_call(["dvc", "remote", "default", remote])
+    run_dvc("remote", "default", remote)
     git_run(add=[".dvc"], msg=f"update dvc default remote to {remote}", check=True)
 
 

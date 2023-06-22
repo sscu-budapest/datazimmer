@@ -8,6 +8,7 @@ from cookiecutter.main import generate_files
 from structlog import get_logger
 from yaml import safe_load
 
+from datazimmer.dvc_util import run_dvc
 from datazimmer.naming import BASE_CONF_PATH, MAIN_MODULE_NAME
 from datazimmer.typer_commands import init
 from datazimmer.utils import cd_into, gen_rmtree, git_run, package_root
@@ -55,8 +56,8 @@ class DogshowContextCreator:
         with cd_into(root_dir):
             sys.path.insert(0, Path.cwd().as_posix())
             for remote_name, remote_id in self.dvc_remotes:
-                check_call(["dvc", "remote", "add", remote_name, remote_id])
-            check_call(["dvc", "remote", "default", self.dvc_remotes[0][0]])
+                run_dvc("remote", "add", remote_name, remote_id)
+            run_dvc("remote", "default", self.dvc_remotes[0][0])
             git_run(add=["*"], msg=f"setup {name} project", push=True)
             pzen = _PRIVATE_ZEN.get(name, "")
             yield name, _VERSIONS.get(name, []), _RAW_IMPORTS.get(name, []), pzen
