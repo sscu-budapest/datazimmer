@@ -30,7 +30,7 @@ collect = ["aswan[remote]>=0.4.2"]
 postgres = ["psycopg2"]
 profile = ["pyinstrument"]
 zenodo = ["requests", "markdown2"]
-test = ["branthebuilder", "zimmauth[test]", "atqo", "faker"]
+test = ["branthebuilder", "zimmauth[env]", "atqo", "faker"]
 doc = ["branthebuilder[doc]"]
 [project.urls]
 Homepage = "https://github.com/sscu-budapest/datazimmer"
