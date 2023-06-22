@@ -1,0 +1,4 @@
+v0.5.3
+---------------------
+
+properly rm dvc as dependency
