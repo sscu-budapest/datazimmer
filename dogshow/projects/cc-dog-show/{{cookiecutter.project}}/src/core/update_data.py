@@ -22,17 +22,26 @@ def read_ext_csv(name, **kwargs) -> pd.DataFrame:
 
 class PhotoCollector(aswan.RequestHandler):
     def load_cache(self, _):
-        ps = PhotoState.load()
-        rng = random.Random(7 + ps.photos_loaded)
-        rel_df = read_ext_csv("rel").set_index(list(rel_renamer.keys()))
-        rec_part = partial(_get_prec, rdf=rel_df, rng=rng, n=ps.photos_loaded)
-        photo_df = pd.DataFrame(map(rec_part, range(PHOTO_INC))).set_index("photo_id")
-        raw_dir = dz.get_raw_data_path(f"b-{ps.photos_loaded}")
-        raw_dir.mkdir()
-        photo_df.to_markdown(raw_dir / "p.md")
-        return photo_df.rename(
-            columns={f"rel__{k}": f"rel__{v}" for k, v in rel_renamer.items()}
-        )
+        from structlog import get_logger
+
+        try:
+            return get_photos()
+        except Exception as e:
+            get_logger().exception(e)
+
+
+def get_photos():
+    ps = PhotoState.load()
+    rng = random.Random(7 + ps.photos_loaded)
+    rel_df = read_ext_csv("rel").set_index(list(rel_renamer.keys()))
+    rec_part = partial(_get_prec, rdf=rel_df, rng=rng, n=ps.photos_loaded)
+    photo_df = pd.DataFrame(map(rec_part, range(PHOTO_INC))).set_index("photo_id")
+    raw_dir = dz.get_raw_data_path(f"b-{ps.photos_loaded}")
+    raw_dir.mkdir()
+    photo_df.to_markdown(raw_dir / "p.md")
+    return photo_df.rename(
+        columns={f"rel__{k}": f"rel__{v}" for k, v in rel_renamer.items()}
+    )
 
 
 def _get_prec(i, rng: random.Random, rdf: pd.DataFrame, n: int):
