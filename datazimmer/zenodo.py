@@ -308,7 +308,7 @@ class ZenApi:
         ver_resp = self.s.post(f"{self._dep_path()}/{zid}/actions/newversion")
         if ver_resp.ok:
             id_ = ver_resp.json()["links"]["latest_draft"].split("/")[-1]
-            for file in ver_resp.json()["files"]:
+            for file in self.s.get(f"{self._dep_path()}/{id_}/files").json():
                 self.s.delete(f"{self._dep_path()}/{id_}/files/{file['id']}")
             resp = self.s.put(f"{self._dep_path()}/{id_}", **self._meta_kwargs())
             assert resp.ok, resp.content.decode("utf-8")
