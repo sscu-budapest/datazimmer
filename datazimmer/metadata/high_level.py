@@ -49,7 +49,11 @@ class NamespaceMetadata:
             (AbstractEntity, self.entity_classes, EntityClass.from_cls),
             (DzAswan, self.aswan_projects, lambda x: x),
         ]:
-            if cls in obj.mro()[1:]:
+            try:
+                parents = obj.mro()[1:]
+            except TypeError:
+                continue
+            if cls in parents:
                 l.append(parser(obj))
 
 
