@@ -210,6 +210,7 @@ def _ds_cls_to_feat_dicts(ds_cls: Union[EntityClass, CompositeType]):
             composite_type = CompositeType.from_cls(cls)
             parsed_feat = CompositeFeature(prefix=k, dtype=composite_type)
         else:
+            logger.warn(f"couldn't parse {k} of {ds_cls}")
             continue  # maybe some other col to assign
 
         to_l.append(parsed_feat)
