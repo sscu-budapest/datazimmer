@@ -201,7 +201,6 @@ def deposit_to_zenodo(
 
 @app.command()
 def build_meta(global_conf: bool = False):
-    setup_dvc()
     config = Config.load()
     Registry(config).full_build(global_conf)
     if config.cron:
