@@ -9,9 +9,12 @@ from pathlib import Path
 
 import yaml
 from cryptography.fernet import Fernet
+from structlog import get_logger
 
 from .config_loading import Config, UserConfig
 from .naming import README_PATH
+
+logger = get_logger(ctx="zenodo")
 
 ZENODO_TOKEN_ENV_VAR = "ZENODO_TOKEN"
 ZENODO_TEST_TOKEN_ENV_VAR = "ZENODO_SANDBOX_TOKEN"
@@ -225,7 +228,10 @@ class ZenApi:
         return self.s.get(self._dep_path(), params=params)
 
     def new_deposition(self):
-        return self.s.post(self._dep_path(), **self._meta_kwargs())
+        logger.info("creating new deposition", name=self.name)
+        resp_dic = self.s.post(self._dep_path(), **self._meta_kwargs()).json()
+        logger.info("new deposition", resp=resp_dic)
+        return resp_dic["id"]
 
     def upload(self, fpath: Path, key_path=""):
         assert fpath.exists(), f"{fpath} must exist to upload to zenodo"
@@ -303,7 +309,7 @@ class ZenApi:
     def depo_id(self):
         zid = self.zid_from_readme()
         if not zid:
-            return self.new_deposition().json()["id"]
+            return self.new_deposition()
 
         ver_resp = self.s.post(f"{self._dep_path()}/{zid}/actions/newversion")
         if ver_resp.ok:
@@ -313,7 +319,7 @@ class ZenApi:
             resp = self.s.put(f"{self._dep_path()}/{id_}", **self._meta_kwargs())
             assert resp.ok, resp.content.decode("utf-8")
             return id_
-        return self.new_deposition().json()["id"]
+        return self.new_deposition()
 
     def _dep_path(self):
         return f"{self.url}/deposit/depositions"
