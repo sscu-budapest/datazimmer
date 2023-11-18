@@ -74,13 +74,16 @@ def run_project_test(dog_context, constr):
 def assert_zen(versions, zen_pattern, conf: Config):
     zapi = ZenApi(conf, private=False, tag="z/v0.0/e")
     zid = zapi.zid_from_readme()
-    concept = zapi.get(q=rf"10.5072\/zenodo\.{zid}").json()[0]["conceptdoi"]
-    resp = zapi.get(q=concept.replace("/", r"\/"), all_versions=1).json()
-    assert len(resp) == bool(versions) + bool(conf.cron) + bool(zen_pattern) + 1
-    pub_vers = [meta_version_from_tag(r["metadata"]["version"]) for r in resp]
+    versions_hits = zapi.s.get(f"{zapi.url}/records/{zid}/versions").json()["hits"][
+        "hits"
+    ]
+    assert (
+        len(versions_hits) == bool(versions) + bool(conf.cron) + bool(zen_pattern) + 1
+    )
+    pub_vers = [meta_version_from_tag(r["metadata"]["version"]) for r in versions_hits]
     assert all(map(lambda v: v in pub_vers, versions))
     if zen_pattern:
-        assert any(r["metadata"]["access_right"] == "closed" for r in resp)
+        assert any(r["metadata"]["access_right"] == "closed" for r in versions_hits)
 
 
 def _complete(constr, raw_imports=(), zen_pattern="", reset_aswan=False):

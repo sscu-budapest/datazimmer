@@ -16,6 +16,8 @@ from .naming import README_PATH
 
 logger = get_logger(ctx="zenodo")
 
+DZ_FRESH_ID = None
+
 ZENODO_TOKEN_ENV_VAR = "ZENODO_TOKEN"
 ZENODO_TEST_TOKEN_ENV_VAR = "ZENODO_SANDBOX_TOKEN"
 CITATION_FILE = Path("CITATION.cff")
@@ -261,7 +263,12 @@ class ZenApi:
         headers = {}
         if bib:
             headers["accept"] = "application/x-bibtex"
-        return self.s.get(f"{_get_z_url(not live)}/api/records/{did}", headers=headers)
+        logger.info("citing", did=did)
+        resp_dic = self.s.get(
+            f"{_get_z_url(not live)}/api/records/{did}", headers=headers
+        ).json()
+        logger.info("cited", resp=resp_dic)
+        return resp_dic
 
     def zid_from_readme(self):
         zid = None
@@ -281,10 +288,11 @@ class ZenApi:
         )
         self.readme_lines.insert(2, new_zen_line)
         # todo: this is the latest dz bib, but cant search with version
-        dz_dic = self.cite(dz_concept_zid, live=True, bib=False).json()
+        dz_fresh_id = _get_dz_fresh_id()
+        dz_dic = self.cite(dz_fresh_id, live=True, bib=False)
         dz = Citation.from_zen_dic(dz_dic)
         datac = Citation.from_zen_dic(
-            self.cite(self.depo_id, live=self.live, bib=False).json()
+            self.cite(self.depo_id, live=self.live, bib=False)
         )
         cite_inst = cite_frame.format(
             dz_bib=dz.to_bib(),
@@ -326,7 +334,10 @@ class ZenApi:
 
     def _meta_kwargs(self):
         return dict(
-            headers={"Content-Type": "application/json"},
+            headers={
+                "Content-Type": "application/json",
+                # "Referer": self.url,
+            },
             data=json.dumps(self.meta.data()),
         )
 
@@ -339,3 +350,14 @@ def _to_bibline(kv):
     k = kv[0]
     v = "{%s}" % kv[1]
     return f"  {k}{' ' * (12 -len(k))} = {v}"
+
+
+def _get_dz_fresh_id():
+    global DZ_FRESH_ID
+    if DZ_FRESH_ID is None:
+        import requests
+
+        DZ_FRESH_ID = requests.get(
+            f"https://zenodo.org/records/{dz_concept_zid}"
+        ).url.split("/")[-1]
+    return DZ_FRESH_ID
