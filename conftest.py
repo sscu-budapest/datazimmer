@@ -83,7 +83,7 @@ def running_template(in_template):
 @pytest.fixture(scope="session")
 def test_bucket():
     _bconf = {"CreateBucketConfiguration": {"LocationConstraint": "us-west-1"}}
-    with moto.mock_s3():
+    with moto.mock_aws():
         conn = boto3.resource("s3")
         conn.create_bucket(Bucket="bucket-1", **_bconf)
         conn.create_bucket(Bucket="bucket-2", **_bconf)
