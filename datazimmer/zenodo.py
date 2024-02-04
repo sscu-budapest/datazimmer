@@ -3,6 +3,7 @@ import datetime as dt
 import json
 import os
 import re
+import time
 from dataclasses import asdict, dataclass, field
 from functools import cached_property, partial, reduce
 from pathlib import Path
@@ -231,9 +232,13 @@ class ZenApi:
 
     def new_deposition(self):
         logger.info("creating new deposition", name=self.name)
-        resp_dic = self.s.post(self._dep_path(), **self._meta_kwargs()).json()
-        logger.info("new deposition", resp=resp_dic)
-        return resp_dic["id"]
+        for _ in range(5):
+            resp_dic = self.s.post(self._dep_path(), **self._meta_kwargs()).json()
+            if resp_dic.get("id"):
+                logger.info("new deposition", resp=resp_dic)
+                return resp_dic["id"]
+            logger.info("retrying new deposition", resp=resp_dic)
+            time.sleep(3)
 
     def upload(self, fpath: Path, key_path=""):
         assert fpath.exists(), f"{fpath} must exist to upload to zenodo"
