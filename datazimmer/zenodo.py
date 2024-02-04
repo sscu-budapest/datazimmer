@@ -238,7 +238,7 @@ class ZenApi:
                 logger.info("new deposition", resp=resp_dic)
                 return resp_dic["id"]
             logger.info("retrying new deposition", resp=resp_dic)
-            time.sleep(3)
+            time.sleep(10)
 
     def upload(self, fpath: Path, key_path=""):
         assert fpath.exists(), f"{fpath} must exist to upload to zenodo"
