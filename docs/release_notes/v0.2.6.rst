@@ -1,4 +1,0 @@
-v0.2.6
-------
-
-minimal to dataset level

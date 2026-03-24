@@ -1,4 +1,0 @@
-v0.3.0
-------
-
-simplification and unification
