@@ -1,0 +1,14 @@
+# One-command cross-package coverage run:
+#   docker compose -f dogshow/docker/compose.yaml up --build --abort-on-container-exit
+#
+# The whole monorepo is bind-mounted at /code so uv resolves the editable
+# sibling sources (../../../.. from this file is the code/ root). The image
+# carries no source — it always runs against the live tree.
+services:
+  runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    working_dir: /code/apps/datazimmer/dogshow
+    volumes:
+      - ../../../..:/code

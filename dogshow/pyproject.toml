@@ -1,0 +1,58 @@
+[project]
+name = "dogshow"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["datazimmer[collect,s3,zenodo]"]
+
+[project.optional-dependencies]
+# the fake federation site (flask), the soup/relay handlers (bs4/flask-cors),
+# the s3 backend test (moto), and cross-package coverage (pytest-cov)
+test = [
+    "pytest",
+    "pytest-cov",
+    "pytest-timeout",
+    "flask",
+    "flask-cors",
+    "beautifulsoup4",
+    "requests",
+    "moto[s3]",
+]
+
+[tool.datazimmer]
+name = "dogshow"
+version = "0.1.0"
+package = "src"
+
+[tool.datazimmer.remote]
+kind = "local"
+url = "_remote"
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+datazimmer = { path = "..", editable = true }
+shackleton = { path = "../../../libs/shackleton", editable = true }
+sqlmermaid = { path = "../../sqlmermaid", editable = true }
+aswan = { path = "../../../libs/aswan", editable = true }
+dirark = { path = "../../../libs/dirark", editable = true }
+atqo = { path = "../../../libs/atqo", editable = true }
+
+[tool.ruff]
+line-length = 88
+
+[tool.pytest.ini_options]
+addopts = "-q --timeout=60 --timeout-method=thread"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+# Collection runs handler/session code in spawned mp.Process workers and the
+# relay server in a thread inside them; measure both, across every editable
+# package, so one suite reports the whole ecosystem.
+source = ["datazimmer", "aswan", "atqo", "dirark", "shackleton", "sqlmermaid"]
+# report on package source only — the siblings ship their own test suites
+omit = ["*/tests/*", "*/test_*.py", "*/conftest.py", "*/__main__.py"]
+concurrency = ["multiprocessing", "thread"]
+parallel = true
+sigterm = true
+branch = true
