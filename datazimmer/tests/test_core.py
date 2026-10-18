@@ -75,6 +75,35 @@ def test_pipeline_force_and_skip(tmp_path, monkeypatch):
     assert len(calls) == 2
 
 
+def test_pipeline_rejects_duplicate_step_names():
+    pipe = Pipeline()
+    pipe.step()(lambda: None)
+    with pytest.raises(PipelineError, match="duplicate"):
+        pipe.step()(lambda: None)
+
+
+def test_pipeline_records_each_step_on_success(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    a, b = Table(Thing, "data/a"), Table(Thing, "data/b")
+    pipe = Pipeline()
+    fail = [True]
+
+    @pipe.step(outputs=[a])
+    def build_a():
+        a.write(pl.DataFrame({"tid": ["x"], "n": [1]}))
+
+    @pipe.step(inputs=[a], outputs=[b])
+    def build_b():
+        if fail[0]:
+            raise RuntimeError("boom")
+        b.write(a.collect())
+
+    with pytest.raises(RuntimeError):
+        pipe.run()
+    fail[0] = False
+    assert pipe.run() == ["build_b"]  # build_a's success survived the failure
+
+
 def test_pipeline_detects_cycle(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     a, b = Table(Thing, "data/a"), Table(Thing, "data/b")
