@@ -4,34 +4,23 @@ dynamic = ["version", "description"]
 authors = [{name = "Social Science Computing Unit Budapest", email = "borza.endre@krtk.hu"}]
 license = {file = "LICENSE"}
 readme = "README.md"
-requires-python = ">=3.10"
-scripts = {datazimmer = "datazimmer:app", dz = "datazimmer:app"}
+requires-python = ">=3.12"
 dependencies = [
-    "flit",
-    "wheel>=0.37.0",
-    "pip>=22.0.0",
-    "setuptools>=60.0.0",
-    "parquetranger>=0.2.3",
-    "pandas>=2.0.1",
-    "colassigner>=0.2.2",
+    "polars",
     "sqlalchemy>=2.0.0",
-    "pyyaml",
-    "structlog",
-    "toml",
-    "typer",
-    "cookiecutter",
+    "shackleton",
     "sqlmermaid",
-    "metazimmer",
-    "zimmauth>=0.1.0"
 ]
+scripts = {datazimmer = "datazimmer.cli:main", dz = "datazimmer.cli:main"}
 
 [project.optional-dependencies]
-collect = ["aswan[remote]>=0.4.2"]
-postgres = ["psycopg2"]
-profile = ["pyinstrument"]
-zenodo = ["requests", "markdown2"]
-test = ["branthebuilder", "atqo", "faker", "moto>=5.0.0,<6", "boto3", "tabulate"]
-doc = ["branthebuilder[doc]"]
+collect = ["aswan"]
+s3 = ["boto3"]
+zenodo = ["requests"]
+
+[dependency-groups]
+dev = ["pytest>=9.0.2", "pytest-timeout"]
+
 [project.urls]
 Homepage = "https://github.com/sscu-budapest/datazimmer"
 
@@ -39,7 +28,19 @@ Homepage = "https://github.com/sscu-budapest/datazimmer"
 requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
-[tool.branb]
+[tool.uv.sources]
+shackleton = { path = "../../libs/shackleton", editable = true }
+sqlmermaid = { path = "../sqlmermaid", editable = true }
+aswan = { path = "../../libs/aswan", editable = true }
+dirark = { path = "../../libs/dirark", editable = true }
+atqo = { path = "../../libs/atqo", editable = true }
+
+[tool.ruff]
 line-length = 88
+
+# Root pytest runs only the core unit suite. The dogshow cross-package
+# integration/e2e suite is a separate uv project (its own venv + test extras);
+# run it with `cd dogshow && uv run pytest`.
 [tool.pytest.ini_options]
-addopts = "-s"
+testpaths = ["datazimmer/tests"]
+addopts = "-q --timeout=60"

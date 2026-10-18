@@ -128,4 +128,3 @@ dmypy.json
 .vscode
 dask-worker-space/
 draft*.ipynb
-dogshow/confs-live.yaml
