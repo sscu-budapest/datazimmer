@@ -1,36 +1,15 @@
 #!/usr/bin/env bash
-# Build the env, run the suite under coverage (including aswan's spawned
-# workers), and report the combined coverage of every ecosystem package.
+# Build the env and run the suite under coverage (incl. aswan's spawned workers),
+# reporting the combined coverage of every ecosystem package.
+#
+# Runs as the host user (dropped to by entrypoint.sh), so coverage/, REPORT.md
+# and .pytest_cache land host-owned — no root-owned mess left behind.
 set -euo pipefail
 
-# --- ssh-to-self: a real rsync-over-ssh target for the ssh remote backend ---
-mkdir -p ~/.ssh /tmp/ssh-remote
-if [ ! -f ~/.ssh/id_ed25519 ]; then
-  ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N "" -q
-  cat ~/.ssh/id_ed25519.pub >> ~/.ssh/authorized_keys
-  chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys
-  printf 'Host localhost\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n' \
-    >> ~/.ssh/config
-fi
-ssh-keygen -A          # generate host keys; sshd won't start without them
-/usr/sbin/sshd
-# user@host:path form — backend_from_source only treats it as ssh (vs a local
-# path) when the user@ is present
-export DOGSHOW_SSH_REMOTE="root@localhost:/tmp/ssh-remote"
+uv sync
 
-# --- dependencies (editable siblings resolved under the bind-mounted /code) ---
-uv sync --extra test
-
-# --- coverage across the whole ecosystem, subprocess workers included ---
-export COVERAGE_PROCESS_START="$PWD/pyproject.toml"
-export PYTHONPATH="$PWD"
-uv run coverage erase
-set +e  # always report, but surface the test exit code
-uv run coverage run -m pytest tests/ -q
-rc=$?
-set -e
-uv run coverage combine
-uv run coverage report
-uv run coverage html -d coverage/html
-echo "combined coverage report written to coverage/html/index.html"
-exit "$rc"
+# report.py runs pytest in its own process group under DOGSHOW_SUITE_TIMEOUT and
+# kills the group on expiry; this outer `timeout` is the last-ditch backstop on
+# report.py itself, so the container is guaranteed to exit (compose's
+# --abort-on-container-exit then reaps everything — no background hang).
+exec timeout --kill-after=30 1200 uv run python report.py

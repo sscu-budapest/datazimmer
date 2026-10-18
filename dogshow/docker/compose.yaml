@@ -9,6 +9,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    # init: a real PID 1 (tini) that reaps orphaned subprocess workers, so a
+    # killed run leaves no zombies behind inside the container.
+    init: true
     working_dir: /code/apps/datazimmer/dogshow
     volumes:
       - ../../../..:/code
