@@ -1,74 +1,134 @@
 # datazimmer
 
-[![Documentation Status](https://readthedocs.org/projects/datazimmer/badge/?version=latest)](https://datazimmer.readthedocs.io/en/latest)
-[![codeclimate](https://img.shields.io/codeclimate/maintainability/sscu-budapest/datazimmer.svg)](https://codeclimate.com/github/sscu-budapest/datazimmer)
-[![codecov](https://img.shields.io/codecov/c/github/sscu-budapest/datazimmer)](https://codecov.io/gh/sscu-budapest/datazimmer)
-[![pypi](https://img.shields.io/pypi/v/datazimmer.svg)](https://pypi.org/project/datazimmer/)
-[![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.7499121.svg)](https://doi.org/10.5281/zenodo.7499121)
+[![pypi](https://img.shields.io/pypi/v/datazimmer.svg)](https://pypi.org/project/datazimmer/) [![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.7499121.svg)](https://doi.org/10.5281/zenodo.7499121)
 
+Scientific data pipeline orchestrator. Define typed entity schemas, build reproducible polars pipelines, validate foreign-key integrity, and publish versioned datasets consumed by URL.
 
-## To create a new project
+Part of the [sscu-budapest](https://github.com/sscu-budapest) ecosystem for open scientific data.
 
-- make sure that `python` points to `python>=3.8` and you have `pip` and `git` then `pip install datazimmer`
-- run `dz init project-name`
-  - pulls [project-template](https://github.com/sscu-budapest/project-template)
-- add a remote
-  - both to git and dvc (can run `dz build-meta` to see available dvc remotes)
-  - git remote can be given with `dz init`
-- create, register and document steps in a pipeline you will run in different [environments](TODO)
-- build metadata to exportable and serialized format with `dz build-meta`
-  - if you defined importable data from other artifacts in the config, you can import them with `load-external-data` 
-  - ensure that you import envs that are served from sources you have access to
-- build and run pipeline steps by running `dz run`
-- validate that the data matches the [datascript](TODO) description with `dz validate`
+## Install
 
-### Scheduling
-
-- a project as a whole has a cron expression in `zimmer.yaml` to determine the schedule of reruns
-- additionally, aswan projects within the dz project can have different cron expressions for scheduling new runs of the aswan projects
-
-### Test projects
-
-TODO: document dogshow and everything else much better here
-
-
-## Lookahead
-
-- overlapping names convention
-- resolve naming confusion with colassigner, colaccessor and table feature / composite type / index base classes
-- abstract composite type + subclass of entity class
-  - import ACT, inherit from it and specify 
-  - importing composite type is impossible now if it contains foreign key :(
-- add option to infer data type of assigned feature
-  - can be problematic b/c pandas int/float/nan issue
-- create similar sets of features in a dry way
-- overlapping in entities
-  - detect / signal the same type of entity
-- exports: postgres, postgis , superset
-
-
-### W3C compliancy plan
-
-- test suite for compliance: https://w3c.github.io/csvw/publishing-snapshots/PR-earl/earl.html
-- https://github.com/w3c/csvw
-  - https://www.w3.org/TR/2015/REC-tabular-data-model-20151217/
-  - https://www.w3.org/TR/tabular-metadata/
-
-
-```
-@article{tennison2015model,
-  title={Model for tabular data and metadata on the web},
-  author={Tennison, Jeni and Kellogg, Gregg and Herman, Ivan},
-  year={2015}
-}
+```bash
+uv add datazimmer
+uv add "datazimmer[collect]"   # + aswan web collection
+uv add "datazimmer[s3]"        # + S3 publishing/consumption
+uv add "datazimmer[zenodo]"    # + Zenodo deposition
 ```
 
+## Concepts
+
+A project is one importable package exposing a module-level `pipeline`, plus a `[tool.datazimmer]` table in `pyproject.toml`. No DVC, no metaclasses, no codegen DSL — plain classes, type hints and explicit polars DataFrames.
+
+### Entities — typed schemas
+
+```python
+from datetime import datetime
+from typing import Annotated
+from datazimmer import Entity, Index
+
+class Breed(Entity):
+    breed_id: Annotated[str, Index]   # index = unique key, sort order
+    name: str
+    origin: str | None                # nullable
+
+class Dog(Entity):
+    dog_id: Annotated[str, Index]
+    name: str
+    breed: Breed                      # foreign key -> breed__breed_id
+    weight_kg: float
 ```
-@article{pollock2015metadata,
-  title={Metadata vocabulary for tabular data},
-  author={Pollock, Rufus and Tennison, Jeni and Kellogg, Gregg and Herman, Ivan},
-  journal={W3C Recommendation},
-  volume={17},
-  year={2015}
-}
+
+Entity-typed fields become foreign keys; the metadata (index/uniqueness, sort order, foreign keys) is what drives SQL materialization, ER diagrams and published manifests.
+
+### Tables — schema-validated parquet (via shackleton)
+
+```python
+from datazimmer import Table
+breeds = Table(Breed, "data/breeds")
+breeds.write(df)          # validated + dtype-coerced on write
+lf = breeds.read()        # polars LazyFrame
 ```
+
+### Pipeline — explicit steps, hash-based skipping
+
+```python
+from datazimmer import Pipeline
+pipeline = Pipeline()
+
+@pipeline.step(outputs=[breeds, dogs])
+def seed(): ...
+
+@pipeline.step(inputs=[dogs], outputs=[breed_wins])
+def aggregate(): ...
+```
+
+`dz run` topologically sorts the steps and skips any whose source and inputs are unchanged; each step's fingerprint is recorded as soon as it succeeds, under the project's state dir (`config.STATE_DIR`). Editing an upstream step re-runs everything downstream.
+
+### Validate, publish, consume
+
+```python
+from datazimmer import Config, validate, publish, load
+validate([breeds, dogs])                      # uniqueness + FK integrity
+publish(Config.load(), [breeds, dogs])        # versioned upload + manifest
+lf = load("s3://bucket/datasets/dogshow", "breeds")   # lazy, no download (local/s3/http)
+```
+
+Cross-project consumption is parquet-metadata-first; `dz schema codegen` optionally regenerates typed `Entity` classes from a published manifest.
+
+## Configuration (`pyproject.toml`)
+
+```toml
+[tool.datazimmer]
+name = "dogshow"
+version = "0.1.0"
+package = "src"
+
+[tool.datazimmer.remote]
+kind = "s3"                       # local | ssh | s3
+url = "s3://bucket/datasets"
+
+[tool.datazimmer.dependencies.elections]
+source = "s3://bucket/datasets/electiondata"
+version = "0.2.0"
+```
+
+Credentials use the standard env vars (`AWS_ACCESS_KEY_ID`, …); there is no custom auth layer.
+
+## CLI
+
+```bash
+dz init <name>            # scaffold a new project from the template
+dz run [--force]          # execute the pipeline (skips unchanged steps)
+dz validate               # index uniqueness + foreign-key integrity
+dz sql [--constr URL]     # load all tables into a relational database
+dz draw [--out PATH]      # write a Mermaid ER diagram
+dz publish                # upload tables + manifest to the remote
+dz pull <source>          # download a published project into the cache
+dz schema export          # JSON Schema per entity
+dz schema codegen <src>   # Entity classes from a published manifest
+```
+
+## The dogshow
+
+[`dogshow/`](dogshow) is the canonical example and the cross-package end-to-end suite. One story drives the whole ecosystem: aswan scrapes a (locally served) kennel federation into a versioned depot, this pipeline parses it into a typed star schema, and the result is validated, materialized to SQL + a Mermaid ER diagram, and published for URL consumption. It reads no external data and, under Docker, reports the combined coverage of all six packages:
+
+```bash
+cd dogshow && make test                                      # fast, self-contained
+docker compose -f dogshow/docker/compose.yaml up --build     # combined coverage
+```
+
+## Ecosystem
+
+| Library | Role |
+| --- | --- |
+| [shackleton](https://github.com/endremborza/shackleton) | Polars-based table storage |
+| [aswan](https://github.com/endremborza/aswan) | Web data collection |
+| [dirark](https://github.com/endremborza/dirark) | Content-addressed archival (aswan depot) |
+| [sqlmermaid](https://github.com/endremborza/sqlmermaid) | ER diagram generation |
+| [atqo](https://github.com/endremborza/atqo) | Task queue orchestration |
+
+The remaining roadmap lives in [MODERNIZATION.md](MODERNIZATION.md).
+
+## License
+
+See [LICENSE](LICENSE).
