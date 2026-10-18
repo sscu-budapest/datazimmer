@@ -139,6 +139,37 @@ def test_fk_expanded_columns(precinct_table: Table):
     assert "election__eid" in result.columns
 
 
+def test_record_writer_validates_and_coerces(election_table: Table):
+    with election_table.get_record_writer() as w:
+        w.add_to_batch(
+            {"eid": "e1", "start_date": datetime(2022, 1, 1), "is_individual": 1}
+        )
+        w.add_to_batch(
+            {"eid": "e2", "start_date": datetime(2022, 2, 1), "is_individual": 0}
+        )
+    result = election_table.collect()
+    assert result.shape[0] == 2
+    assert result.schema["is_individual"] == pl.Boolean  # int coerced on flush
+
+
+def test_record_writer_rejects_bad_schema(election_table: Table):
+    w = election_table.get_record_writer()
+    w.add_to_batch({"eid": "e1", "start_date": datetime(2022, 1, 1), "bonus": 1})
+    with pytest.raises(SchemaError):
+        w.close()  # validation happens at flush
+
+
+def test_df_writer_validates(election_table: Table):
+    with election_table.get_df_writer() as w:
+        w.add_to_batch(SAMPLE_ELECTIONS)
+    assert election_table.collect().shape[0] == 3
+
+    bad = election_table.get_df_writer()
+    bad.add_to_batch(SAMPLE_ELECTIONS.with_columns(pl.lit("x").alias("bonus")))
+    with pytest.raises(SchemaError, match="unexpected columns"):
+        bad.close()
+
+
 def test_column_names(election_table: Table):
     assert election_table.column_names == ["eid", "start_date", "is_individual"]
 

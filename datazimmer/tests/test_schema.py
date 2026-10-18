@@ -1,11 +1,15 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated
+
+import pytest
 
 from datazimmer.schema import (
     ColumnInfo,
     Entity,
     Index,
+    SchemaError,
     get_columns,
+    get_foreign_keys,
     get_index_columns,
     get_property_columns,
     to_json_schema,
@@ -89,6 +93,57 @@ def test_fk_only_entity():
     names = [c.name for c in cols]
     assert names == ["parent__gid", "child__gid"]
     assert all(c.fk_entity is GeographicalUnit for c in cols)
+
+
+class Region(Entity):
+    rid: Annotated[str, Index]
+    parent: "Region | None"  # self-reference
+
+
+class Candidacy(Entity):
+    election: Annotated[Election, Index]  # composite key made of FKs
+    precinct: Annotated[ElectionPrecinct, Index]
+    votes: int
+
+
+class Recount(Entity):
+    candidacy: Candidacy
+    votes: int
+
+
+def test_self_reference():
+    assert [c.name for c in get_columns(Region)] == ["rid", "parent__rid"]
+
+
+def test_fk_index_and_nested_fk_key():
+    assert [c.name for c in get_index_columns(Candidacy)] == [
+        "election__eid",
+        "precinct__pid",
+    ]
+    assert [c.name for c in get_columns(Recount)] == [
+        "candidacy__election__eid",
+        "candidacy__precinct__pid",
+        "votes",
+    ]
+    (fk,) = get_foreign_keys(Recount)
+    assert fk.target_columns == ("election__eid", "precinct__pid")
+
+
+def test_unsupported_type_fails_loudly():
+    class Event(Entity):
+        eid: Annotated[str, Index]
+        on: date
+
+    with pytest.raises(SchemaError, match="Event.on"):
+        get_columns(Event)
+
+
+def test_fk_to_unindexed_entity_fails_loudly():
+    class Link(Entity):
+        hierarchy: DistrictHierarchy
+
+    with pytest.raises(SchemaError, match="no Index"):
+        get_columns(Link)
 
 
 def test_json_schema():

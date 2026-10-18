@@ -134,6 +134,12 @@ def test_validate_custom_check(tmp_path, monkeypatch):
         validate([table], checks=[no_negatives])
 
 
+def test_tables_need_unique_names(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(SchemaError, match="two tables"):
+        validate([Table(Thing, "a/thing"), Table(Thing, "b/thing")])
+
+
 def test_cli_init_and_run(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert main(["init", "proj"]) == 0
