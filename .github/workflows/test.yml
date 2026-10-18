@@ -7,45 +7,19 @@ on:
   push:
     branches:
       - main
-  schedule:
-    - cron: 0 10 * * *
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.10"
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e .[test,profile,postgres,collect,zenodo]
-      - name: Setup Git
-        run: |
-          git config --global receive.denyCurrentBranch updateInstead
-          git config --global init.defaultBranch main
-          git config --global user.email "leo@dumbartonserum.com"
-          git config --global user.name "Leo Dumbarton"
+          python-version: '3.12'
+          enable-cache: true
+      - name: Lint
+        run: uvx ruff check datazimmer/
+      # the sibling libraries resolve from PyPI here; locally they are editable
+      # checkouts via [tool.uv.sources]
       - name: Test
-        env:
-          POSTGRES_HOST: localhost
-          ZENODO_SANDBOX_TOKEN: ${{ secrets.ZENODO_SANDBOX_TOKEN }}
-        run: |
-          branb test
-      - uses: codecov/codecov-action@v3
-        with:
-          fail_ci_if_error: true
+        run: uv run --no-sources pytest
