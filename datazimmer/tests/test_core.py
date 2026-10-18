@@ -10,13 +10,18 @@ from datazimmer import (
     Entity,
     Index,
     Pipeline,
+    SchemaError,
     Table,
     ValidationError,
+    entity_metadata,
+    get_index_columns,
+    schema_codegen,
     validate,
 )
 from datazimmer.cli import main
 from datazimmer.config import ConfigError
 from datazimmer.pipeline import PipelineError
+from datazimmer.remote import Manifest, TableManifest
 
 PYPROJECT = """
 [project]
@@ -178,3 +183,45 @@ def test_cli_init_and_run(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path / "proj")
     assert main(["run"]) == 0  # template pipeline builds records
     assert main(["validate"]) == 0
+
+
+class Org(Entity):
+    org_id: Annotated[str, Index]
+    name: str
+
+
+class Member(Entity):
+    member_id: Annotated[str, Index]
+    org: Org | None  # nullable foreign key
+
+
+class Membership(Entity):
+    member: Annotated[Member, Index]
+    org: Annotated[Org, Index]
+    role: str
+
+
+def _codegen(*entities: type[Entity]) -> dict:
+    tables = {
+        e.__name__: TableManifest(e.__name__, 0, 0, "", entity_metadata(e), [])
+        for e in entities
+    }
+    code = schema_codegen(Manifest("demo", "1.0.0", tables))
+    ns: dict = {}
+    exec(compile(code, "<codegen>", "exec"), ns)  # noqa: S102
+    return ns
+
+
+def test_schema_codegen_roundtrips_nullable_fk():
+    from datazimmer import get_foreign_keys
+
+    (fk,) = get_foreign_keys(_codegen(Org, Member)["Member"])
+    assert fk.target_entity == "Org"
+    assert fk.nullable is True  # the `| None` survives the round-trip
+
+
+def test_schema_codegen_stubs_unpublished_targets():
+    ns = _codegen(Membership)  # Member and Org are not in the manifest
+    assert [c.name for c in get_index_columns(ns["Membership"])] == [
+        c.name for c in get_index_columns(Membership)
+    ]

@@ -2,19 +2,15 @@
 
 * ``local``  — the full producer↔consumer roundtrip (publish, load, codegen)
 * ``s3``     — moto-mocked: publish + manifest fetch + codegen (boto3 paths)
-* ``http``   — read-only consumer: manifest fetch + codegen over HTTP
+* ``http``   — read-only consumer: manifest fetch + codegen + lazy load over HTTP
 * ``ssh``    — full rsync roundtrip; only when ``DOGSHOW_SSH_REMOTE`` is set
                (wired in the dockerized run against the sshd service)
 """
 
-import functools
-import http.server
 import os
-import socketserver
 import threading
 
 import pytest
-
 from datazimmer import Config, fetch_manifest, load, publish, schema_codegen
 from datazimmer.remote import LocalBackend, S3Backend, SshBackend
 
@@ -22,7 +18,7 @@ from datazimmer.remote import LocalBackend, S3Backend, SshBackend
 def _assert_dog_codegen(manifest):
     code = schema_codegen(manifest)
     ns: dict = {}
-    exec(compile(code, "<codegen>", "exec"), ns)
+    exec(compile(code, "<codegen>", "exec"), ns)  # noqa: S102
     ann = ns["Dog"].__annotations__
     assert "breed" in ann and "kennel" in ann  # both FKs, incl. the nullable one
 
@@ -69,25 +65,26 @@ def test_s3_moto(built, monkeypatch):
 
 
 def test_http_consumer(built, tmp_path):
-    config = Config.load()
-    publish(
-        config,
-        built.pipeline.output_tables,
-        backend=LocalBackend(str(tmp_path / "srv")),
-    )
+    from flask import Flask
+    from werkzeug.serving import make_server
 
-    handler = functools.partial(
-        http.server.SimpleHTTPRequestHandler, directory=str(tmp_path / "srv")
-    )
-    httpd = socketserver.TCPServer(("127.0.0.1", 0), handler)
-    port = httpd.server_address[1]
-    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    srv = tmp_path / "srv"
+    publish(Config.load(), built.pipeline.output_tables, backend=LocalBackend(str(srv)))
+
+    # a static host with Range support (as any real one has): polars scans
+    # parquet over HTTP with range requests
+    app = Flask(__name__, static_folder=str(srv), static_url_path="")
+    server = make_server("127.0.0.1", 0, app, threaded=True)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
-        manifest = fetch_manifest(f"http://127.0.0.1:{port}/dogshow")
+        source = f"http://127.0.0.1:{server.server_port}/dogshow"
+        manifest = fetch_manifest(source)
         assert manifest.version == "0.1.0" and "breeds" in manifest.tables
         _assert_dog_codegen(manifest)
+        for table in (built.breeds, built.results):  # results is partitioned
+            assert load(source, table.name).collect().height == table.n_rows()
     finally:
-        httpd.shutdown()
+        server.shutdown()
 
 
 @pytest.mark.skipif(
