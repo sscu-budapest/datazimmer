@@ -4,12 +4,12 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = ["datazimmer[collect,s3,zenodo]"]
 
-[project.optional-dependencies]
+[dependency-groups]
 # the fake federation site (flask), the soup/relay handlers (bs4/flask-cors),
-# the s3 backend test (moto), and cross-package coverage (pytest-cov)
-test = [
+# the s3 backend test (moto), and cross-package coverage (coverage)
+dev = [
     "pytest",
-    "pytest-cov",
+    "coverage",
     "pytest-timeout",
     "flask",
     "flask-cors",
@@ -41,8 +41,12 @@ atqo = { path = "../../../libs/atqo", editable = true }
 [tool.ruff]
 line-length = 88
 
+# Layered hang guards: --timeout bounds any single test; --session-timeout bounds
+# the whole session (incl. session-fixture setup/teardown the per-test timer can
+# miss). Both are Python-level; report.py adds an external process-group kill that
+# survives even a native GIL-holding deadlock.
 [tool.pytest.ini_options]
-addopts = "-q --timeout=60 --timeout-method=thread"
+addopts = "-q --timeout=120 --timeout-method=thread --session-timeout=600"
 testpaths = ["tests"]
 
 [tool.coverage.run]
@@ -50,9 +54,22 @@ testpaths = ["tests"]
 # relay server in a thread inside them; measure both, across every editable
 # package, so one suite reports the whole ecosystem.
 source = ["datazimmer", "aswan", "atqo", "dirark", "shackleton", "sqlmermaid"]
-# report on package source only — the siblings ship their own test suites
-omit = ["*/tests/*", "*/test_*.py", "*/conftest.py", "*/__main__.py"]
+# report on package source only — the siblings ship their own test suites, and
+# the fake federation site / fixtures aren't the thing under measure
+omit = ["*/tests/*", "*/test_*.py", "*/conftest.py", "*/__main__.py", "*/site/*"]
 concurrency = ["multiprocessing", "thread"]
 parallel = true
 sigterm = true
 branch = true
+
+[tool.coverage.report]
+# a readable report: drop import-only/empty files, show the missing lines, and
+# honour the `# pragma: no cover` markers on the spawned-subprocess entrypoints
+show_missing = true
+skip_empty = true
+precision = 1
+exclude_also = ["if TYPE_CHECKING:", "raise NotImplementedError"]
+
+[tool.coverage.html]
+title = "datazimmer ecosystem coverage — one dogshow suite, six packages"
+skip_empty = true
