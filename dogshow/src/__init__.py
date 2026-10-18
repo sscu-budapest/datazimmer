@@ -13,7 +13,6 @@ Importing this package builds the pipeline and registers every step (the
 from . import analytics, parsing  # noqa: F401 -- register pipeline steps
 from .collection import get_collector
 from .tables import (
-    ALL_TABLES,
     breed_wins,
     breeds,
     dogs,
@@ -25,7 +24,6 @@ from .tables import (
 )
 
 __all__ = [
-    "ALL_TABLES",
     "breed_wins",
     "breeds",
     "dogs",

@@ -19,5 +19,3 @@ shows = Table(meta.Show, "data/shows")
 results = Table(meta.Result, "data/results", partition_cols=["show__show_id"])
 breed_wins = Table(meta.BreedWins, "data/breed_wins")
 kennel_standing = Table(meta.KennelStanding, "data/kennel_standing")
-
-ALL_TABLES = [breeds, kennels, dogs, shows, results, breed_wins, kennel_standing]

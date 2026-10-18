@@ -5,7 +5,6 @@ Partitioned reads come from the real pipeline output; the splitting / compaction
 """
 
 import polars as pl
-
 from datazimmer import Table
 
 from src import meta

@@ -1,12 +1,11 @@
 """Relational materialization (SQLAlchemy) + the sqlmermaid ER diagram."""
 
 import sqlalchemy as sa
-
 from datazimmer import draw, to_sql
 
 
 def test_to_sql_loads_with_fks(built, tmp_path):
-    engine = to_sql(built.ALL_TABLES, f"sqlite:///{tmp_path / 'dog.db'}")
+    engine = to_sql(built.pipeline.tables, f"sqlite:///{tmp_path / 'dog.db'}")
     with engine.connect() as conn:
         assert conn.execute(sa.text("select count(*) from dogs")).scalar() == 5
         assert conn.execute(sa.text("select count(*) from results")).scalar() == 5
