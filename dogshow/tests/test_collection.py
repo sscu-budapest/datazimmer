@@ -15,15 +15,12 @@ from src.collection import (
     ShowScheduleHandler,
     get_collector,
 )
-from tests.site.runner import start_relay_worker
+from tests.site.runner import relay_worker
 
 
 def _collect():
-    worker = start_relay_worker()
-    try:
+    with relay_worker():
         get_collector().run()
-    finally:
-        worker.join(timeout=30)
 
 
 def test_collects_every_handler(project):

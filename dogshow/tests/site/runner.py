@@ -13,6 +13,7 @@ import signal
 import socket
 import sys
 import time
+from contextlib import contextmanager
 
 import requests
 
@@ -75,15 +76,50 @@ class AppRunner:
 
 
 def start_relay_worker() -> mp.process.BaseProcess:
-    """Spawn the pull-based relay worker; returns the process to be joined."""
+    """Spawn the pull-based relay worker; returns the process to be stopped.
+
+    The worker is bounded (``_die_with_parent`` + a finite poll loop), but it
+    only *self*-terminates after a long idle stretch. Collection blocks until the
+    relayed results are in, so callers should ``stop_relay_worker`` once
+    ``run()`` returns rather than wait that idle out. The ``serve`` launcher
+    re-spawns a fresh one in a loop to stay available across manual ``dz run``s.
+    """
     proc = _SPAWN.Process(target=_relay_worker)
     proc.start()
     return proc
 
 
+def stop_relay_worker(proc: mp.process.BaseProcess, timeout: float = 5.0) -> None:
+    """Stop the relay worker now that collection is done.
+
+    ``run()`` returns only after the relayed results have been collected, so the
+    worker has finished its job; terminating it skips its ~25 s idle wind-down —
+    the single biggest per-collection cost in the suite. SIGKILL is the backstop
+    if it ignores the terminate, so this never blocks for long.
+    """
+    proc.terminate()
+    proc.join(timeout)
+    if proc.is_alive():
+        proc.kill()
+        proc.join()
+
+
+@contextmanager
+def relay_worker():
+    """A relay worker scoped to a collection: started before, stopped promptly
+    after. ``with relay_worker(): collector.run()`` is the whole pattern — the
+    worker can never be left running, and the ~25 s idle wind-down is skipped."""
+    proc = start_relay_worker()
+    try:
+        yield proc
+    finally:
+        stop_relay_worker(proc)
+
+
 def _relay_worker():  # pragma: no cover - spawned subprocess
     """Mimic an external fetcher: poll the relay port for the pending url, GET
     it from the federation site, POST the JSON body back as the content."""
+    _die_with_parent()  # same guard as the site: never outlive a hard-killed parent
     from aswan.constants import (
         RELAY_CONTENT_K,
         RELAY_PORT,

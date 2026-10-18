@@ -4,15 +4,13 @@ publish → pull — as the integration smoke test."""
 from pathlib import Path
 
 from datazimmer.cli import main
-from tests.site.runner import start_relay_worker
+
+from tests.site.runner import relay_worker
 
 
 def test_cli_full_loop(project, tmp_path):
-    worker = start_relay_worker()
-    try:
+    with relay_worker():
         assert main(["run"]) == 0  # collect + parse + aggregate
-    finally:
-        worker.join(timeout=30)
 
     assert main(["run"]) == 0  # idempotent: everything skips
     assert main(["validate"]) == 0
