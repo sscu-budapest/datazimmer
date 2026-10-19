@@ -11,17 +11,19 @@
         eligible_voters: float | None
         geo_parent: GeographicalUnit
         election: Election
+        kind: Literal["urban", "rural"]
 
-An entity-typed field is a foreign key: it flattens to the target's index
+A ``Literal`` of strings is a categorical column, stored as ``pl.Enum`` so a
+write outside its values fails. An entity-typed field is a foreign key: it flattens to the target's index
 columns, prefixed with the field name. Only index fields are expanded when
 resolving a target, so self-references and other FK cycles through non-index
 fields terminate.
 """
 
 import types
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime
-from typing import Annotated, Union, get_args, get_origin, get_type_hints
+from typing import Annotated, Literal, Union, get_args, get_origin, get_type_hints
 
 
 class Index:
@@ -61,6 +63,7 @@ class ColumnInfo:
     nullable: bool = False
     is_index: bool = False
     fk_entity: type | None = None
+    categories: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,6 +105,14 @@ def _resolve_hint(hint) -> tuple[type, bool, bool]:
     return base, nullable, is_index
 
 
+def _str_literal(t) -> tuple[str, ...] | None:
+    """The values of a ``Literal`` of strings, else ``None``."""
+    if get_origin(t) is not Literal:
+        return None
+    values = get_args(t)
+    return values if all(isinstance(v, str) for v in values) else None
+
+
 def _is_entity(t) -> bool:
     return isinstance(t, type) and issubclass(t, Entity) and t is not Entity
 
@@ -113,7 +124,7 @@ def _fields(entity_cls: type[Entity]) -> list[tuple[str, type, bool, bool]]:
         if name.startswith("_"):
             continue
         base, nullable, is_index = _resolve_hint(hint)
-        if not (_is_entity(base) or base in _PRIMITIVE_TYPES):
+        if not (_is_entity(base) or base in _PRIMITIVE_TYPES or _str_literal(base)):
             raise SchemaError(f"{entity_cls.__name__}.{name}: unsupported type {hint}")
         fields.append((name, base, nullable, is_index))
     return fields
@@ -137,11 +148,17 @@ def _columns(entity_cls: type[Entity], index_only: bool) -> list[ColumnInfo]:
             continue
         if _is_entity(base):
             columns += [
-                ColumnInfo(
-                    f"{name}{PREFIX_SEP}{c.name}", c.dtype, nullable, is_index, base
+                replace(
+                    c,
+                    name=f"{name}{PREFIX_SEP}{c.name}",
+                    nullable=nullable,
+                    is_index=is_index,
+                    fk_entity=base,
                 )
                 for c in _target_index(entity_cls, name, base)
             ]
+        elif categories := _str_literal(base):
+            columns.append(ColumnInfo(name, str, nullable, is_index, None, categories))
         else:
             columns.append(ColumnInfo(name, base, nullable, is_index))
     return columns
@@ -197,6 +214,7 @@ def entity_metadata(entity_cls: type[Entity]) -> dict:
                 "nullable": c.nullable,
                 "is_index": c.is_index,
                 "fk_entity": c.fk_entity.__name__ if c.fk_entity else None,
+                "categories": list(c.categories) if c.categories else None,
             }
             for c in columns
         ],
@@ -213,12 +231,15 @@ def get_polars_schema(entity_cls: type[Entity]) -> dict:
     type_map: dict[type, pl.DataType] = {
         int: pl.Int64(),
         float: pl.Float64(),
-        str: pl.Utf8(),
+        str: pl.String(),
         bool: pl.Boolean(),
         bytes: pl.Binary(),
         datetime: pl.Datetime(),
     }
-    return {c.name: type_map[c.dtype] for c in get_columns(entity_cls)}
+    return {
+        c.name: pl.Enum(c.categories) if c.categories else type_map[c.dtype]
+        for c in get_columns(entity_cls)
+    }
 
 
 def to_json_schema(entity_cls: type[Entity]) -> dict:
@@ -227,6 +248,8 @@ def to_json_schema(entity_cls: type[Entity]) -> dict:
     properties: dict[str, dict] = {}
     for col in meta["columns"]:
         prop = dict(_JSON_TYPES[col["dtype"]])
+        if col["categories"]:
+            prop["enum"] = col["categories"]
         if col["nullable"]:
             prop = {"anyOf": [prop, {"type": "null"}]}
         if col["fk_entity"]:

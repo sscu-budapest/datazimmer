@@ -155,7 +155,12 @@ class Table:
 
 
 def _dtype_compatible(actual: pl.DataType, expected: pl.DataType) -> bool:
-    return actual == expected or actual.base_type() == expected.base_type()
+    if actual == expected:
+        return True
+    # an Enum's categories are part of the type, not a parameter to coerce past
+    return actual.base_type() == expected.base_type() and not isinstance(
+        expected, pl.Enum
+    )
 
 
 def tables_by_name(tables: list[Table]) -> dict[str, Table]:

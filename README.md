@@ -23,7 +23,7 @@ A project is one importable package exposing a module-level `pipeline`, plus a `
 
 ```python
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from datazimmer import Entity, Index
 
 class Breed(Entity):
@@ -36,6 +36,7 @@ class Dog(Entity):
     name: str
     breed: Breed                      # foreign key -> breed__breed_id
     weight_kg: float
+    sex: Literal["m", "f"]            # categorical -> pl.Enum
 ```
 
 Entity-typed fields become foreign keys; the metadata (index/uniqueness, sort order, foreign keys) is what drives SQL materialization, ER diagrams and published manifests.

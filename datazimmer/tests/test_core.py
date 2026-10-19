@@ -1,6 +1,6 @@
-"""Focused unit tests for config, pipeline, validate and the CLI."""
+"""Focused unit tests for config, pipeline, table, validate and the CLI."""
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 import polars as pl
 import pytest
@@ -15,7 +15,9 @@ from datazimmer import (
     ValidationError,
     entity_metadata,
     get_index_columns,
+    get_polars_schema,
     schema_codegen,
+    to_json_schema,
     validate,
 )
 from datazimmer.cli import main
@@ -225,3 +227,20 @@ def test_schema_codegen_stubs_unpublished_targets():
     assert [c.name for c in get_index_columns(ns["Membership"])] == [
         c.name for c in get_index_columns(Membership)
     ]
+
+
+class Precinct(Entity):
+    pid: Annotated[str, Index]
+    kind: Literal["urban", "rural"]
+
+
+def test_literal_field_is_an_enum_column(tmp_path):
+    table = Table(Precinct, tmp_path / "precinct")
+    table.write(pl.DataFrame({"pid": ["a", "b"], "kind": ["urban", "rural"]}))
+    assert table.collect().schema["kind"] == pl.Enum(["urban", "rural"])
+    with pytest.raises(pl.exceptions.InvalidOperationError):
+        table.append(pl.DataFrame({"pid": ["c"], "kind": ["suburban"]}))
+    assert to_json_schema(Precinct)["properties"]["kind"]["enum"] == ["urban", "rural"]
+    assert get_polars_schema(_codegen(Precinct)["Precinct"]) == get_polars_schema(
+        Precinct
+    )
