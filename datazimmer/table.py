@@ -62,10 +62,13 @@ class Table:
     # --- read ---
 
     def read(self) -> pl.LazyFrame:
+        """All rows; an unpopulated table reads as an empty, typed frame."""
+        if not self.is_populated():
+            return pl.LazyFrame(schema=self.polars_schema)
         return self._repo.get_full_lf()
 
     def collect(self) -> pl.DataFrame:
-        return self._repo.get_full_df()
+        return self.read().collect()
 
     def read_partition(self, partitions: dict[str, Any]) -> pl.LazyFrame:
         return self._repo.get_partition_lf(partitions)
@@ -92,11 +95,7 @@ class Table:
         return self._repo.n_files > 0
 
     def n_rows(self) -> int:
-        return (
-            int(self.read().select(pl.len()).collect().item())
-            if self.is_populated()
-            else 0
-        )
+        return int(self.read().select(pl.len()).collect().item())
 
     # --- batch writers (schema-validated on every flush) ---
 
