@@ -156,6 +156,30 @@ def test_validate_duplicate_index(tmp_path, monkeypatch):
         validate([table])
 
 
+class Pairing(Entity):
+    a: Annotated[str, Index]
+    b: Annotated[int, Index]
+    n: int
+
+
+def test_table_upserts_on_composite_index(tmp_path):
+    table = Table(Pairing, tmp_path / "pairing")
+    table.write(pl.DataFrame({"a": ["y", "x", "x"], "b": [1, 2, 1], "n": [0, 0, 0]}))
+    table.replace(pl.DataFrame({"a": ["x", "z"], "b": [2, 0], "n": [5, 7]}))
+    assert table.collect().rows() == [
+        ("x", 1, 0),
+        ("x", 2, 5),
+        ("y", 1, 0),
+        ("z", 0, 7),
+    ]
+
+
+def test_validate_unpopulated_table(tmp_path):
+    table = Table(Pairing, tmp_path / "pairing")
+    assert table.n_rows() == 0
+    validate([table])
+
+
 def test_validate_custom_check(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     table = Table(Thing, "data/thing")

@@ -47,8 +47,11 @@ Entity-typed fields become foreign keys; the metadata (index/uniqueness, sort or
 from datazimmer import Table
 breeds = Table(Breed, "data/breeds")
 breeds.write(df)          # validated + dtype-coerced on write
+breeds.replace(df)        # upsert on the index, composite or not
 lf = breeds.read()        # polars LazyFrame
 ```
+
+Files stay sorted by the entity's index.
 
 ### Pipeline — explicit steps, hash-based skipping
 

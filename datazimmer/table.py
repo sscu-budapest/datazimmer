@@ -42,10 +42,9 @@ class Table:
         self.path = Path(self.path)
         self._columns = get_columns(self.entity)
         self._index_cols = get_index_columns(self.entity)
-        id_col = self._index_cols[0].name if len(self._index_cols) == 1 else None
         self._repo = TableRepo(
             root_path=self.path,
-            id_col=id_col,
+            id_col=[c.name for c in self._index_cols] or None,
             partition_cols=self.partition_cols,
             max_records=self.max_records,
             compression=self.compression,
