@@ -34,6 +34,7 @@ package = false
 datazimmer = { path = "..", editable = true }
 shackleton = { path = "../../../libs/shackleton", editable = true }
 sqlmermaid = { path = "../../sqlmermaid", editable = true }
+protocli = { path = "../../../libs/protocli", editable = true }
 aswan = { path = "../../../libs/aswan", editable = true }
 dirark = { path = "../../../libs/dirark", editable = true }
 atqo = { path = "../../../libs/atqo", editable = true }

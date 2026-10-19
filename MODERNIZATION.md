@@ -9,7 +9,7 @@
 A lean, fast, explicit scientific data management platform:
 - **Polars-native** (no pandas in the core path)
 - **Zero magic** (no metaclasses, no runtime codegen, no `&`-operator DSL)
-- **Minimal dependencies** (core: polars, sqlalchemy, shackleton, sqlmermaid)
+- **Minimal dependencies** (core: polars, sqlalchemy, shackleton, sqlmermaid, protocli)
 - **uv everywhere**, **AI-agent friendly** (JSON schemas, explicit configs)
 - **Useful data catalog** (static site with CSVs, distributions, ER diagrams)
 

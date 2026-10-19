@@ -6,7 +6,8 @@ license = {file = "LICENSE"}
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "polars",
+    "polars>=2",
+    "protocli",
     "sqlalchemy>=2.0.0",
     "shackleton",
     "sqlmermaid",
@@ -31,6 +32,7 @@ build-backend = "flit_core.buildapi"
 [tool.uv.sources]
 shackleton = { path = "../../libs/shackleton", editable = true }
 sqlmermaid = { path = "../sqlmermaid", editable = true }
+protocli = { path = "../../libs/protocli", editable = true }
 aswan = { path = "../../libs/aswan", editable = true }
 dirark = { path = "../../libs/dirark", editable = true }
 atqo = { path = "../../libs/atqo", editable = true }
