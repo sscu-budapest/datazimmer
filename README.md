@@ -108,6 +108,8 @@ dz schema export          # JSON Schema per entity
 dz schema codegen <src>   # Entity classes from a published manifest
 ```
 
+`dz --help-all` prints every command's flags; `dz --complete <args…>` serves shell completion (dependency sources for `pull`, paths for `--out`/`--dest`).
+
 ## The dogshow
 
 [`dogshow/`](dogshow) is the canonical example and the cross-package end-to-end suite. One story drives the whole ecosystem: aswan scrapes a (locally served) kennel federation into a versioned depot, this pipeline parses it into a typed star schema, and the result is validated, materialized to SQL + a Mermaid ER diagram, and published for URL consumption. It reads no external data and, under Docker, reports the combined coverage of all six packages:

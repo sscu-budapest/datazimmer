@@ -2,18 +2,18 @@
 
 Scientific data pipeline orchestrator: typed entity schemas → schema-validated polars tables → explicit pipelines → versioned publish/consume by URL. The hub of a forward-only rewrite of the sscu-budapest data ecosystem — see [MODERNIZATION.md](MODERNIZATION.md) for the living plan and remaining phases.
 
-The rewrite dropped DVC, the colassigner metaclass DSL, pandas, typer, cookiecutter, zimmauth, metazimmer and parquetranger. Core deps are now polars, sqlalchemy, shackleton and sqlmermaid; everything else is an optional extra.
+The rewrite dropped DVC, the colassigner metaclass DSL, pandas, typer, cookiecutter, zimmauth, metazimmer and parquetranger. Core deps are now polars, sqlalchemy, shackleton, sqlmermaid and protocli; everything else is an optional extra.
 
 ## Where to look
 
-- `datazimmer/schema.py` — `Entity` + `Annotated[str, Index]`. Plain classes, no metaclass. `get_columns` flattens entity-typed fields into prefixed FK columns (`breed` → `breed__breed_id`); `entity_metadata` / `to_json_schema` / `get_polars_schema` are the exports everything else derives from. Only index fields are expanded when resolving an FK target, so self-references terminate; an unsupported field type or an FK to an index-less entity raises `SchemaError`.
-- `datazimmer/table.py` — `Table` wrapping shackleton's `TableRepo`. Validates column set and coerces dtypes on every write; reads return `pl.LazyFrame`. `tables_by_name` keys tables by `Table.name` (also the SQL and manifest name) and rejects duplicates.
+- `datazimmer/schema.py` — `Entity` + `Annotated[str, Index]`. Plain classes, no metaclass. `get_columns` flattens entity-typed fields into prefixed FK columns (`breed` → `breed__breed_id`); `entity_metadata` / `to_json_schema` / `get_polars_schema` are the exports everything else derives from. Only index fields are expanded when resolving an FK target, so self-references terminate; a `Literal` of strings is a categorical column (`ColumnInfo.categories` → `pl.Enum`, a JSON-Schema `enum`, a `categories` manifest key); an unsupported field type or an FK to an index-less entity raises `SchemaError`.
+- `datazimmer/table.py` — `Table` wrapping shackleton's `TableRepo`, whose `id_col` is the entity's whole index: files stay sorted by it and `Table.replace` upserts on it, composite or not. Validates column set and coerces dtypes on every write (an Enum is cast, so unknown categories fail); reads return `pl.LazyFrame`, an empty typed one for an unpopulated table. `tables_by_name` keys tables by `Table.name` (also the SQL and manifest name) and rejects duplicates.
 - `datazimmer/pipeline.py` — `Pipeline` + `@pipeline.step(inputs=, outputs=)`. Topo-sorts steps; a step is skipped when its blake2b fingerprint (its source plus its inputs' fingerprints) is unchanged and outputs still exist. Step names must be unique; a step's fingerprint is recorded (`HASH_FILE` under `config.STATE_DIR`) as soon as it succeeds.
 - `datazimmer/remote.py` — `Manifest` + local/ssh/s3/http `Backend`s. `publish` writes `{project}/{version}/{manifest,tables}`, the manifest listing each table's schema, checksum and data files; `load` lazily scans those files by URL (only ssh downloads first; http needs a Range-capable host); `schema_codegen` regenerates `Entity` source from a manifest, stubbing FK targets it does not publish (opt-in typed consumption).
 - `datazimmer/sql.py` — entities → SQLAlchemy `MetaData` (PK from index, FK from entity fields) → load rows; `draw` renders a Mermaid ER diagram via sqlmermaid.
-- `datazimmer/validate.py` — index uniqueness + FK integrity + custom checks, all in polars, no DB round-trip.
+- `datazimmer/validate.py` — index uniqueness + FK integrity as lazy count queries run in one `pl.collect_all` (streamed, never whole tables in memory), then custom checks; no DB round-trip.
 - `datazimmer/config.py` — single source of truth: the `[tool.datazimmer]` table in `pyproject.toml` (`Config.load`).
-- `datazimmer/cli.py` — argparse `dz` entrypoint: `init / run / validate / sql / draw / publish / pull / schema export|codegen`. Loads the project's module-level `pipeline` by importing `config.package`.
+- `datazimmer/cli.py` — the `dz` entrypoint: typed `_cmd_*` handlers dispatched by protocli (`main = Dispatcher(...).run`), per-flag help from each handler's `Args:` docstring, `schema export|codegen` as a nested `Dispatcher`. `init / run / validate / sql / draw / publish / pull / schema`. Loads the project's module-level `pipeline` by importing `config.package`.
 - `datazimmer/aswan_integration.py` — `DzAswan`, the bridge to an aswan collection project (`run` → pull/scrape/save/push, `events` → parsed rows). aswan is imported lazily so it stays the optional `[collect]` extra.
 - `datazimmer/zenodo.py` — slim Zenodo REST deposition.
 - `datazimmer/_template/` — project scaffold copied by `dz init`.
@@ -32,6 +32,7 @@ datazimmer sits on a stack of small, single-purpose libraries the same author co
 | --- | --- | --- | --- |
 | **shackleton** | `../../libs/shackleton` | Persistent polars table store (Parquet/Arrow IPC): partitioned writes, sorted merge, lazy reads, schema evolution, thread-safe. Single dep: polars. | `Table` wraps its `TableRepo` / `HashPartitioner` — the storage layer for every pipeline output. |
 | **sqlmermaid** | `../sqlmermaid` | Mermaid ER diagrams from any SQLAlchemy metadata. | `sql.draw` feeds it the metadata built from entity schemas. |
+| **protocli** | `../../libs/protocli` | Signature-driven CLI dispatcher: typed functions become argparse parsers, with nested groups, `--help-all` and lazy shell completion. Zero deps. | The `dz` CLI (and aswan's and dirark's). |
 | **aswan** | `../../libs/aswan` | Parallel web data collection into a versioned, content-addressed depot (replay/merge/sync). | `DzAswan` bridges a collection project into a pipeline step. Optional `[collect]` extra. |
 | **dirark** | `../../libs/dirark` | Content-addressed directory archival (tar.zst + SQLite index, blake2b, rsync dedup sync). | **Transitive** — backs aswan's object store; not imported by datazimmer directly. |
 | **atqo** | `../../libs/atqo` | Async task-queue orchestrator with resource-aware scheduling. | **Transitive** — drives aswan's parallel workers; not imported by datazimmer directly. |

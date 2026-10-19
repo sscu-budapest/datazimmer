@@ -1,0 +1,18 @@
+[project]
+name = "{{name}}"
+version = "0.0.0"
+requires-python = ">=3.12"
+dependencies = ["datazimmer"]
+
+[tool.datazimmer]
+name = "{{name}}"
+version = "0.0.0"
+package = "src"
+
+# [tool.datazimmer.remote]
+# kind = "local"            # local | ssh | s3
+# url = "~/datasets"
+
+# [tool.datazimmer.dependencies.other]
+# source = "s3://bucket/datasets/other-project"
+# version = "0.1.0"
