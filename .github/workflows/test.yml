@@ -7,19 +7,16 @@ on:
   push:
     branches:
       - main
+  workflow_call:
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          python-version: '3.12'
-          enable-cache: true
-      - name: Lint
-        run: uvx ruff check datazimmer/
-      # the sibling libraries resolve from PyPI here; locally they are editable
-      # checkouts via [tool.uv.sources]
-      - name: Test
-        run: uv run --no-sources pytest
+    - uses: actions/checkout@v7
+    - uses: astral-sh/setup-uv@v10.3.0
+      with:
+        python-version: '3.12'
+        enable-cache: true
+    - run: uv tool install branthebuilder
+    - run: branb test
