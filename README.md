@@ -17,12 +17,11 @@ uv add "datazimmer[zenodo]"    # + Zenodo deposition
 
 ## Concepts
 
-A project is one importable package exposing a module-level `pipeline`, plus a `[tool.datazimmer]` table in `pyproject.toml`. No DVC, no metaclasses, no codegen DSL — plain classes, type hints and explicit polars DataFrames.
+A project is one importable package exposing a module-level `pipeline`, configured by a `[tool.datazimmer]` table in `pyproject.toml`. Everything is plain classes, type hints and polars frames.
 
 ### Entities — typed schemas
 
 ```python
-from datetime import datetime
 from typing import Annotated, Literal
 from datazimmer import Entity, Index
 
@@ -39,14 +38,14 @@ class Dog(Entity):
     sex: Literal["m", "f"]            # categorical -> pl.Enum
 ```
 
-Entity-typed fields become foreign keys; the metadata (index/uniqueness, sort order, foreign keys) is what drives SQL materialization, ER diagrams and published manifests.
+The index and the foreign keys drive SQL materialization, ER diagrams and published manifests.
 
 ### Tables — schema-validated parquet (via shackleton)
 
 ```python
 from datazimmer import Table
 breeds = Table(Breed, "data/breeds")
-breeds.write(df)          # validated + dtype-coerced on write
+breeds.write(df)          # validated + dtype-coerced
 breeds.replace(df)        # upsert on the index, composite or not
 lf = breeds.read()        # polars LazyFrame
 ```
@@ -66,31 +65,36 @@ def seed(): ...
 def aggregate(): ...
 ```
 
-`dz run` topologically sorts the steps and skips any whose source and inputs are unchanged; each step's fingerprint is recorded as soon as it succeeds, under the project's state dir (`config.STATE_DIR`). Editing an upstream step re-runs everything downstream.
+An input is a `Table`, a path, or another step. `dz run` runs the steps in dependency order and skips one whose source and inputs are unchanged since it last succeeded and whose outputs exist, so editing a step re-runs it and everything downstream. Fingerprints are kept in the project's state dir (`config.STATE_DIR`).
 
 ### Validate, publish, consume
 
 ```python
-from datazimmer import Config, validate, publish, load
-validate([breeds, dogs])                      # uniqueness + FK integrity
-publish(Config.load(), [breeds, dogs])        # versioned upload + manifest
-lf = load("s3://bucket/datasets/dogshow", "breeds")   # lazy, no download (local/s3/http)
+from datazimmer import Config, validate, publish, load, load_dependency
+validate([breeds, dogs])                                  # uniqueness + FK integrity
+publish(Config.load(), [breeds, dogs])                    # versioned upload + manifest
+lf = load("s3://bucket/datasets/dogshow", "breeds")       # lazy scan (local/s3/http)
+lf = load_dependency(Config.load(), "elections", "precincts")  # a [tool.datazimmer.dependencies] entry
 ```
 
-Cross-project consumption is parquet-metadata-first; `dz schema codegen` optionally regenerates typed `Entity` classes from a published manifest.
+A consumer needs only the URL: the manifest carries each table's schema and files. `dz schema codegen` turns it into typed `Entity` classes when you want them.
 
-### Collection — aswan collectors on a cadence
+### Collection — aswan collectors
 
 ```python
 from datazimmer import DzAswan
 
 class Lichess(DzAswan):
     name = "lichess"                  # the aswan depot
-    cadence = "1h"                    # 30m, 1h, 1d, 2w; none = runs only when named
+    cadence = "1h"                    # count + unit of CADENCE_UNITS; unset = only when named
     starters = {GetTournaments: ["https://lichess.org/api/tournament"]}
+
+@pipeline.step(outputs=[tournaments])
+def parse():
+    tournaments.write(pl.DataFrame([e.content for e in Lichess().events(GetTournaments)]))
 ```
 
-`dz collect` imports the modules listed under `collectors` in `[tool.datazimmer]` and runs each collector whose cadence has passed since its last attempt, straight into the aswan depot root (`ASWAN_DEPOT_ROOT`); with `ASWAN_REMOTE` set, it pulls the depot first and pushes it after. A failed run counts as an attempt, so a broken collector is retried once per cadence, not on every call. Run it from a timer (cron, systemd) as often as the shortest cadence needs.
+`dz collect` imports the `collectors` modules and runs every collector whose cadence has passed since its last attempt, into the aswan depot root (`ASWAN_DEPOT_ROOT`); with `ASWAN_REMOTE` set, it pulls the depot first and pushes it after. A failed run counts as an attempt, so a broken collector retries once per cadence. Call it from a timer (cron, systemd) as often as the shortest cadence needs.
 
 ## Configuration (`pyproject.toml`)
 
@@ -107,16 +111,16 @@ url = "s3://bucket/datasets"
 
 [tool.datazimmer.dependencies.elections]
 source = "s3://bucket/datasets/electiondata"
-version = "0.2.0"
+version = "0.2.0"                 # omit for the latest
 ```
 
-Credentials use the standard env vars (`AWS_ACCESS_KEY_ID`, …); there is no custom auth layer.
+Credentials are the standard env vars (`AWS_ACCESS_KEY_ID`, `ZENODO_TOKEN`, …). Zenodo deposition is Python-only: `datazimmer.zenodo.ZenodoDeposit` creates a draft, uploads files and optionally publishes it.
 
 ## CLI
 
 ```bash
-dz init <name>            # scaffold a new project from the template
-dz run [--force]          # execute the pipeline (skips unchanged steps)
+dz init <name>            # scaffold a new project
+dz run [--force]          # execute the pipeline, skipping unchanged steps
 dz collect [names…]       # run due collectors, or the named ones [--force] [--status]
 dz validate               # index uniqueness + foreign-key integrity
 dz sql [--constr URL]     # load all tables into a relational database
@@ -127,28 +131,27 @@ dz schema export          # JSON Schema per entity
 dz schema codegen <src>   # Entity classes from a published manifest
 ```
 
-`dz --help-all` prints every command's flags; `dz --complete <args…>` serves shell completion (dependency sources for `pull`, paths for `--out`/`--dest`).
+`dz --help-all` prints every command's flags; `dz --complete <args…>` serves shell completion.
 
 ## The dogshow
 
-[`dogshow/`](dogshow) is the canonical example and the cross-package end-to-end suite. One story drives the whole ecosystem: aswan scrapes a (locally served) kennel federation into a versioned depot, this pipeline parses it into a typed star schema, and the result is validated, materialized to SQL + a Mermaid ER diagram, and published for URL consumption. It reads no external data and, under Docker, reports the combined coverage of all six packages:
+[`dogshow/`](dogshow) is the canonical example and the cross-package end-to-end suite: aswan scrapes a locally served kennel federation into a depot, the pipeline parses it into a typed star schema, and the result is validated, materialized to SQL + an ER diagram, and published. It reads no external data.
 
 ```bash
-cd dogshow && make test                                      # fast, self-contained
-docker compose -f dogshow/docker/compose.yaml up --build     # combined coverage
+cd dogshow && make test                                      # self-contained suite
+docker compose -f dogshow/docker/compose.yaml up --build     # + the ssh backend, combined coverage of every package
 ```
 
 ## Ecosystem
 
 | Library | Role |
 | --- | --- |
-| [shackleton](https://github.com/endremborza/shackleton) | Polars-based table storage |
+| [shackleton](https://github.com/endremborza/shackleton) | Polars table storage |
 | [aswan](https://github.com/endremborza/aswan) | Web data collection |
 | [dirark](https://github.com/endremborza/dirark) | Content-addressed archival (aswan depot) |
+| [atqo](https://github.com/endremborza/atqo) | Task queue orchestration (aswan workers) |
 | [sqlmermaid](https://github.com/endremborza/sqlmermaid) | ER diagram generation |
-| [atqo](https://github.com/endremborza/atqo) | Task queue orchestration |
-
-The remaining roadmap lives in [MODERNIZATION.md](MODERNIZATION.md).
+| [protocli](https://github.com/endremborza/protocli) | The `dz` CLI dispatcher |
 
 ## License
 

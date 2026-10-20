@@ -1,77 +1,61 @@
 # datazimmer
 
-Scientific data pipeline orchestrator: typed entity schemas → schema-validated polars tables → explicit pipelines → versioned publish/consume by URL. The hub of a forward-only rewrite of the sscu-budapest data ecosystem — see [MODERNIZATION.md](MODERNIZATION.md) for the living plan and remaining phases.
-
-The rewrite dropped DVC, the colassigner metaclass DSL, pandas, typer, cookiecutter, zimmauth, metazimmer and parquetranger. Core deps are now polars, sqlalchemy, shackleton, sqlmermaid and protocli; everything else is an optional extra.
+Scientific data pipeline orchestrator: typed entity schemas → schema-validated polars tables → explicit pipelines → versioned publish/consume by URL. Core deps are polars, sqlalchemy, shackleton, sqlmermaid and protocli; everything else is an optional extra.
 
 ## Where to look
 
-- `datazimmer/schema.py` — `Entity` + `Annotated[str, Index]`. Plain classes, no metaclass. `get_columns` flattens entity-typed fields into prefixed FK columns (`breed` → `breed__breed_id`); `entity_metadata` / `to_json_schema` / `get_polars_schema` are the exports everything else derives from. Only index fields are expanded when resolving an FK target, so self-references terminate; a `Literal` of strings is a categorical column (`ColumnInfo.categories` → `pl.Enum`, a JSON-Schema `enum`, a `categories` manifest key); an unsupported field type or an FK to an index-less entity raises `SchemaError`.
-- `datazimmer/table.py` — `Table` wrapping shackleton's `TableRepo`, whose `id_col` is the entity's whole index: files stay sorted by it and `Table.replace` upserts on it, composite or not. Validates column set and coerces dtypes on every write (an Enum is cast, so unknown categories fail); reads return `pl.LazyFrame`, an empty typed one for an unpopulated table. `tables_by_name` keys tables by `Table.name` (also the SQL and manifest name) and rejects duplicates.
-- `datazimmer/pipeline.py` — `Pipeline` + `@pipeline.step(inputs=, outputs=)`. Topo-sorts steps; a step is skipped when its blake2b fingerprint (its source plus its inputs' fingerprints) is unchanged and outputs still exist. Step names must be unique; a step's fingerprint is recorded (`HASH_FILE` under `config.STATE_DIR`) as soon as it succeeds.
-- `datazimmer/remote.py` — `Manifest` + local/ssh/s3/http `Backend`s. `publish` writes `{project}/{version}/{manifest,tables}`, the manifest listing each table's schema, checksum and data files; `load` lazily scans those files by URL (only ssh downloads first; http needs a Range-capable host); `schema_codegen` regenerates `Entity` source from a manifest, stubbing FK targets it does not publish (opt-in typed consumption).
-- `datazimmer/sql.py` — entities → SQLAlchemy `MetaData` (PK from index, FK from entity fields) → load rows; `draw` renders a Mermaid ER diagram via sqlmermaid.
-- `datazimmer/validate.py` — index uniqueness + FK integrity as lazy count queries run in one `pl.collect_all` (streamed, never whole tables in memory), then custom checks; no DB round-trip.
-- `datazimmer/config.py` — single source of truth: the `[tool.datazimmer]` table in `pyproject.toml` (`Config.load`).
-- `datazimmer/cli.py` — the `dz` entrypoint: typed `_cmd_*` handlers dispatched by protocli (`main = Dispatcher(...).run`), per-flag help from each handler's `Args:` docstring, `schema export|codegen` as a nested `Dispatcher`. `init / run / validate / sql / draw / publish / pull / schema`. Loads the project's module-level `pipeline` by importing `config.package`.
-- `datazimmer/aswan_integration.py` — `DzAswan`, the bridge to an aswan collection project (`run` → pull/scrape/save/push, `events` → parsed rows). aswan is imported lazily so it stays the optional `[collect]` extra.
-- `datazimmer/zenodo.py` — slim Zenodo REST deposition.
-- `datazimmer/_template/` — project scaffold copied by `dz init`.
-- `dogshow/` — the canonical example **and** the end-to-end test: a small star schema (Breed, Kennel, Dog, Show, Result, BreedWins, KennelStanding) exercising every feature. `cd dogshow && make showcase` — which boots the local federation site + relay, then runs the real `dz` CLI loop — is the integration smoke test.
-- `datazimmer/tests/` — `test_core`, `test_schema`, `test_table`, `test_zenodo` (core unit suite). The cross-package end-to-end coverage lives in `dogshow/tests/`.
+- `datazimmer/schema.py` — `Entity` (plain annotated classes, never instantiated) + `Annotated[str, Index]`. `get_columns` flattens an entity-typed field into prefixed FK columns (`breed` → `breed__breed_id`), expanding only the target's index fields, so self-references terminate. A `Literal` of strings is a categorical column (`pl.Enum`, JSON-Schema `enum`, manifest `categories`). `entity_metadata` is what the other modules derive from. An unsupported type or an FK to an index-less entity raises `SchemaError`.
+- `datazimmer/table.py` — `Table` wraps shackleton's `TableRepo` with the entity's whole index as `id_col`: files stay sorted by it and `replace` upserts on it. Every write checks the column set and coerces dtypes (unknown Enum categories fail); reads are `pl.LazyFrame`, empty and typed when unpopulated. `Table.name` (the path's last component) is also the SQL and manifest name; `tables_by_name` rejects duplicates.
+- `datazimmer/pipeline.py` — `Pipeline` + `@pipeline.step(inputs=, outputs=)`; an input is a `Table`, a path or another step. Steps run in topo order; one is skipped when its blake2b fingerprint (source + inputs' fingerprints) matches `HASH_FILE` under the state dir and its outputs exist. The fingerprint is cleared before a step starts and recorded as soon as it succeeds.
+- `datazimmer/_hashing.py` — the file/tree blake2b digest shared by pipeline fingerprints and manifest checksums.
+- `datazimmer/remote.py` — `Manifest` + local/ssh/s3/http `Backend`s (http is read-only). `publish` writes `{project}/{version}/` (manifest + one dir per table) and `{project}/latest.json`; `load` scans the manifest's files lazily by URL (ssh downloads first; http needs Range support); `schema_codegen` regenerates `Entity` source from a manifest, stubbing FK targets it does not publish.
+- `datazimmer/sql.py` — entities → SQLAlchemy `MetaData` (PK from index, FK from entity fields); `to_sql` drops, recreates and loads parents before children; `draw` renders Mermaid via sqlmermaid.
+- `datazimmer/validate.py` — index uniqueness + FK integrity as lazy count queries collected in one `pl.collect_all`, then custom checks.
+- `datazimmer/config.py` — `Config.load` reads `[tool.datazimmer]` from `pyproject.toml`, the only config source; `Config.import_module` imports a project module with the project root on `sys.path`.
+- `datazimmer/cli.py` — `dz`: typed `_cmd_*` handlers dispatched by protocli, per-flag help from each handler's `Args:` docstring, `schema export|codegen` as a nested `Dispatcher`. Commands that need the pipeline import the module-level `pipeline` of `config.package`.
+- `datazimmer/aswan_integration.py` — `DzAswan` (`run` pulls, scrapes, saves and pushes the depot; `events` reads parsed rows) and `dz collect`: `find_collectors` takes the named subclasses defined in the `collectors` modules, `cadence` makes one due, and attempts go to `ATTEMPTS_FILE` under the state dir, so a failing collector retries once per cadence.
+- `datazimmer/zenodo.py` — `ZenodoDeposit`, a minimal Zenodo REST deposition; no CLI command yet.
+- `datazimmer/_template/` — the scaffold `dz init` copies.
+- `datazimmer/tests/` — the core unit suite.
+- `dogshow/` — the canonical example and the cross-package end-to-end suite: a small star schema exercising every feature, against a locally served site (see its README).
 
 ## Architecture in one sentence
 
-`Entity` subclasses are pure schema descriptors → `schema.py` flattens them to columns/FKs/JSON-Schema → `Table` persists schema-validated parquet via shackleton → `Pipeline` runs `@step`s in topo order with fingerprint skipping → `validate` / `sql` / `remote` consume the same `entity_metadata` to check integrity, materialize a relational+ER view, and publish/consume versioned datasets by URL.
+`Entity` subclasses are pure schema descriptors → `schema.py` flattens them to columns/FKs/JSON-Schema → `Table` persists schema-validated parquet via shackleton → `Pipeline` runs `@step`s in topo order with fingerprint skipping → `validate` / `sql` / `remote` consume the same `entity_metadata` to check integrity, materialize a relational + ER view, and publish/consume versioned datasets by URL.
 
 ## The ecosystem (sibling libraries)
 
-datazimmer sits on a stack of small, single-purpose libraries the same author co-develops. They are pinned as local editable installs in `pyproject.toml` under `[tool.uv.sources]`, so changes in a sibling are visible immediately. When something conceptually belongs in one of these libraries (a new primitive, an API ergonomics fix, a bug), fix it **there**, not by working around it in datazimmer.
+datazimmer sits on small single-purpose libraries by the same author. `pyproject.toml` resolves them from PyPI, as CI and users do. To work against the local checkouts, run `uv sync --extra collect` (so aswan's own dependencies are installed), then `branb link ../../libs/shackleton ../sqlmermaid ../../libs/protocli ../../libs/aswan ../../libs/dirark ../../libs/atqo`; the link lasts until the venv is recreated, and `branb link` with no paths removes it. A fix that conceptually belongs in a sibling (a new primitive, an API ergonomics fix, a bug) goes **there**, not into a workaround here.
 
-| Library | Path | Role | How datazimmer uses it |
-| --- | --- | --- | --- |
-| **shackleton** | `../../libs/shackleton` | Persistent polars table store (Parquet/Arrow IPC): partitioned writes, sorted merge, lazy reads, schema evolution, thread-safe. Single dep: polars. | `Table` wraps its `TableRepo` / `HashPartitioner` — the storage layer for every pipeline output. |
-| **sqlmermaid** | `../sqlmermaid` | Mermaid ER diagrams from any SQLAlchemy metadata. | `sql.draw` feeds it the metadata built from entity schemas. |
-| **protocli** | `../../libs/protocli` | Signature-driven CLI dispatcher: typed functions become argparse parsers, with nested groups, `--help-all` and lazy shell completion. Zero deps. | The `dz` CLI (and aswan's and dirark's). |
-| **aswan** | `../../libs/aswan` | Parallel web data collection into a versioned, content-addressed depot (replay/merge/sync). | `DzAswan` bridges a collection project into a pipeline step. Optional `[collect]` extra. |
-| **dirark** | `../../libs/dirark` | Content-addressed directory archival (tar.zst + SQLite index, blake2b, rsync dedup sync). | **Transitive** — backs aswan's object store; not imported by datazimmer directly. |
-| **atqo** | `../../libs/atqo` | Async task-queue orchestrator with resource-aware scheduling. | **Transitive** — drives aswan's parallel workers; not imported by datazimmer directly. |
+| Library | Role | Used by datazimmer as |
+| --- | --- | --- |
+| **shackleton** | Persistent polars table store: partitioned Parquet writes, sorted merge, lazy reads, schema evolution. | The storage under every `Table` (`TableRepo`, `HashPartitioner`). |
+| **sqlmermaid** | Mermaid ER diagrams from SQLAlchemy metadata. | `sql.draw`. |
+| **protocli** | Signature-driven argparse dispatcher: nested groups, `--help-all`, lazy shell completion. | The `dz` CLI. |
+| **aswan** | Parallel web collection into a versioned, content-addressed depot. | `DzAswan`; the optional `[collect]` extra. |
+| **dirark** | Content-addressed directory archival (tar.zst + SQLite index). | Transitive only: aswan's object store. |
+| **atqo** | Async task queue with resource-aware scheduling. | Transitive only: aswan's parallel workers. |
 
-`dirark` and `atqo` are listed in `[tool.uv.sources]` only so aswan resolves them to local editable copies too; datazimmer itself touches them solely through aswan.
-
-Downstream of all this sit the **data projects** (~20 under sscu-budapest; `electiondata` is the first migration target) — real datasets that define entities + a pipeline against this library and publish versioned catalogs.
+Downstream, ~20 sscu-budapest data projects define entities + a pipeline against datazimmer and publish versioned datasets; `electiondata` is the first to migrate onto this stack.
 
 ## Documentation convention
 
-The whole ecosystem documents itself two ways, and every repo should carry both:
-
-- **`README.md` — functionality, for users.** What the library is, install, quick start, the public API and concepts. Task-oriented and example-driven. aswan's README is the reference depth.
-- **`AGENTS.md` — orientation, for developers and AI agents.** A "where to look" map of the modules, the architecture in a sentence, the sibling-library relationships, conventions, sharp edges, and how to run the tests. Not a tutorial — a fast index into the source. This file is the reference shape.
-- **`CLAUDE.md` → `AGENTS.md`** as a symlink, so the agent harness picks up the same file without duplication.
-
-Data projects get a README describing the dataset and a short AGENTS.md noting their entities, pipeline shape, and remote.
+Every repo in the ecosystem carries a `README.md` for users (what it is, install, quick start, API, concepts; example-driven, aswan's is the reference depth) and an `AGENTS.md` for developers and agents (module map, architecture, sibling relationships, conventions, sharp edges, how to test; an index into the source, not a tutorial, shaped like this file), with `CLAUDE.md` a symlink to `AGENTS.md`. Data projects get a README describing the dataset and a short AGENTS.md naming their entities, pipeline shape and remote.
 
 ## Conventions
 
-- Python ≥ 3.12, type hints everywhere; `uv` for envs, `ruff` for format (line length from `[tool.ruff]`). Never pip.
-- Minimal core dependencies — heavy/optional features (`aswan`, `boto3`, `requests`) live in extras and are imported lazily inside the functions that need them (see the `__getattr__` in `__init__.py` and the in-handler imports in `cli.py` / `remote.py`).
-- No metaclasses, no runtime codegen on the hot path, no `&`-operator DSL, no pandas. Entities are plain annotated classes; codegen is opt-in and explicit.
-- Fail loud and early with clear exception types (`SchemaError`, `ValidationError`, `ConfigError`, `PipelineError`).
-- Credentials are standard env vars (`AWS_ACCESS_KEY_ID`, …) — no custom auth layer.
+- Python per `requires-python`, type hints throughout; `uv`, never pip; `ruff` with the line length from `[tool.ruff]` (CI runs `uvx ruff check datazimmer/`).
+- Optional features (`aswan`, `boto3`, `requests`) are extras imported lazily where used: the `__getattr__` in `__init__.py`, the in-handler imports in `cli.py`, `S3Backend.client`, `ZenodoDeposit`. The core must import without them.
+- No metaclasses, no `&`-operator DSL, no pandas, no runtime codegen on the hot path; `schema_codegen` is opt-in.
+- Fail loud and early with the module exceptions: `SchemaError`, `ConfigError`, `PipelineError`, `ValidationError`, `CollectError`.
+- Credentials are standard env vars (`AWS_ACCESS_KEY_ID`, `ZENODO_TOKEN`, …); no auth layer.
 
 ## Running
 
 ```bash
-uv run pytest            # datazimmer core unit suite (datazimmer/tests, seconds)
+uv run pytest                  # core unit suite (datazimmer/tests)
+cd dogshow && uv run pytest    # cross-package integration + e2e
+cd dogshow && make showcase    # boots the local site + relay, runs the real dz CLI loop
 ```
 
-CI runs the same suite as `uv run --no-sources pytest`, resolving the siblings from PyPI instead of the editable checkouts.
-
-The `dogshow/` cross-package integration + e2e suite is a **separate uv project** with its own venv and `dev` dependency group (flask, moto, bs4, coverage), so it runs from its own directory — the root `uv run pytest` deliberately does not collect it:
-
-```bash
-cd dogshow && uv run pytest         # collect → parse → validate → sql/draw → publish
-cd dogshow && make showcase         # boot the local site + relay, run the real dz CLI loop
-```
-
-The dogshow uses a `local` remote (`_remote/`), so `publish`/`pull` round-trips run with no external services.
+CI runs the core suite against the siblings' PyPI releases, i.e. a venv without `branb link`. The dogshow is a separate uv project (own venv, a `dev` group with flask, moto, bs4, coverage) whose `[tool.uv.sources]` pins the sibling checkouts as editables; the root `uv run pytest` does not collect it. Its remote is `local` (`_remote/`), so publish/pull need no external services.
