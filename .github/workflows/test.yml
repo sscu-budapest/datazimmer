@@ -19,7 +19,5 @@ jobs:
           enable-cache: true
       - name: Lint
         run: uvx ruff check datazimmer/
-      # the sibling libraries resolve from PyPI here; locally they are editable
-      # checkouts via [tool.uv.sources]
       - name: Test
-        run: uv run --no-sources pytest
+        run: uv run pytest
