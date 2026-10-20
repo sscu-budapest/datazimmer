@@ -79,6 +79,19 @@ lf = load("s3://bucket/datasets/dogshow", "breeds")   # lazy, no download (local
 
 Cross-project consumption is parquet-metadata-first; `dz schema codegen` optionally regenerates typed `Entity` classes from a published manifest.
 
+### Collection — aswan collectors on a cadence
+
+```python
+from datazimmer import DzAswan
+
+class Lichess(DzAswan):
+    name = "lichess"                  # the aswan depot
+    cadence = "1h"                    # 30m, 1h, 1d, 2w; none = runs only when named
+    starters = {GetTournaments: ["https://lichess.org/api/tournament"]}
+```
+
+`dz collect` imports the modules listed under `collectors` in `[tool.datazimmer]` and runs each collector whose cadence has passed since its last attempt, straight into the aswan depot root (`ASWAN_DEPOT_ROOT`); with `ASWAN_REMOTE` set, it pulls the depot first and pushes it after. A failed run counts as an attempt, so a broken collector is retried once per cadence, not on every call. Run it from a timer (cron, systemd) as often as the shortest cadence needs.
+
 ## Configuration (`pyproject.toml`)
 
 ```toml
@@ -86,6 +99,7 @@ Cross-project consumption is parquet-metadata-first; `dz schema codegen` optiona
 name = "dogshow"
 version = "0.1.0"
 package = "src"
+collectors = ["src.collection"]   # modules whose DzAswan classes `dz collect` runs
 
 [tool.datazimmer.remote]
 kind = "s3"                       # local | ssh | s3
@@ -103,6 +117,7 @@ Credentials use the standard env vars (`AWS_ACCESS_KEY_ID`, …); there is no cu
 ```bash
 dz init <name>            # scaffold a new project from the template
 dz run [--force]          # execute the pipeline (skips unchanged steps)
+dz collect [names…]       # run due collectors, or the named ones [--force] [--status]
 dz validate               # index uniqueness + foreign-key integrity
 dz sql [--constr URL]     # load all tables into a relational database
 dz draw [--out PATH]      # write a Mermaid ER diagram

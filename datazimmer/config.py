@@ -5,6 +5,7 @@ A datazimmer project is configured under ``[tool.datazimmer]``::
     [tool.datazimmer]
     name = "electiondata"
     version = "0.2.0"
+    collectors = ["src.collection"]   # modules defining its DzAswan collectors
 
     [tool.datazimmer.remote]          # the publish target
     kind = "s3"                       # local | ssh | s3
@@ -15,9 +16,12 @@ A datazimmer project is configured under ``[tool.datazimmer]``::
     version = "0.1.0"                              # exact; omit for the latest
 """
 
+import sys
 import tomllib
 from dataclasses import dataclass, field
+from importlib import import_module
 from pathlib import Path
+from types import ModuleType
 
 TOOL_TABLE = "datazimmer"
 STATE_DIR = ".datazimmer"
@@ -45,6 +49,7 @@ class Config:
     root: Path = field(default_factory=Path.cwd)
     remote: RemoteConfig | None = None
     dependencies: list[Dependency] = field(default_factory=list)
+    collectors: list[str] = field(default_factory=list)
 
     @classmethod
     def load(cls, root: Path | str = ".") -> "Config":
@@ -74,11 +79,18 @@ class Config:
             root=root,
             remote=remote,
             dependencies=deps,
+            collectors=list(raw.get("collectors", [])),
         )
 
     @property
     def state_dir(self) -> Path:
         return self.root / STATE_DIR
+
+    def import_module(self, name: str) -> ModuleType:
+        """Import one of the project's modules, with its root on ``sys.path``."""
+        if str(self.root) not in sys.path:
+            sys.path.insert(0, str(self.root))
+        return import_module(name)
 
     def get_dependency(self, name: str) -> Dependency:
         for dep in self.dependencies:

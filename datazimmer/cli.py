@@ -4,7 +4,6 @@
 completion.
 """
 
-import importlib
 import json
 import shutil
 import sys
@@ -38,6 +37,29 @@ def _cmd_run(*, force: bool = False) -> None:
     config = Config.load()
     ran = _load_pipeline(config).run(force=force, state_dir=config.state_dir)
     print(f"ran: {ran}" if ran else "nothing to run (all steps up to date)")
+
+
+def _cmd_collect(*names: str, force: bool = False, status: bool = False) -> int | None:
+    """Run the due collectors of the modules listed under ``collectors``.
+
+    Args:
+        names: depots to collect now, whatever their cadence
+        force: run every collector with a cadence, due or not
+        status: print each collector's cadence, last attempt and due state; run none
+    """
+    from .aswan_integration import collect, collector_states
+
+    config = Config.load()
+    if status:
+        for state in collector_states(config):
+            print(state)
+        return None
+    ran, failed = collect(config, names, force=force)
+    print(f"ran: {ran}" if ran else "nothing due")
+    if failed:
+        print(f"failed: {failed}", file=sys.stderr)
+        return 1
+    return None
 
 
 def _cmd_publish() -> None:
@@ -152,9 +174,7 @@ def _cmd_init(name: str) -> int | None:
 
 
 def _load_pipeline(config: Config) -> Pipeline:
-    if str(config.root) not in sys.path:
-        sys.path.insert(0, str(config.root))
-    module = importlib.import_module(config.package)
+    module = config.import_module(config.package)
     pipeline = getattr(module, "pipeline", None)
     if not isinstance(pipeline, Pipeline):
         raise SystemExit(
@@ -167,6 +187,7 @@ main = Dispatcher(
     "dz",
     {
         "run": _cmd_run,
+        "collect": _cmd_collect,
         "publish": _cmd_publish,
         "pull": _cmd_pull,
         "validate": _cmd_validate,

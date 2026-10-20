@@ -18,7 +18,6 @@ A lean, fast, explicit scientific data management platform:
 ### Phase 5 — Data catalog & publication
 
 - **`catalog.py` / `dz catalog build`**: static site from project metadata + data samples. Per dataset: schema table (from `entity_metadata`), sample rows, lightweight column distributions, downloadable CSV (parquet→csv at build), ER diagram (reuse `sql.draw`), provenance (aswan source URLs / dates). Searchable index page. Deploy to any static host. Jinja2 → HTML.
-- **Scheduled collection**: a schedule declared on `DzAswan` → generated CI workflow that runs collection and `dz publish` on a schedule.
 - **Zenodo polish**: wire `dz zenodo` command around `ZenodoDeposit`; optional CITATION.cff regeneration.
 
 ### Phase 6 — Data project migration
