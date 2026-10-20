@@ -1,0 +1,27 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  gate:
+    # compatibility_test.yml here also requires the OS matrix to pass
+    uses: ./.github/workflows/test.yml
+  release:
+    needs: gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - uses: astral-sh/setup-uv@v10.3.0
+    - run: uv build && uv publish
+      env:
+        UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+    - run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --notes "$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME")"
+      env:
+        GH_TOKEN: ${{ github.token }}
