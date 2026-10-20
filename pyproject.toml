@@ -15,7 +15,7 @@ dependencies = [
 scripts = {datazimmer = "datazimmer.cli:main", dz = "datazimmer.cli:main"}
 
 [project.optional-dependencies]
-collect = ["aswan"]
+collect = ["aswan>=1.0.0"]
 s3 = ["boto3"]
 zenodo = ["requests"]
 
@@ -28,14 +28,6 @@ Homepage = "https://github.com/sscu-budapest/datazimmer"
 [build-system]
 requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
-
-[tool.uv.sources]
-shackleton = { path = "../../libs/shackleton", editable = true }
-sqlmermaid = { path = "../sqlmermaid", editable = true }
-protocli = { path = "../../libs/protocli", editable = true }
-aswan = { path = "../../libs/aswan", editable = true }
-dirark = { path = "../../libs/dirark", editable = true }
-atqo = { path = "../../libs/atqo", editable = true }
 
 [tool.ruff]
 line-length = 88

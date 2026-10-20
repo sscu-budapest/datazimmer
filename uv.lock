@@ -4,7 +4,8 @@ requires-python = ">=3.12"
 
 [[package]]
 name = "aswan"
-source = { editable = "../../libs/aswan" }
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "atqo" },
     { name = "dirark" },
@@ -12,46 +13,18 @@ dependencies = [
     { name = "requests" },
     { name = "sqlalchemy" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "atqo", editable = "../../libs/atqo" },
-    { name = "beautifulsoup4", marker = "extra == 'soup'" },
-    { name = "branthebuilder", marker = "extra == 'test'" },
-    { name = "dash", marker = "extra == 'monitor'" },
-    { name = "dash-bootstrap-components", marker = "extra == 'monitor'" },
-    { name = "dirark", editable = "../../libs/dirark" },
-    { name = "flask", marker = "extra == 'relay'" },
-    { name = "flask-cors", marker = "extra == 'relay'" },
-    { name = "protocli", editable = "../../libs/protocli" },
-    { name = "pytest-timeout", marker = "extra == 'test'" },
-    { name = "pyyaml", marker = "extra == 'legacy'" },
-    { name = "requests" },
-    { name = "selenium", marker = "extra == 'browser'" },
-    { name = "sqlalchemy" },
+sdist = { url = "https://files.pythonhosted.org/packages/7c/6d/69f3492b851262294b36b86ec2ce08ac840ecf10a577ddf9706047f9beb3/aswan-1.0.0.tar.gz", hash = "sha256:591c8fdc14445b6792223356c6454689901f81a4f87c2c40a2f5b42a61ef95e2", size = 50485, upload-time = "2026-10-20T10:36:36.889Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cf/38/2663dd90e6e9d6cb01a34736e4cde98634a2d81e616c7304cde98d4be493/aswan-1.0.0-py3-none-any.whl", hash = "sha256:e656935f8b59a85984d91564e835a47efa866b0f8d2a69d7799d8dce2ecff493", size = 62490, upload-time = "2026-10-20T10:36:35.702Z" },
 ]
-provides-extras = ["browser", "legacy", "monitor", "relay", "soup", "test"]
 
 [[package]]
 name = "atqo"
-source = { editable = "../../libs/atqo" }
-dependencies = [
-    { name = "tblib" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "tblib" },
-    { name = "tqdm", marker = "extra == 'fancy'" },
-]
-provides-extras = ["fancy"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=9.0.2" },
-    { name = "pytest-cov", specifier = ">=5.0.0" },
-    { name = "pytest-timeout", specifier = ">=2.3.1" },
-    { name = "tqdm", specifier = ">=4.66.0" },
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f0/ff/19e3bdb960cbc93d7fb90094179cf78b04663872e333c18983407f547eba/atqo-2.1.0.tar.gz", hash = "sha256:19fa5f3ac710e363396bcaed89b1b879c4d08882084fa9236460c722bc28fe9d", size = 38064, upload-time = "2026-10-20T10:02:58.163Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2c/4d/faffc462039f01c569855db50c8147e7bac3a310f794522593f38b040089/atqo-2.1.0-py3-none-any.whl", hash = "sha256:ec095120e5757f08471d395e62b2644d636a381d72b2faae3ce4f54d40244cb9", size = 34606, upload-time = "2026-10-20T10:02:57.297Z" },
 ]
 
 [[package]]
@@ -203,14 +176,14 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aswan", marker = "extra == 'collect'", editable = "../../libs/aswan" },
+    { name = "aswan", marker = "extra == 'collect'", specifier = ">=1.0.0" },
     { name = "boto3", marker = "extra == 's3'" },
     { name = "polars", specifier = ">=2" },
-    { name = "protocli", editable = "../../libs/protocli" },
+    { name = "protocli" },
     { name = "requests", marker = "extra == 'zenodo'" },
-    { name = "shackleton", editable = "../../libs/shackleton" },
+    { name = "shackleton" },
     { name = "sqlalchemy", specifier = ">=2.0.0" },
-    { name = "sqlmermaid", editable = "../sqlmermaid" },
+    { name = "sqlmermaid" },
 ]
 provides-extras = ["collect", "s3", "zenodo"]
 
@@ -222,19 +195,14 @@ dev = [
 
 [[package]]
 name = "dirark"
-source = { editable = "../../libs/dirark" }
+version = "0.4.1"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "protocli" },
 ]
-
-[package.metadata]
-requires-dist = [{ name = "protocli", editable = "../../libs/protocli" }]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=9.0.2" },
-    { name = "pytest-cov", specifier = ">=5.0.0" },
-    { name = "pytest-timeout", specifier = ">=2.3.1" },
+sdist = { url = "https://files.pythonhosted.org/packages/76/89/de5eeadde0b127e3d35f8f556eaff9062914ba8b5572ebe33afc447e33da/dirark-0.4.1.tar.gz", hash = "sha256:75b3299d227b4557957520014464773346584d95ef8e917655f7191a0c5cc42f", size = 31948, upload-time = "2026-10-20T09:54:03.894Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/60/1a68f19b5994ed2235818d7c1dea7c95aecadb207db10eeab2bc2f03443b/dirark-0.4.1-py3-none-any.whl", hash = "sha256:67323308059db0861e6f78a62e66a623810d5bfaba452f391d80225f899ff974", size = 24336, upload-time = "2026-10-20T09:54:03.013Z" },
 ]
 
 [[package]]
@@ -351,12 +319,12 @@ wheels = [
 
 [[package]]
 name = "protocli"
-source = { editable = "../../libs/protocli" }
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=9.0.2" }]
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9c/f0/e01a1bb87d9d42718cf5a0fb3517c977535a54914e948a09811d20609340/protocli-0.3.0.tar.gz", hash = "sha256:591587dd05058d5ba7789a1245e43b4cf64d438db31568fcdb4544948f7dc2f3", size = 14387, upload-time = "2026-10-19T22:53:50.972Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d3/57/2a9fad82e2457df09b49571c1b2c564bf64bfa813f55d92f25f1ffdce09b/protocli-0.3.0-py3-none-any.whl", hash = "sha256:ffeed598a0123aa090aebfa4f45097f9b2cdb019e075182bfc939aae25c16458", size = 12897, upload-time = "2026-10-19T22:53:50.018Z" },
+]
 
 [[package]]
 name = "pygments"
@@ -436,16 +404,15 @@ wheels = [
 
 [[package]]
 name = "shackleton"
-source = { editable = "../../libs/shackleton" }
+version = "2.0.1"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "polars" },
 ]
-
-[package.metadata]
-requires-dist = [{ name = "polars", specifier = ">=2" }]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=9.0.2" }]
+sdist = { url = "https://files.pythonhosted.org/packages/10/09/f7e36aeb4c89212779b7436d6357000d64186ff3847b575c09e6e4fa7aa8/shackleton-2.0.1.tar.gz", hash = "sha256:1fc354b999335933a3ccaffe70e0b4a2771f8f27fe70d9f693ed17ab32bfd2a9", size = 24729, upload-time = "2026-10-20T10:46:48.46Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e0/90/903f7ce14fbca020675fcadd244cdccc3a823258add74d1e9c5149bfa0bc/shackleton-2.0.1-py3-none-any.whl", hash = "sha256:aa12c57958dcc4abfe3addf197b2e4293e134f192f529fc00a68f07a5ac16208", size = 16959, upload-time = "2026-10-20T10:46:47.542Z" },
+]
 
 [[package]]
 name = "six"
@@ -504,21 +471,14 @@ wheels = [
 
 [[package]]
 name = "sqlmermaid"
-source = { editable = "../sqlmermaid" }
+version = "1.0.1"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "sqlalchemy" },
 ]
-
-[package.metadata]
-requires-dist = [{ name = "sqlalchemy", specifier = ">=2.0.0" }]
-
-[[package]]
-name = "tblib"
-version = "3.2.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/f4/8a/14c15ae154895cc131174f858c707790d416c444fc69f93918adfd8c4c0b/tblib-3.2.2.tar.gz", hash = "sha256:e9a652692d91bf4f743d4a15bc174c0b76afc750fe8c7b6d195cc1c1d6d2ccec", size = 35046, upload-time = "2025-11-12T12:21:16.572Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/81/53/edceaa5a1ce3d005ac00f6efa60511282b59300f4c8dabfb7993921c96fa/sqlmermaid-1.0.1.tar.gz", hash = "sha256:bfa89a21f1e355ed8d09256722b5144af7d2520ec4a025dd2559c071a30810a4", size = 17585, upload-time = "2026-10-20T10:42:07.674Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/02/be/5d2d47b1fb58943194fb59dcf222f7c4e35122ec0ffe8c36e18b5d728f0b/tblib-3.2.2-py3-none-any.whl", hash = "sha256:26bdccf339bcce6a88b2b5432c988b266ebbe63a4e593f6b578b1d2e723d2b76", size = 12893, upload-time = "2025-11-12T12:21:14.407Z" },
+    { url = "https://files.pythonhosted.org/packages/4d/2c/4027ce6bcbbf1948d5a0b6b067dfac4b90276b60d71fe2d99c87f7cbf89d/sqlmermaid-1.0.1-py3-none-any.whl", hash = "sha256:3bc4b1bfeed97d66d73d68d37bd70ed53cd498eff36b46a7b6ef8f2ad8a53afd", size = 6500, upload-time = "2026-10-20T10:42:06.563Z" },
 ]
 
 [[package]]
